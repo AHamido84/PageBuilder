@@ -68,7 +68,14 @@ export async function createProductAction(_prev: FormActionState, formData: Form
   return { success: true, id: product.id };
 }
 
-const updateProductSchema = productSchema.extend({ id: z.string().min(1) });
+const updateProductSchema = productSchema.extend({
+  id: z.string().min(1),
+  originCountry: z.string().max(120).optional().or(z.literal("")),
+  packagingEn: z.string().max(2000).optional().or(z.literal("")),
+  packagingAr: z.string().max(2000).optional().or(z.literal("")),
+  storageEn: z.string().max(2000).optional().or(z.literal("")),
+  storageAr: z.string().max(2000).optional().or(z.literal("")),
+});
 
 export async function updateProductAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
   const currentUser = await getCurrentUser();
@@ -97,17 +104,42 @@ export async function updateProductAction(_prev: FormActionState, formData: Form
         brandId: data.brandId || null,
         temperatureClass: data.temperatureClass,
         isPublished: formData.has("isPublished"),
+        originCountry: data.originCountry || null,
       },
     }),
     prisma.productTranslation.upsert({
       where: { productId_locale: { productId: data.id, locale: "EN" } },
-      create: { productId: data.id, locale: "EN", name: data.nameEn, description: data.descriptionEn || null },
-      update: { name: data.nameEn, description: data.descriptionEn || null },
+      create: {
+        productId: data.id,
+        locale: "EN",
+        name: data.nameEn,
+        description: data.descriptionEn || null,
+        packagingInfo: data.packagingEn || null,
+        storageInfo: data.storageEn || null,
+      },
+      update: {
+        name: data.nameEn,
+        description: data.descriptionEn || null,
+        packagingInfo: data.packagingEn || null,
+        storageInfo: data.storageEn || null,
+      },
     }),
     prisma.productTranslation.upsert({
       where: { productId_locale: { productId: data.id, locale: "AR" } },
-      create: { productId: data.id, locale: "AR", name: data.nameAr, description: data.descriptionAr || null },
-      update: { name: data.nameAr, description: data.descriptionAr || null },
+      create: {
+        productId: data.id,
+        locale: "AR",
+        name: data.nameAr,
+        description: data.descriptionAr || null,
+        packagingInfo: data.packagingAr || null,
+        storageInfo: data.storageAr || null,
+      },
+      update: {
+        name: data.nameAr,
+        description: data.descriptionAr || null,
+        packagingInfo: data.packagingAr || null,
+        storageInfo: data.storageAr || null,
+      },
     }),
   ]);
 

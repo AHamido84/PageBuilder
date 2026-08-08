@@ -242,6 +242,7 @@ model Product {
   slug             String           @unique
   temperatureClass TemperatureClass
   isPublished      Boolean          @default(false)
+  originCountry    String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -265,11 +266,13 @@ model Product {
 }
 
 model ProductTranslation {
-  id          String  @id @default(cuid())
-  productId   String
-  locale      Locale
-  name        String
-  description String?
+  id            String  @id @default(cuid())
+  productId     String
+  locale        Locale
+  name          String
+  description   String?
+  packagingInfo String?
+  storageInfo   String?
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
@@ -531,6 +534,13 @@ model SEO {
 
   blogPostId String?   @unique
   blogPost   BlogPost? @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  locale    Locale?
+  createdAt DateTime @default(now())
 }
 
 model ActivityLog {

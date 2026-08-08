@@ -14,7 +14,14 @@ interface Props {
     brandId: string | null;
     temperatureClass: "FROZEN" | "CHILLED" | "AMBIENT";
     isPublished: boolean;
-    translations: { locale: "EN" | "AR"; name: string; description: string | null }[];
+    originCountry: string | null;
+    translations: {
+      locale: "EN" | "AR";
+      name: string;
+      description: string | null;
+      packagingInfo: string | null;
+      storageInfo: string | null;
+    }[];
   };
   categories: { id: string; slug: string }[];
   brands: { id: string; slug: string }[];
@@ -84,6 +91,27 @@ export function EditProductForm({ product, categories, brands }: Props) {
       <div dir="rtl">
         <label className="mb-1 block text-xs text-neutral-400">الوصف (عربي)</label>
         <textarea name="descriptionAr" defaultValue={ar?.description ?? ""} rows={3} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Country of origin</label>
+        <input name="originCountry" defaultValue={product.originCountry ?? ""} placeholder="e.g. Brazil" className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+      </div>
+      <div />
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Packaging (English)</label>
+        <textarea name="packagingEn" defaultValue={en?.packagingInfo ?? ""} rows={2} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+      </div>
+      <div dir="rtl">
+        <label className="mb-1 block text-xs text-neutral-400">التعبئة (عربي)</label>
+        <textarea name="packagingAr" defaultValue={ar?.packagingInfo ?? ""} rows={2} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Storage (English)</label>
+        <textarea name="storageEn" defaultValue={en?.storageInfo ?? ""} rows={2} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+      </div>
+      <div dir="rtl">
+        <label className="mb-1 block text-xs text-neutral-400">التخزين (عربي)</label>
+        <textarea name="storageAr" defaultValue={ar?.storageInfo ?? ""} rows={2} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
       </div>
       {state.error ? <p className="col-span-full text-sm text-red-400">{state.error}</p> : null}
       {state.success ? <p className="col-span-full text-sm text-emerald-400">Saved.</p> : null}

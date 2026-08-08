@@ -1,26 +1,116 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-ink: #0b1c2c;
+  --color-ink-soft: #1c3245;
+  --color-paper: #f7f5f0;
+  --color-paper-dim: #eeebe2;
+  --color-harbor: #1f4e5f;
+  --color-harbor-soft: #e6edee;
+  --color-wheat: #c99a4b;
+  --color-wheat-soft: #f1e4c9;
+  --color-frost: #dce6e4;
+  --color-signal: #b23a2f;
+  --color-signal-soft: #f4e0dd;
+
+  --shadow-card: 0 1px 2px rgba(11, 28, 44, 0.06), 0 8px 24px -12px rgba(11, 28, 44, 0.18);
+  --shadow-lifted: 0 4px 8px rgba(11, 28, 44, 0.08), 0 24px 48px -16px rgba(11, 28, 44, 0.28);
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  --container-max: 1400px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-paper: var(--color-paper);
+  --color-paper-dim: var(--color-paper-dim);
+  --color-harbor: var(--color-harbor);
+  --color-harbor-soft: var(--color-harbor-soft);
+  --color-wheat: var(--color-wheat);
+  --color-wheat-soft: var(--color-wheat-soft);
+  --color-frost: var(--color-frost);
+  --color-signal: var(--color-signal);
+  --color-signal-soft: var(--color-signal-soft);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+  --font-arabic: var(--font-arabic);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-lifted: var(--shadow-lifted);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html[dir="rtl"] {
+  --font-ui: var(--font-arabic);
+}
+html[dir="ltr"] {
+  --font-ui: var(--font-body);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui), var(--font-body), sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+
+html[dir="rtl"] .font-display {
+  font-family: var(--font-arabic), sans-serif;
+  font-stretch: normal;
+  letter-spacing: 0;
+}
+
+.font-display {
+  font-family: var(--font-display), sans-serif;
+  font-stretch: 133%;
+  letter-spacing: -0.01em;
+}
+
+.font-mono-data {
+  font-family: var(--font-mono), monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Manifest strip — the recurring signature motif: a thin data ledger used as
+   hero footer, section divider, and card metadata. Always real content, never decorative filler. */
+.manifest-strip {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Mirrors directional icons (arrows) for RTL without swapping characters. */
+html[dir="rtl"] .flip-rtl {
+  transform: scaleX(-1);
+}
+
+::selection {
+  background: var(--color-wheat);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-wheat);
+  outline-offset: 2px;
 }
