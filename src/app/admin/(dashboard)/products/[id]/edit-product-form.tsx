@@ -14,6 +14,7 @@ interface Props {
     brandId: string | null;
     temperatureClass: "FROZEN" | "CHILLED" | "AMBIENT";
     isPublished: boolean;
+    isFeatured: boolean;
     originCountry: string | null;
     translations: {
       locale: "EN" | "AR";
@@ -72,10 +73,16 @@ export function EditProductForm({ product, categories, brands }: Props) {
           <option value="AMBIENT">Ambient</option>
         </select>
       </div>
-      <label className="flex items-end gap-2 pb-1.5 text-sm text-neutral-300">
-        <input type="checkbox" name="isPublished" value="true" defaultChecked={product.isPublished} />
-        Published
-      </label>
+      <div className="flex items-end gap-4 pb-1.5">
+        <label className="flex items-center gap-2 text-sm text-neutral-300">
+          <input type="checkbox" name="isPublished" value="true" defaultChecked={product.isPublished} />
+          Published
+        </label>
+        <label className="flex items-center gap-2 text-sm text-neutral-300">
+          <input type="checkbox" name="isFeatured" value="true" defaultChecked={product.isFeatured} />
+          Featured
+        </label>
+      </div>
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Name (English)</label>
         <input name="nameEn" defaultValue={en?.name} required className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />

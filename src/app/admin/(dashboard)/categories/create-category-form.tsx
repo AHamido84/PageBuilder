@@ -21,6 +21,10 @@ export function CreateCategoryForm({ categories }: { categories: { id: string; s
         <input name="slug" required placeholder="frozen-poultry" className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
       </div>
       <div>
+        <label className="mb-1 block text-xs text-neutral-400">Icon (emoji, optional)</label>
+        <input name="icon" placeholder="🧊" maxLength={10} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+      </div>
+      <div>
         <label className="mb-1 block text-xs text-neutral-400">Parent category</label>
         <select name="parentId" defaultValue="" className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm">
           <option value="">None</option>

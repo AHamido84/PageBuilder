@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { CreateProductForm } from "./create-product-form";
-import { DeleteProductButton } from "./delete-product-button";
+import { ProductRowActions } from "./product-row-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +59,14 @@ export default async function ProductsPage() {
                   <td className="px-4 py-2">{categoryNameEn}</td>
                   <td className="px-4 py-2">{product.temperatureClass}</td>
                   <td className="px-4 py-2">{product.isPublished ? "Published" : "Draft"}</td>
-                  <td className="px-4 py-2 text-right">{canDelete ? <DeleteProductButton productId={product.id} /> : null}</td>
+                  <td className="px-4 py-2 text-right">
+                    <ProductRowActions
+                      productId={product.id}
+                      isPublished={product.isPublished}
+                      isFeatured={product.isFeatured}
+                      canDelete={canDelete}
+                    />
+                  </td>
                 </tr>
               );
             })}

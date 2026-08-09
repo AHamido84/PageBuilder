@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import type { MediaType } from "@prisma/client";
 
@@ -10,6 +10,8 @@ const ALLOWED_MIME_TYPES: Record<string, { ext: string; type: MediaType; maxByte
   "image/png": { ext: "png", type: "IMAGE", maxBytes: 5 * 1024 * 1024 },
   "image/webp": { ext: "webp", type: "IMAGE", maxBytes: 5 * 1024 * 1024 },
   "application/pdf": { ext: "pdf", type: "DOCUMENT", maxBytes: 10 * 1024 * 1024 },
+  "video/mp4": { ext: "mp4", type: "VIDEO", maxBytes: 50 * 1024 * 1024 },
+  "video/webm": { ext: "webm", type: "VIDEO", maxBytes: 50 * 1024 * 1024 },
 };
 
 const UPLOAD_ROOT = path.join(process.cwd(), "public", "uploads");
@@ -50,4 +52,16 @@ export async function saveUploadedFile(file: File): Promise<SavedFile> {
   const url = `/uploads/${subDir.replace(/\\/g, "/")}/${fileName}`;
 
   return { fileName, url, mimeType: file.type, type: rule.type, sizeBytes: file.size };
+}
+
+/** Deletes a previously uploaded file given its public URL. Safe to call even if the file is already gone. */
+export async function deleteUploadedFile(url: string): Promise<void> {
+  if (!url.startsWith("/uploads/")) return;
+  const relativePath = url.replace(/^\/uploads\//, "");
+  const targetPath = path.join(UPLOAD_ROOT, relativePath);
+  try {
+    await unlink(targetPath);
+  } catch {
+    // Already gone or never existed on disk — nothing to do.
+  }
 }

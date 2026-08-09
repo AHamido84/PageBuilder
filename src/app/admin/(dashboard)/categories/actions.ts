@@ -14,6 +14,7 @@ const slugSchema = z
 
 const categorySchema = z.object({
   slug: slugSchema,
+  icon: z.string().max(10).optional().or(z.literal("")),
   nameEn: z.string().min(1).max(200),
   nameAr: z.string().min(1).max(200),
   descriptionEn: z.string().max(2000).optional().or(z.literal("")),
@@ -46,6 +47,7 @@ export async function createCategoryAction(_prev: FormActionState, formData: For
   const category = await prisma.category.create({
     data: {
       slug: data.slug,
+      icon: data.icon || null,
       order: data.order,
       parentId: data.parentId || null,
       imageId: data.imageId || null,
@@ -85,6 +87,7 @@ export async function updateCategoryAction(_prev: FormActionState, formData: For
       where: { id: data.id },
       data: {
         slug: data.slug,
+        icon: data.icon || null,
         order: data.order,
         parentId: data.parentId || null,
         imageId: data.imageId || null,
@@ -121,4 +124,63 @@ export async function deleteCategoryAction(categoryId: string): Promise<{ error?
   await logActivity({ userId: currentUser.id, action: "category.delete", entityType: "Category", entityId: categoryId });
   revalidatePath("/admin/categories");
   return {};
+}
+
+export async function reorderCategoriesAction(orderedIds: string[]): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "categories", "update");
+
+  await prisma.$transaction(
+    orderedIds.map((id, index) => prisma.category.update({ where: { id }, data: { order: index } }))
+  );
+
+  await logActivity({ userId: currentUser.id, action: "category.reorder", entityType: "Category" });
+  revalidatePath("/admin/categories");
+  return {};
+}
+
+const categorySeoSchema = z.object({
+  categoryId: z.string().min(1),
+  titleEn: z.string().max(200).optional().or(z.literal("")),
+  titleAr: z.string().max(200).optional().or(z.literal("")),
+  descriptionEn: z.string().max(400).optional().or(z.literal("")),
+  descriptionAr: z.string().max(400).optional().or(z.literal("")),
+  canonicalUrl: z.string().max(300).optional().or(z.literal("")),
+});
+
+export async function updateCategorySeoAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "categories", "update");
+
+  const parsed = categorySeoSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const data = parsed.data;
+  const noIndex = formData.has("noIndex");
+
+  await prisma.sEO.upsert({
+    where: { categoryId: data.categoryId },
+    create: {
+      categoryId: data.categoryId,
+      titleEn: data.titleEn || null,
+      titleAr: data.titleAr || null,
+      descriptionEn: data.descriptionEn || null,
+      descriptionAr: data.descriptionAr || null,
+      canonicalUrl: data.canonicalUrl || null,
+      noIndex,
+    },
+    update: {
+      titleEn: data.titleEn || null,
+      titleAr: data.titleAr || null,
+      descriptionEn: data.descriptionEn || null,
+      descriptionAr: data.descriptionAr || null,
+      canonicalUrl: data.canonicalUrl || null,
+      noIndex,
+    },
+  });
+
+  await logActivity({ userId: currentUser.id, action: "category.seo.update", entityType: "Category", entityId: data.categoryId });
+  revalidatePath(`/admin/categories/${data.categoryId}`);
+  return { success: true };
 }

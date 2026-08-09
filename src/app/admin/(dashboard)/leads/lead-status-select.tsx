@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateLeadStatusAction } from "./actions";
 
-const STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "LOST"];
+const STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "IN_PROGRESS", "WON", "LOST"];
 
 export function LeadStatusSelect({ leadId, status }: { leadId: string; status: string }) {
   const [pending, startTransition] = useTransition();

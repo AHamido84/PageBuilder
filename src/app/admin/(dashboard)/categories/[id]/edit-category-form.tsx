@@ -10,6 +10,7 @@ interface Props {
   category: {
     id: string;
     slug: string;
+    icon: string | null;
     order: number;
     isActive: boolean;
     parentId: string | null;
@@ -31,6 +32,10 @@ export function EditCategoryForm({ category, categories }: Props) {
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Slug</label>
         <input name="slug" defaultValue={category.slug} required className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Icon (emoji, optional)</label>
+        <input name="icon" defaultValue={category.icon ?? ""} maxLength={10} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Parent category</label>

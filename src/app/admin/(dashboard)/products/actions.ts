@@ -104,6 +104,7 @@ export async function updateProductAction(_prev: FormActionState, formData: Form
         brandId: data.brandId || null,
         temperatureClass: data.temperatureClass,
         isPublished: formData.has("isPublished"),
+        isFeatured: formData.has("isFeatured"),
         originCountry: data.originCountry || null,
       },
     }),
@@ -183,4 +184,137 @@ export async function removeProductImageAction(productId: string, mediaId: strin
 
   revalidatePath(`/admin/products/${productId}`);
   return {};
+}
+
+export async function setProductSpecSheetAction(productId: string, mediaId: string | null): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "products", "update");
+
+  await prisma.product.update({ where: { id: productId }, data: { specSheetId: mediaId } });
+  revalidatePath(`/admin/products/${productId}`);
+  return {};
+}
+
+export async function togglePublishAction(productId: string, isPublished: boolean): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "products", "update");
+
+  await prisma.product.update({ where: { id: productId }, data: { isPublished } });
+  await logActivity({
+    userId: currentUser.id,
+    action: isPublished ? "product.publish" : "product.unpublish",
+    entityType: "Product",
+    entityId: productId,
+  });
+  revalidatePath("/admin/products");
+  return {};
+}
+
+export async function toggleFeatureAction(productId: string, isFeatured: boolean): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "products", "update");
+
+  await prisma.product.update({ where: { id: productId }, data: { isFeatured } });
+  await logActivity({
+    userId: currentUser.id,
+    action: isFeatured ? "product.feature" : "product.unfeature",
+    entityType: "Product",
+    entityId: productId,
+  });
+  revalidatePath("/admin/products");
+  return {};
+}
+
+const productSeoSchema = z.object({
+  productId: z.string().min(1),
+  titleEn: z.string().max(200).optional().or(z.literal("")),
+  titleAr: z.string().max(200).optional().or(z.literal("")),
+  descriptionEn: z.string().max(400).optional().or(z.literal("")),
+  descriptionAr: z.string().max(400).optional().or(z.literal("")),
+  canonicalUrl: z.string().max(300).optional().or(z.literal("")),
+});
+
+export async function updateProductSeoAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "products", "update");
+
+  const parsed = productSeoSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const data = parsed.data;
+  const noIndex = formData.has("noIndex");
+
+  await prisma.sEO.upsert({
+    where: { productId: data.productId },
+    create: {
+      productId: data.productId,
+      titleEn: data.titleEn || null,
+      titleAr: data.titleAr || null,
+      descriptionEn: data.descriptionEn || null,
+      descriptionAr: data.descriptionAr || null,
+      canonicalUrl: data.canonicalUrl || null,
+      noIndex,
+    },
+    update: {
+      titleEn: data.titleEn || null,
+      titleAr: data.titleAr || null,
+      descriptionEn: data.descriptionEn || null,
+      descriptionAr: data.descriptionAr || null,
+      canonicalUrl: data.canonicalUrl || null,
+      noIndex,
+    },
+  });
+
+  await logActivity({ userId: currentUser.id, action: "product.seo.update", entityType: "Product", entityId: data.productId });
+  revalidatePath(`/admin/products/${data.productId}`);
+  return { success: true };
+}
+
+export async function duplicateProductAction(productId: string): Promise<{ error?: string; id?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "products", "create");
+
+  const source = await prisma.product.findUnique({
+    where: { id: productId },
+    include: { translations: true, images: { select: { id: true } } },
+  });
+  if (!source) return { error: "Product not found." };
+
+  let suffix = 2;
+  let newSku = `${source.sku}-COPY`;
+  let newSlug = `${source.slug}-copy`;
+  while (await prisma.product.findFirst({ where: { OR: [{ sku: newSku }, { slug: newSlug }] } })) {
+    newSku = `${source.sku}-COPY-${suffix}`;
+    newSlug = `${source.slug}-copy-${suffix}`;
+    suffix += 1;
+  }
+
+  const copy = await prisma.product.create({
+    data: {
+      sku: newSku,
+      slug: newSlug,
+      categoryId: source.categoryId,
+      brandId: source.brandId,
+      temperatureClass: source.temperatureClass,
+      originCountry: source.originCountry,
+      specSheetId: source.specSheetId,
+      isPublished: false,
+      isFeatured: false,
+      images: { connect: source.images.map((image) => ({ id: image.id })) },
+      translations: {
+        create: source.translations.map((t) => ({
+          locale: t.locale,
+          name: t.name,
+          description: t.description,
+          packagingInfo: t.packagingInfo,
+          storageInfo: t.storageInfo,
+        })),
+      },
+    },
+  });
+
+  await logActivity({ userId: currentUser.id, action: "product.duplicate", entityType: "Product", entityId: copy.id });
+  revalidatePath("/admin/products");
+  return { id: copy.id };
 }

@@ -4,9 +4,15 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addProductImageAction, removeProductImageAction } from "../actions";
 
+interface GalleryItem {
+  id: string;
+  url: string;
+  type: "IMAGE" | "DOCUMENT" | "VIDEO";
+}
+
 interface Props {
   productId: string;
-  images: { id: string; url: string }[];
+  images: GalleryItem[];
 }
 
 export function ProductImageGallery({ productId, images }: Props) {
@@ -42,18 +48,24 @@ export function ProductImageGallery({ productId, images }: Props) {
 
   return (
     <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-      <h2 className="mb-3 text-sm font-medium">Images</h2>
+      <h2 className="mb-3 text-sm font-medium">Gallery (images &amp; videos)</h2>
       <div className="mb-3 flex flex-wrap gap-3">
-        {images.map((image) => (
-          <div key={image.id} className="relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={image.url} alt="" className="h-20 w-20 rounded-md border border-neutral-700 object-cover" />
+        {images.map((item) => (
+          <div key={item.id} className="relative">
+            {item.type === "IMAGE" ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.url} alt="" className="h-20 w-20 rounded-md border border-neutral-700 object-cover" />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-md border border-neutral-700 bg-neutral-800 text-2xl">
+                🎬
+              </div>
+            )}
             <button
               type="button"
               disabled={pending}
               onClick={() =>
                 startTransition(async () => {
-                  await removeProductImageAction(productId, image.id);
+                  await removeProductImageAction(productId, item.id);
                   router.refresh();
                 })
               }
@@ -66,7 +78,7 @@ export function ProductImageGallery({ productId, images }: Props) {
       </div>
       <input
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
         onChange={handleUpload}
         className="block text-sm text-neutral-300 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-800 file:px-3 file:py-1.5 file:text-sm file:text-neutral-200"
       />

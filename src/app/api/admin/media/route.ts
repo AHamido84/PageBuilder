@@ -3,6 +3,45 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, can } from "@/lib/rbac/current-user";
 import { saveUploadedFile, MediaUploadError } from "@/lib/media-upload";
 import { logActivity } from "@/lib/activity-log";
+import type { Prisma } from "@prisma/client";
+
+export async function GET(request: Request) {
+  const user = await getCurrentUser();
+  if (!user || !can(user, "media", "read")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const type = searchParams.get("type");
+  const q = searchParams.get("q");
+
+  const where: Prisma.MediaWhereInput = {};
+  if (type === "IMAGE" || type === "DOCUMENT" || type === "VIDEO") {
+    where.type = type;
+  }
+  if (q) {
+    where.originalName = { contains: q, mode: "insensitive" };
+  }
+
+  const media = await prisma.media.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: 100,
+    select: {
+      id: true,
+      url: true,
+      originalName: true,
+      type: true,
+      mimeType: true,
+      sizeBytes: true,
+      altTextEn: true,
+      altTextAr: true,
+      createdAt: true,
+    },
+  });
+
+  return NextResponse.json({ media });
+}
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
