@@ -13,9 +13,17 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@prisma/client": "^6.19.3",
+    "@tiptap/extension-link": "^3.29.2",
+    "@tiptap/pm": "^3.29.2",
+    "@tiptap/react": "^3.29.2",
+    "@tiptap/starter-kit": "^3.29.2",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.8",
+    "lucide-react": "^1.31.0",
     "next": "16.3.0",
     "next-intl": "^4.13.5",
     "prisma": "^6.19.3",

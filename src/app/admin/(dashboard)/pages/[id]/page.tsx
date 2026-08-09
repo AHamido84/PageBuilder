@@ -5,7 +5,6 @@ import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { Tabs } from "@/components/admin/ui/tabs";
 import { SeoForm } from "@/components/admin/ui/seo-form";
 import { PageDetailsForm } from "./page-details-form";
-import { SectionList, type SectionItem } from "./section-list";
 import { PageRowActions } from "../page-row-actions";
 import { updatePageSeoAction } from "../actions";
 
@@ -16,33 +15,25 @@ export default async function EditPagePage({ params }: { params: Promise<{ id: s
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "pages", "update");
 
-  const [page, categories] = await Promise.all([
-    prisma.page.findUnique({ where: { id }, include: { sections: true, seo: true } }),
-    prisma.category.findMany({ include: { translations: true }, orderBy: { slug: "asc" } }),
-  ]);
+  const page = await prisma.page.findUnique({ where: { id }, include: { sections: true, seo: true } });
 
   if (!page) notFound();
-
-  const categoryOptions = categories.map((c) => ({ id: c.id, label: c.translations.find((t) => t.locale === "EN")?.name ?? c.slug }));
-  const sections: SectionItem[] = page.sections.map((s) => ({
-    id: s.id,
-    type: s.type,
-    order: s.order,
-    isVisible: s.isVisible,
-    dataEn: s.dataEn as Record<string, unknown>,
-    dataAr: s.dataAr as Record<string, unknown>,
-  }));
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold">/{page.slug}</h1>
-          <p className="text-sm text-neutral-500">{page.status}</p>
+          <p className="text-sm text-neutral-500">
+            {page.status} · {page.sections.length} section{page.sections.length === 1 ? "" : "s"}
+          </p>
         </div>
         <div className="flex items-center gap-4">
           <Link href={`/en/${page.slug}`} target="_blank" className="text-sm text-neutral-400 hover:text-neutral-100">
             Preview →
+          </Link>
+          <Link href={`/admin/pages/${page.id}/builder`} className="rounded-md bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-white">
+            Open Page Builder →
           </Link>
           <PageRowActions pageId={page.id} status={page.status} canDelete={currentUser.permissions.has("pages:delete")} />
         </div>
@@ -51,7 +42,6 @@ export default async function EditPagePage({ params }: { params: Promise<{ id: s
       <Tabs
         items={[
           { key: "details", label: "Details", content: <PageDetailsForm pageId={page.id} slug={page.slug} /> },
-          { key: "sections", label: `Sections (${sections.length})`, content: <SectionList pageId={page.id} sections={sections} categories={categoryOptions} /> },
           {
             key: "seo",
             label: "SEO",

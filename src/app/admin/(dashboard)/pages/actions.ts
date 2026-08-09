@@ -114,6 +114,7 @@ export async function duplicatePageAction(pageId: string): Promise<{ error?: str
           order: s.order,
           dataEn: s.dataEn as object,
           dataAr: s.dataAr as object,
+          settings: s.settings as object,
           isVisible: s.isVisible,
         })),
       },

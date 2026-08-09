@@ -147,22 +147,24 @@ model PageSection {
   order     Int
   dataEn    Json
   dataAr    Json
+  settings  Json     @default("{}")
   isVisible Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
-  @@unique([pageId, order])
+  @@index([pageId, order])
   @@index([pageId])
 }
 
 model PageRevision {
-  id        String   @id @default(cuid())
-  pageId    String
-  snapshot  Json
-  note      String?
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  pageId      String
+  snapshot    Json
+  note        String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
   page     Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
   authorId String?
@@ -170,6 +172,7 @@ model PageRevision {
 
   @@index([pageId])
   @@index([authorId])
+  @@index([pageId, isPublished])
 }
 
 // ---------------------------------------------------------------------------

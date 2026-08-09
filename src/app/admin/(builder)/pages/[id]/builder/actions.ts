@@ -1,0 +1,184 @@
+"use server";
+
+import { z } from "zod";
+import sanitizeHtml from "sanitize-html";
+import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
+import { logActivity } from "@/lib/activity-log";
+import { getBlock } from "@/lib/page-builder/registry";
+import type { BuilderSection } from "@/lib/page-builder/types";
+
+const sectionInputSchema = z.object({
+  id: z.string().min(1),
+  type: z.string().min(1),
+  dataEn: z.unknown(),
+  dataAr: z.unknown(),
+  settings: z.unknown(),
+  isVisible: z.boolean(),
+});
+
+export interface SaveDraftResult {
+  success: boolean;
+  error?: string;
+  savedAt?: string;
+}
+
+const RICH_TEXT_ALLOWLIST: sanitizeHtml.IOptions = {
+  allowedTags: ["b", "i", "u", "s", "strong", "em", "p", "h2", "h3", "h4", "ul", "ol", "li", "a", "br"],
+  allowedAttributes: { a: ["href"] },
+  allowedSchemes: ["http", "https", "mailto"],
+};
+
+function sanitizeSectionData(type: string, data: unknown): unknown {
+  if (type !== "RICH_TEXT" || typeof data !== "object" || data === null) return data;
+  const record = data as Record<string, unknown>;
+  return { ...record, html: sanitizeHtml(typeof record.html === "string" ? record.html : "", RICH_TEXT_ALLOWLIST) };
+}
+
+/** Bulk-replaces a page's sections in one transaction. No unique(pageId,order) constraint exists anymore — order is always derived from array position, never trusted from the client beyond ordering. */
+export async function saveDraftAction(pageId: string, sections: unknown[]): Promise<SaveDraftResult> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "pages", "update");
+
+  const parsed = z.array(sectionInputSchema).safeParse(sections);
+  if (!parsed.success) return { success: false, error: "Invalid section payload." };
+
+  for (const s of parsed.data) {
+    const block = getBlock(s.type);
+    if (!block) return { success: false, error: `Unknown block type "${s.type}".` };
+    const enResult = block.dataSchema.safeParse(s.dataEn);
+    const arResult = block.dataSchema.safeParse(s.dataAr);
+    if (!enResult.success || !arResult.success) {
+      return { success: false, error: `Invalid content in a "${block.label}" section.` };
+    }
+  }
+
+  const sanitized = parsed.data.map((s) => ({
+    ...s,
+    dataEn: sanitizeSectionData(s.type, s.dataEn),
+    dataAr: sanitizeSectionData(s.type, s.dataAr),
+  }));
+
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.pageSection.findMany({ where: { pageId }, select: { id: true } });
+    const incomingIds = new Set(sanitized.map((s) => s.id));
+    const toDelete = existing.filter((e) => !incomingIds.has(e.id)).map((e) => e.id);
+    if (toDelete.length) await tx.pageSection.deleteMany({ where: { id: { in: toDelete } } });
+
+    for (let i = 0; i < sanitized.length; i++) {
+      const s = sanitized[i];
+      await tx.pageSection.upsert({
+        where: { id: s.id },
+        create: {
+          id: s.id,
+          pageId,
+          type: s.type,
+          order: i,
+          dataEn: s.dataEn as Prisma.InputJsonValue,
+          dataAr: s.dataAr as Prisma.InputJsonValue,
+          settings: s.settings as unknown as Prisma.InputJsonValue,
+          isVisible: s.isVisible,
+        },
+        update: {
+          type: s.type,
+          order: i,
+          dataEn: s.dataEn as Prisma.InputJsonValue,
+          dataAr: s.dataAr as Prisma.InputJsonValue,
+          settings: s.settings as unknown as Prisma.InputJsonValue,
+          isVisible: s.isVisible,
+        },
+      });
+    }
+  });
+
+  await logActivity({ userId: currentUser.id, action: "pageSection.saveDraft", entityType: "Page", entityId: pageId });
+  revalidatePath(`/admin/pages/${pageId}/builder`);
+  return { success: true, savedAt: new Date().toISOString() };
+}
+
+/** Snapshots the current working draft into a new published PageRevision and flips Page.status. */
+export async function publishPageAction(pageId: string): Promise<{ success: boolean; error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "pages", "publish");
+
+  const page = await prisma.page.findUnique({ where: { id: pageId }, include: { sections: { orderBy: { order: "asc" } } } });
+  if (!page) return { success: false, error: "Page not found." };
+
+  const snapshotSections: BuilderSection[] = page.sections.map((s) => ({
+    id: s.id,
+    type: s.type,
+    order: s.order,
+    dataEn: s.dataEn,
+    dataAr: s.dataAr,
+    settings: s.settings as unknown as BuilderSection["settings"],
+    isVisible: s.isVisible,
+  }));
+
+  await prisma.$transaction(async (tx) => {
+    await tx.pageRevision.updateMany({ where: { pageId, isPublished: true }, data: { isPublished: false } });
+    await tx.pageRevision.create({
+      data: { pageId, authorId: currentUser.id, isPublished: true, snapshot: { sections: snapshotSections } as unknown as Prisma.InputJsonValue },
+    });
+    await tx.page.update({ where: { id: pageId }, data: { status: "PUBLISHED", publishedAt: new Date() } });
+  });
+
+  await logActivity({ userId: currentUser.id, action: "page.publish", entityType: "Page", entityId: pageId });
+  revalidatePath(`/en/${page.slug}`);
+  revalidatePath(`/ar/${page.slug}`);
+  revalidatePath(`/admin/pages/${pageId}/builder`);
+  return { success: true };
+}
+
+/**
+ * Restores a past revision's content into the live working draft WITHOUT
+ * auto-republishing — the admin reviews the restored draft and must click
+ * Publish again to make it live. A safety revision of the pre-restore state
+ * is taken first so a restore itself can always be undone.
+ */
+export async function restoreRevisionAction(pageId: string, revisionId: string): Promise<{ success: boolean; error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "pages", "update");
+
+  const revision = await prisma.pageRevision.findUnique({ where: { id: revisionId } });
+  if (!revision || revision.pageId !== pageId) return { success: false, error: "Revision not found." };
+
+  const snapshot = revision.snapshot as unknown as { sections: BuilderSection[] };
+
+  await prisma.$transaction(async (tx) => {
+    const current = await tx.pageSection.findMany({ where: { pageId }, orderBy: { order: "asc" } });
+    await tx.pageRevision.create({
+      data: {
+        pageId,
+        authorId: currentUser.id,
+        isPublished: false,
+        note: "Auto-saved before restore",
+        snapshot: {
+          sections: current.map((s) => ({ id: s.id, type: s.type, order: s.order, dataEn: s.dataEn, dataAr: s.dataAr, settings: s.settings, isVisible: s.isVisible })),
+        } as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    await tx.pageSection.deleteMany({ where: { pageId } });
+    for (let i = 0; i < snapshot.sections.length; i++) {
+      const s = snapshot.sections[i];
+      await tx.pageSection.create({
+        data: {
+          id: crypto.randomUUID(),
+          pageId,
+          type: s.type,
+          order: i,
+          dataEn: s.dataEn as Prisma.InputJsonValue,
+          dataAr: s.dataAr as Prisma.InputJsonValue,
+          settings: s.settings as unknown as Prisma.InputJsonValue,
+          isVisible: s.isVisible,
+        },
+      });
+    }
+  });
+
+  await logActivity({ userId: currentUser.id, action: "page.restoreRevision", entityType: "Page", entityId: pageId });
+  revalidatePath(`/admin/pages/${pageId}/builder`);
+  return { success: true };
+}
