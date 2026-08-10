@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile, unlink } from "node:fs/promises";
-import path from "node:path";
+import { put, del } from "@vercel/blob";
 import sharp from "sharp";
 import sanitizeHtml from "sanitize-html";
 import type { MediaType } from "@prisma/client";
@@ -19,8 +18,6 @@ const ALLOWED_MIME_TYPES: Record<string, { ext: string; type: MediaType; maxByte
 
 const RASTER_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_DIMENSION = 2000;
-
-const UPLOAD_ROOT = path.join(process.cwd(), "public", "uploads");
 
 export interface SavedFile {
   fileName: string;
@@ -97,27 +94,26 @@ export async function saveUploadedFile(file: File): Promise<SavedFile> {
   }
 
   const now = new Date();
-  const subDir = path.join(String(now.getUTCFullYear()), String(now.getUTCMonth() + 1).padStart(2, "0"));
-  const targetDir = path.join(UPLOAD_ROOT, subDir);
-  await mkdir(targetDir, { recursive: true });
-
+  const subDir = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const fileName = `${randomUUID()}.${rule.ext}`;
-  const targetPath = path.join(targetDir, fileName);
-  await writeFile(targetPath, buffer);
+  // addRandomSuffix: false is safe here -- the UUID above already guarantees uniqueness,
+  // and a stable pathname keeps the stored `fileName` in sync with the actual blob URL.
+  const blob = await put(`uploads/${subDir}/${fileName}`, buffer, {
+    access: "public",
+    contentType: file.type,
+    addRandomSuffix: false,
+  });
 
-  const url = `/uploads/${subDir.replace(/\\/g, "/")}/${fileName}`;
-
-  return { fileName, url, mimeType: file.type, type: rule.type, sizeBytes: buffer.byteLength, width, height };
+  return { fileName, url: blob.url, mimeType: file.type, type: rule.type, sizeBytes: buffer.byteLength, width, height };
 }
 
-/** Deletes a previously uploaded file given its public URL. Safe to call even if the file is already gone. */
+/** Deletes a previously uploaded file given its public blob URL. Safe to call even if the file is already gone
+ *  (or is a pre-migration `/uploads/...` local-disk path from before the Vercel Blob switchover). */
 export async function deleteUploadedFile(url: string): Promise<void> {
-  if (!url.startsWith("/uploads/")) return;
-  const relativePath = url.replace(/^\/uploads\//, "");
-  const targetPath = path.join(UPLOAD_ROOT, relativePath);
+  if (!/^https?:\/\//.test(url)) return;
   try {
-    await unlink(targetPath);
+    await del(url);
   } catch {
-    // Already gone or never existed on disk — nothing to do.
+    // Already gone or never existed — nothing to do.
   }
 }

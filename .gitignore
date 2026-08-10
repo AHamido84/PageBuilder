@@ -50,3 +50,5 @@ next-env.d.ts
 
 # local dev media uploads (not deployed as-is -- see HANDOFF.md media-storage gap)
 /public/uploads/
+
+.env*

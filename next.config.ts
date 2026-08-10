@@ -14,7 +14,8 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "img-src 'self' data: blob:",
+      "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
+      "media-src 'self' https://*.public.blob.vercel-storage.com",
       `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self' data:",
