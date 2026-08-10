@@ -11,8 +11,14 @@ const initialState: LeadFormState = {};
 const inputClasses =
   "w-full rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm text-ink placeholder:text-ink/35 focus:border-harbor";
 
-export function ContactForm({ defaultProductName }: { defaultProductName?: string }) {
+interface ContactFormProps {
+  /** When set, renders product-inquiry mode: links the lead to this product and shows two distinct submit actions instead of one generic "Send". */
+  productId?: string;
+}
+
+export function ContactForm({ productId }: ContactFormProps) {
   const t = useTranslations("contactForm");
+  const tDetail = useTranslations("productDetail");
   const locale = useLocale();
   const toast = useToast();
   const [state, formAction, pending] = useActionState(submitLeadAction, initialState);
@@ -31,7 +37,7 @@ export function ContactForm({ defaultProductName }: { defaultProductName?: strin
   return (
     <form ref={formRef} action={formAction} className="mx-auto grid max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
       <input type="hidden" name="locale" value={locale.toUpperCase()} />
-      {defaultProductName ? <input type="hidden" name="message" value={`Inquiry: ${defaultProductName}`} /> : null}
+      {productId ? <input type="hidden" name="productId" value={productId} /> : null}
       {/* Honeypot field — hidden from real users via CSS, left empty by them. */}
       <div className="hidden" aria-hidden="true">
         <label htmlFor="website">Website</label>
@@ -54,17 +60,26 @@ export function ContactForm({ defaultProductName }: { defaultProductName?: strin
         <label className="mb-1.5 block text-sm text-ink/60">{t("phone")}</label>
         <input name="phone" className={inputClasses} />
       </div>
-      {!defaultProductName ? (
-        <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-sm text-ink/60">{t("message")}</label>
-          <textarea name="message" rows={4} className={inputClasses} />
-        </div>
-      ) : null}
-
       <div className="sm:col-span-2">
-        <button type="submit" disabled={pending} className={buttonClasses("primary", "lg", "w-full sm:w-auto")}>
-          {pending ? t("submitting") : t("submit")}
-        </button>
+        <label className="mb-1.5 block text-sm text-ink/60">{t("message")}</label>
+        <textarea name="message" rows={4} className={inputClasses} />
+      </div>
+
+      <div className="flex flex-wrap gap-3 sm:col-span-2">
+        {productId ? (
+          <>
+            <button type="submit" name="inquiryType" value="INFO" disabled={pending} className={buttonClasses("secondary", "lg")}>
+              {pending ? t("submitting") : tDetail("requestInfo")}
+            </button>
+            <button type="submit" name="inquiryType" value="QUOTE" disabled={pending} className={buttonClasses("primary", "lg")}>
+              {pending ? t("submitting") : tDetail("requestQuote")}
+            </button>
+          </>
+        ) : (
+          <button type="submit" disabled={pending} className={buttonClasses("primary", "lg", "w-full sm:w-auto")}>
+            {pending ? t("submitting") : t("submit")}
+          </button>
+        )}
       </div>
     </form>
   );

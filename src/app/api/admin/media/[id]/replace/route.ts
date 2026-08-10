@@ -34,6 +34,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         type: saved.type,
         sizeBytes: saved.sizeBytes,
         url: saved.url,
+        width: saved.width,
+        height: saved.height,
       },
     });
 

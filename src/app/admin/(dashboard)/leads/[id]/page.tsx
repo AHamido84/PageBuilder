@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { EditLeadForm } from "./edit-lead-form";
@@ -13,7 +14,10 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
   const lead = await prisma.lead.findUnique({
     where: { id },
-    include: { notes: { orderBy: { createdAt: "desc" }, include: { author: { select: { name: true } } } } },
+    include: {
+      notes: { orderBy: { createdAt: "desc" }, include: { author: { select: { name: true } } } },
+      product: { select: { id: true, sku: true, translations: { where: { locale: "EN" }, select: { name: true } } } },
+    },
   });
 
   if (!lead) notFound();
@@ -21,7 +25,19 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
       <div>
-        <h1 className="mb-6 text-lg font-semibold">{lead.contactName}</h1>
+        <h1 className="mb-2 text-lg font-semibold">{lead.contactName}</h1>
+        <p className="mb-6 text-sm text-neutral-500">
+          {lead.inquiryType}
+          {lead.product ? (
+            <>
+              {" "}
+              ·{" "}
+              <Link href={`/admin/products/${lead.product.id}`} className="hover:underline">
+                {lead.product.translations[0]?.name ?? lead.product.sku}
+              </Link>
+            </>
+          ) : null}
+        </p>
         <EditLeadForm lead={lead} />
       </div>
       <div>

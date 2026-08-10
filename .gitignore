@@ -47,3 +47,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# local dev media uploads (not deployed as-is -- see HANDOFF.md media-storage gap)
+/public/uploads/

@@ -42,7 +42,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
               <th className="px-4 py-2">Contact</th>
               <th className="px-4 py-2">Company</th>
               <th className="px-4 py-2">Email</th>
-              <th className="px-4 py-2">Industry</th>
+              <th className="px-4 py-2">Product</th>
+              <th className="px-4 py-2">Type</th>
               <th className="px-4 py-2">Status</th>
               <th className="px-4 py-2">Received</th>
             </tr>
@@ -57,7 +58,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                 </td>
                 <td className="px-4 py-2 text-neutral-400">{lead.companyName ?? "—"}</td>
                 <td className="px-4 py-2 text-neutral-400">{lead.email}</td>
-                <td className="px-4 py-2 text-neutral-400">{lead.industry?.nameEn ?? "—"}</td>
+                <td className="px-4 py-2 text-neutral-400">{lead.product?.sku ?? "—"}</td>
+                <td className="px-4 py-2 text-neutral-400">{lead.inquiryType}</td>
                 <td className="px-4 py-2">
                   {canUpdate ? <LeadStatusSelect leadId={lead.id} status={lead.status} /> : lead.status}
                 </td>
@@ -66,7 +68,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
             ))}
             {leads.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-neutral-500">
+                <td colSpan={7} className="px-4 py-6 text-center text-neutral-500">
                   No leads match those filters.
                 </td>
               </tr>

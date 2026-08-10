@@ -10,6 +10,7 @@ export interface ProductCardData {
   name: string;
   categoryName: string;
   imageUrl: string | null;
+  shortDescription?: string | null;
 }
 
 export function ProductCard({ product, locale }: { product: ProductCardData; locale: string }) {
@@ -32,7 +33,8 @@ export function ProductCard({ product, locale }: { product: ProductCardData; loc
         </div>
         <div className="p-4">
           <p className="manifest-strip mb-2 text-ink/40">{product.categoryName}</p>
-          <p className="mb-2 font-medium leading-snug">{product.name}</p>
+          <p className="mb-1 font-medium leading-snug">{product.name}</p>
+          {product.shortDescription ? <p className="mb-2 line-clamp-2 text-sm text-ink/55">{product.shortDescription}</p> : null}
           <div className="flex items-center justify-between">
             <span className="font-mono-data text-xs text-ink/40">{product.sku}</span>
             <TemperatureBadge value={product.temperatureClass} locale={locale} />

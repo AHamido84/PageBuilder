@@ -8,7 +8,7 @@ import { createProductAction, type FormActionState } from "./actions";
 const initialState: FormActionState = {};
 
 interface Props {
-  categories: { id: string; slug: string }[];
+  categories: { id: string; label: string }[];
   brands: { id: string; slug: string }[];
 }
 
@@ -38,7 +38,7 @@ export function CreateProductForm({ categories, brands }: Props) {
           <option value="">Select...</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.slug}
+              {c.label}
             </option>
           ))}
         </select>
@@ -70,6 +70,14 @@ export function CreateProductForm({ categories, brands }: Props) {
       <div dir="rtl">
         <label className="mb-1 block text-xs text-neutral-400">الاسم (عربي)</label>
         <input name="nameAr" required className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Short description (English)</label>
+        <input name="shortDescriptionEn" className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+      </div>
+      <div dir="rtl">
+        <label className="mb-1 block text-xs text-neutral-400">وصف قصير (عربي)</label>
+        <input name="shortDescriptionAr" className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Description (English)</label>

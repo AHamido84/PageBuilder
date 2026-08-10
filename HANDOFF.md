@@ -8,16 +8,17 @@
 
 A production website + enterprise CMS for **Seven Eleven Trading**, a real Jeddah-based wholesale food distributor (verified via LinkedIn: founded 2023, 51–200 employees, frozen-food specialty, serves hotels/restaurants/catering/hospitals/wholesale). No fabricated certifications, awards, or stats appear anywhere in the build — only verified facts or clearly-labeled placeholders.
 
-Built in 5 phases so far, each a separate user-issued command:
+Built in 6 phases so far, each a separate user-issued command:
 - **Phase 0** — architecture analysis & plan (see `PROJECT-PLAN.md`)
 - **Phase 1** — database, auth, RBAC, foundational admin CRUD
 - **Phase 2** — premium public website (design system + all public pages)
 - **Phase 3** — enterprise CMS (every remaining admin module)
 - **Phase 4** — real visual Page Builder: 31-block registry, drag-and-drop canvas, responsive per-breakpoint styling, draft/publish snapshot versioning with restore (see below)
+- **Phase 5** — product catalog depth (specs/certifications/related products/multi-document media), a hardened Media Library (MIME+extension+size validation, image optimization, SVG sanitization), split product inquiries (Request Info vs. Request Quote), public Blog + FAQ, and a real demo-content seed script (see "Product Catalog & Media architecture" below)
 
 Also: this app is deployed to production on Vercel at `https://seven-eleven-trading.vercel.app`, on a separate Neon branch (`prod`) from the dev database described below — see "Production deployment" further down.
 
-Everything is committed and pushed to **https://github.com/AHamido84/PageBuilder** (branch `main`). Working tree was clean as of the last Phase 3 commit; Phase 4's changes are described here but confirm `git status`/`git log` for the current commit.
+Everything through Phase 4 is committed and pushed to **https://github.com/AHamido84/PageBuilder** (branch `main`). Phase 5's changes are committed **locally only** — not yet pushed to GitHub and not yet deployed to Vercel (neither was requested for this phase; confirm `git status`/`git log` for the current state before assuming otherwise).
 
 ---
 
@@ -54,7 +55,9 @@ Palette: Ink `#0B1C2C`, Paper `#F7F5F0`, Harbor `#1F4E5F`, Wheat `#C99A4B`, Fros
 
 ## Full database schema (models)
 
-`User`, `Role`, `Permission`, `RolePermission` (RBAC — 15 resources × 5 actions = 75 permissions, 5 roles: Super Admin/Content Manager/Marketing Manager/Sales/Viewer) · `Page`, `PageSection` (+ `settings` Json, Phase 4), `PageRevision` (+ `isPublished` Bool, Phase 4 — now actually written on every Publish, see below) · `Category`, `CategoryTranslation` (+ icon, SEO) · `Brand`, `BrandTranslation` (+ logo, banner, SEO) · `Product`, `ProductTranslation` (+ isFeatured, originCountry, packaging/storage info) · `Media` · `Menu`, `MenuItem` (links to Page/Category/Product/custom URL) · `BlogCategory`, `Tag`, `BlogPost` · `Form`, `FormSubmission` · `Industry`, `Lead`, `LeadNote` · `Certification` (schema exists, no admin UI yet) · `SiteSetting` (singleton, fully expanded) · `SEO` (attachable to Page/Product/BlogPost/Category/Brand) · `NewsletterSubscriber` · `ActivityLog`.
+`User`, `Role`, `Permission`, `RolePermission` (RBAC — 16 resources × 5 actions = 80 permissions after Phase 5 added `faqs`, 5 roles: Super Admin/Content Manager/Marketing Manager/Sales/Viewer) · `Page`, `PageSection` (+ `settings` Json, Phase 4), `PageRevision` (+ `isPublished` Bool, Phase 4 — now actually written on every Publish, see below) · `Category`, `CategoryTranslation` (+ icon, SEO) · `Brand`, `BrandTranslation` (+ logo, banner, SEO) · `Product` (+ `weight`, `dimensions`, `relatedProductIds String[]`, Phase 5), `ProductTranslation` (+ isFeatured, originCountry, packaging/storage info, + `shortDescription`/`ingredients`/`nutritionInfo`/`allergens`, Phase 5) · `Media` (+ `width`/`height` now actually populated, Phase 5) · `Menu`, `MenuItem` (links to Page/Category/Product/custom URL) · `BlogCategory`, `Tag`, `BlogPost` · `Form`, `FormSubmission` · `Industry`, `Lead` (+ `inquiryType LeadInquiryType`, Phase 5), `LeadNote` · `Certification` (schema existed since Phase 1; admin UI + product relation added Phase 5, seeded with zero rows — see gaps) · `Faq` (new, Phase 5) · `SiteSetting` (singleton, fully expanded) · `SEO` (attachable to Page/Product/BlogPost/Category/Brand) · `NewsletterSubscriber` · `ActivityLog`.
+
+Product's `videos`/`documents` are separate `Media[]` relations from the pre-existing `images` gallery (Phase 5 split a single mixed image+video bucket into three distinct relations). `relatedProducts` ended up as a plain `relatedProductIds String[]` scalar array on `Product`, **not** a Prisma self-relation as originally planned — simpler to query/update (no join table, no symmetric-relation semantics to reason about) and sufficient for a curated "pick a few related SKUs" use case.
 
 ---
 
@@ -64,20 +67,22 @@ All under `/admin/*`, protected by the RBAC session + `src/proxy.ts` (Next 16's 
 
 - `/admin` — dashboard with live stats
 - `/admin/pages`, `/admin/pages/[id]` — page list + Details/SEO; `/admin/pages/[id]/builder` — **the real visual Page Builder** (Phase 4): full-screen editor, 31 registry-driven block types (see "Page Builder architecture" below), drag-and-drop reorder, responsive Desktop/Tablet/Mobile settings per section, undo/redo, autosave, and real draft→publish versioning with a restorable revision history
-- `/admin/media` — Media Library (upload/search/filter/rename/replace/delete)
+- `/admin/media` — Media Library (upload/search/filter/rename/replace/delete; Phase 5: JPG/PNG/WEBP/SVG/MP4/WEBM/PDF with MIME+extension+size validation, raster images auto-resized >2000px and re-encoded via `sharp`, SVGs sanitized on upload, `width`/`height` now actually populated)
 - `/admin/menus` — Menu Builder (header/footer, nested items)
 - `/admin/blog`, `/admin/blog/[id]` — Blog CMS
-- `/admin/products`, `/admin/products/[id]` — Products (full CRUD, feature/duplicate/publish toggle, video upload, spec sheet, SEO)
+- `/admin/products`, `/admin/products/[id]` — Products: list has search/category/brand/status filters + pagination (Phase 5); detail is 5 tabs — Details, Specifications (weight/dimensions/packaging/storage/ingredients/nutrition/allergens, Phase 5), Media (Images/Videos/Documents via one generic `product-media-collection.tsx`, Phase 5), Related & Certifications (curated related-product picker + certification checklist, Phase 5), SEO
 - `/admin/categories`, `/admin/categories/[id]` — Categories (nested tree, reorder, icon, SEO)
 - `/admin/brands`, `/admin/brands/[id]` — Brands (full CRUD, logo/banner, SEO)
-- `/admin/leads`, `/admin/leads/[id]` — Leads (notes, CSV export, search/filter)
+- `/admin/certifications`, `/admin/certifications/[id]` — Certifications (new, Phase 5: slug, name EN·AR, issuer, valid from/until, image, publish toggle; seeded with **zero rows**, see gaps)
+- `/admin/faqs`, `/admin/faqs/[id]` — FAQs (new, Phase 5: question/answer EN·AR, category tag, order, publish toggle)
+- `/admin/leads`, `/admin/leads/[id]` — Leads (notes, CSV export, search/filter; Phase 5: Product + Inquiry Type columns, `Lead.productId`/`inquiryType` finally populated by the public inquiry forms)
 - `/admin/forms`, `/admin/forms/[id]` — lightweight Form/FormSubmission management (see gaps)
 - `/admin/users`, `/admin/users/[id]` — Users
 - `/admin/roles` — Roles (read-only view of seeded RBAC matrix; no custom role builder UI yet)
 - `/admin/settings` — Settings (General/Contact/Social/Hours/SEO defaults/Footer — all configurable)
 - `/admin/activity` — Activity Log viewer
 
-Shared admin UX kit at `src/components/admin/ui/`: `Modal`, `Drawer`, `ConfirmDialog` (promise-based, replaces `window.confirm`), `Toast`, `Tabs`, `SeoForm`, `MediaPickerField` (browse-or-upload, used everywhere), `DeleteButton`.
+Shared admin UX kit at `src/components/admin/ui/`: `Modal`, `Drawer`, `ConfirmDialog` (promise-based, replaces `window.confirm`), `Toast`, `Tabs`, `SeoForm`, `MediaPickerField` (browse-or-upload, used everywhere; Phase 5: accepts SVG too), `DeleteButton`, `Pagination` (new, Phase 5 — `variant?: "dark"|"light"`, reused by both the admin product list and the public product listing).
 
 ---
 
@@ -85,7 +90,7 @@ Shared admin UX kit at `src/components/admin/ui/`: `Modal`, `Drawer`, `ConfirmDi
 
 All under `/[locale]/*` (`ar`/`en`), driven by `src/proxy.ts` + `next-intl`:
 
-`/`, `/products`, `/products/[slug]`, `/brands`, `/brands/[slug]`, `/about`, `/solutions`, `/solutions/[segment]` (7 real segments: hotels/restaurants/catering/hospitals/wholesale/retail/food-service), `/quality-food-safety`, `/distribution-logistics`, `/contact`, `/privacy`, `/terms`, `/cookies`, and a **catch-all `/[...slug]`** that renders CMS pages created via the Page Builder (respects draft/publish status + admin-preview access).
+`/`, `/products` (search + category + brand filter + pagination, Phase 5), `/products/[slug]` (Phase 5: short description, Additional Information section for weight/dimensions/ingredients/nutrition/allergens — each rendered only if populated, certification badges, document downloads, videos alongside the image gallery, curated related products falling back to same-category auto-query), `/brands`, `/brands/[slug]`, `/about`, `/solutions`, `/solutions/[segment]` (7 real segments: hotels/restaurants/catering/hospitals/wholesale/retail/food-service), `/quality-food-safety`, `/distribution-logistics`, `/blog`, `/blog/[slug]` (new, Phase 5 — first public consumer of the Blog CMS), `/faq` (new, Phase 5 — grouped by category, accordion UI), `/contact`, `/privacy`, `/terms`, `/cookies`, and a **catch-all `/[...slug]`** that renders CMS pages created via the Page Builder (respects draft/publish status + admin-preview access).
 
 Header (sticky, mega menus for Products/Solutions/Company, mobile drawer) and Footer (nav, real newsletter signup, contact from `SiteSetting`, legal links) wrap every page.
 
@@ -94,22 +99,26 @@ Header (sticky, mega menus for Products/Solutions/Company, mobile drawer) and Fo
 ## Genuine gaps — read before continuing
 
 1. **Public header/footer menu is still Phase 2's static nav, not wired to the new `Menu`/`MenuItem` records.** The Menu Builder admin is real, but nothing on the public site reads from it yet. This is probably the highest-value next task if continuing the CMS thread.
-2. **No public `/blog` listing or `/blog/[slug]` page.** The Blog CMS admin is fully real; there's just no public consumer yet.
-3. **The dormant `Form`/`FormSubmission` system is still untouched.** Phase 4's new Contact Form/Quote Form page-builder blocks deliberately write to `Lead` (the real CRM pipeline), same as the existing site-wide contact form — this was a conscious choice, not an oversight; see "Page Builder architecture" below.
-4. **`Certification` model exists in the schema with no admin UI and no public page.**
+2. ~~No public `/blog` listing or `/blog/[slug]` page~~ — **resolved in Phase 5.** `/[locale]/blog` and `/[locale]/blog/[slug]` are real.
+3. **The dormant `Form`/`FormSubmission` system is still untouched.** Both Phase 4's Contact Form/Quote Form page-builder blocks and Phase 5's product inquiry forms deliberately write to `Lead` (the real CRM pipeline) — a conscious choice, not an oversight; see "Page Builder architecture" below.
+4. ~~`Certification` model exists in the schema with no admin UI and no public page~~ — **partially resolved in Phase 5.** `/admin/certifications` is real and products can be linked to certifications; there is still no dedicated public certifications page, and **zero certifications are seeded** (deliberate — the user's instruction was explicit: do not invent certifications; the feature is ready to use the moment the user supplies real, verified certification data).
 5. ~~`PageRevision` model exists but nothing writes to it~~ — **resolved in Phase 4.** Every Publish now snapshots into `PageRevision` (`isPublished` flag marks the live one), and Restore is real (see below).
 6. **No custom role/permission builder UI** — `/admin/roles` is read-only; roles are seeded, not editable via UI.
 7. **No automated test suite** (Vitest/Playwright). All verification so far has been manual/scripted against a real build and real database — thorough, but not a committed regression suite.
-8. **Test data lives in the real database** (never cleaned up, always flagged to the user, never auto-deleted):
-   - Category "Frozen Poultry" (`frozen-poultry`)
-   - Product "Whole Frozen Chicken" (`FP-1001`, published, with real packaging/storage/origin data)
-   - Lead "Ahmed Al-Otaibi"
-   - Brand "Nordic Foods" (`nordic-foods`)
-   - Page `/test-cms-page` (published, one Text section — this predates Phase 4's registry; its `TEXT` type is gone from the new registry, so it'll render as an empty/skipped section now. Delete and recreate through the new builder if it needs to stay.)
-   - Page `/page-builder-e2e-test` (Phase 4's end-to-end test page — Hero/Rich Text/Feature Cards/Accordion sections, published). Same disposable-test-data status as the rest of this list.
-   - The user has been asked multiple times whether to clean these up and hasn't answered yet — worth asking again or just doing it (low-risk, clearly-labeled test data) if it comes up. **Note: the production Vercel deployment's database is clean/empty of all this** — it's only the dev Neon branch that has it.
-9. **Not every `SiteSetting` field is consumed on the public site yet** — e.g. logo/favicon replacing the text wordmark, map embed display, business hours display. The admin can configure them; the public site doesn't render all of them yet.
-10. **The hardcoded marketing homepage (`src/app/[locale]/page.tsx`) is still hardcoded React**, not a Page Builder-driven `Page`/`PageSection` record. This was a deliberate Phase 4 scope boundary, not an oversight — ask before migrating it if that comes up.
+8. **Phase 5's schema migration (`20260810015850_product_catalog_v2`) has only been applied to the dev Neon branch**, and Phase 5's code changes are committed **locally only** — not pushed to GitHub, not deployed to Vercel. Before Phase 5 features can go live: push to `main`, apply the migration to the `prod` Neon branch (`prisma migrate deploy` against the prod `DATABASE_URL`), then deploy.
+9. **Uploaded media is written to the local filesystem** (`public/uploads/`, see `src/lib/media-upload.ts`), which is **fine for local dev but won't persist on Vercel** — Vercel's serverless functions have an ephemeral/read-only filesystem outside `/tmp`, so any file uploaded through `/admin/media` in production today will vanish (or fail to write) after the instance recycles. Not yet hit in practice because Phase 5 hasn't been deployed. Needs a real object-storage backend (Vercel Blob, S3, R2, etc.) before Phase 5's Media Library is usable in production — flag this to the user before deploying.
+10. **Test data lives in the real (dev) database** (never cleaned up, always flagged to the user, never auto-deleted):
+    - Category "Frozen Poultry" (`frozen-poultry`)
+    - Product "Whole Frozen Chicken" (`FP-1001`, published, with real packaging/storage/origin data)
+    - Lead "Ahmed Al-Otaibi"
+    - Brand "Nordic Foods" (`nordic-foods`)
+    - Page `/test-cms-page` (published, one Text section — this predates Phase 4's registry; its `TEXT` type is gone from the new registry, so it'll render as an empty/skipped section now. Delete and recreate through the new builder if it needs to stay.)
+    - Page `/page-builder-e2e-test` (Phase 4's end-to-end test page — Hero/Rich Text/Feature Cards/Accordion sections, published). Same disposable-test-data status as the rest of this list.
+    - Plus Phase 5's real demo catalog from `scripts/seed-demo-content.ts` (19 categories, 6 brands, 23 products, 6 blog posts, 10 FAQs, 0 certifications) — see "Demo content" below. This is meant to look like real catalog data (it's what a visitor/reviewer will see), unlike the items above which are throwaway single-record test fixtures.
+    - One test SVG (`public/uploads/2026/08/…svg`) uploaded while verifying the Phase 5 SVG-sanitizer fix — left on disk, not committed (see `.gitignore`).
+    - The user has been asked multiple times whether to clean up the single-record test fixtures and hasn't answered yet — worth asking again or just doing it (low-risk, clearly-labeled test data) if it comes up. **Note: the production Vercel deployment's database is clean/empty of all this** — it's only the dev Neon branch that has it.
+11. **Not every `SiteSetting` field is consumed on the public site yet** — e.g. logo/favicon replacing the text wordmark, map embed display, business hours display. The admin can configure them; the public site doesn't render all of them yet.
+12. **The hardcoded marketing homepage (`src/app/[locale]/page.tsx`) is still hardcoded React**, not a Page Builder-driven `Page`/`PageSection` record. This was a deliberate Phase 4 scope boundary, not an oversight — ask before migrating it if that comes up.
 
 ---
 
@@ -131,9 +140,25 @@ Registry-driven, not hardcoded: `src/lib/page-builder/registry.ts` assembles `BL
 
 ---
 
+## Product Catalog & Media architecture (Phase 5)
+
+**Products stay simple, unlike pages**: Page Builder's draft/working-copy vs. published-snapshot split does **not** apply to `Product`. A product is just `isPublished: Boolean` — editing a published product changes it live immediately, same as Categories/Brands/Blog. This is intentional (products aren't a layout-authoring surface with an undo/preview workflow; they're catalog records), not a leftover gap.
+
+**`relatedProductIds` is a scalar array, not a relation**: `Product.relatedProductIds String[] @default([])` holds raw product ids picked via the admin's Related & Certifications tab. This was a deliberate simplification from the original plan (a `Product[] @relation("RelatedProducts")` self many-to-many) — a scalar array needs no join table and no symmetric-relation bookkeeping, and the picker only needs "show me these specific other products," never a query in the reverse direction. If a product referenced in the array gets deleted, its id just becomes a harmless dangling entry (the detail-page query filters to `{ id: { in: relatedProductIds } }`, which silently ignores ids that no longer resolve) — no cascading delete/foreign-key error to handle.
+
+**SVG upload security bug found and fixed during Phase 5's own testing** (`src/lib/media-upload.ts`): the first version of `sanitizeSvg()` passed `allowedAttributes: false` to `sanitize-html`, which means "allow every attribute on every tag" — the exact opposite of the intended allowlist, and it let `onload`/`onclick`/etc. straight through while only the `<script>` tag itself got stripped. Caught by a direct test payload (`<svg onload="alert(1)"><script>alert('xss')</script><circle onclick="alert(2)"/></svg>`), not user-reported. Fixed with an explicit `SVG_SAFE_ATTRIBUTES` allowlist (presentation/geometry attributes only) passed as `allowedAttributes: { "*": SVG_SAFE_ATTRIBUTES }`. If touching SVG handling again: `allowedAttributes: false` in `sanitize-html` is a footgun that reads like "no attributes allowed" but means the opposite — always pass an explicit list.
+
+**Media pipeline**: `saveUploadedFile()` validates both MIME type *and* derives the file extension from that validated MIME type (never from the client-supplied filename, so a malicious extension can't reach disk) *and* enforces a per-type size cap (images 5MB, SVG 1MB, PDF 10MB, video 50MB). Raster images (`jpeg`/`png`/`webp`) go through `sharp`: resized down (preserving aspect ratio) if wider than 2000px, re-encoded at quality ~82, and their final `width`/`height` returned and persisted on `Media` — previously-empty columns. SVGs are sanitized (above) but not resized (vector). Video/PDF pass through unmodified. See gap #9 above: this all writes to the local filesystem, which is dev-only until an object-storage backend is added.
+
+**Inquiry split**: `contact-form.tsx` renders two submit buttons using the native HTML multi-submit-button pattern — `<button type="submit" name="inquiryType" value="INFO">` and `value="QUOTE"` — so only the clicked button's name/value pair reaches `FormData`, giving Request Info vs. Request Quote without any extra client-side state. `submitLead()`/`leadSchema` (`src/lib/leads/submit-lead.ts`) accept an optional `productId`, looked up defensively (doesn't throw if the id doesn't resolve) so a stale product reference can't break lead submission.
+
+**Demo content**: `scripts/seed-demo-content.ts` (run via `tsx`, standalone from `prisma/seed.ts` which stays focused on auth/RBAC bootstrap) is real and rerunnable — it upserts by slug/SKU, so running it again updates rather than duplicates. Current counts in the dev database: 19 categories (with subcategories), 6 brands, 23 products (all new Phase 5 fields populated with realistic-but-generic bilingual copy), 6 blog posts, 10 FAQs, **0 certifications** (deliberate — see gap #4). Every fabricated detail in this content is a generic product/operational attribute (weight, packaging, typical allergens, etc.); no certifications, awards, partnerships, revenue figures, customer counts, or geographic/official company claims were invented anywhere, per the user's explicit instruction.
+
+---
+
 ## Production deployment
 
-Live at **https://seven-eleven-trading.vercel.app** (Vercel project `ahamido/seven-eleven-trading`, connected to this GitHub repo — pushes to `main` auto-deploy). Uses a **separate Neon branch** (`prod`, not the dev branch this file otherwise describes) with its own clean database — seeded with only a Super Admin account, no test data. Production env vars (`DATABASE_URL`, `SESSION_SECRET`, `NEXT_PUBLIC_SITE_URL`) are set directly in Vercel, independent of the local `.env`. Phase 4's schema migration (`PageSection.settings`, `PageRevision.isPublished`) has **only been applied to the dev branch so far** — it needs to be applied to the `prod` branch too (same migration file, same `prisma migrate deploy` workflow) before Phase 4 is usable in production.
+Live at **https://seven-eleven-trading.vercel.app** (Vercel project `ahamido/seven-eleven-trading`, connected to this GitHub repo — pushes to `main` auto-deploy). Uses a **separate Neon branch** (`prod`, not the dev branch this file otherwise describes) with its own clean database — seeded with only a Super Admin account, no test data. Production env vars (`DATABASE_URL`, `SESSION_SECRET`, `NEXT_PUBLIC_SITE_URL`) are set directly in Vercel, independent of the local `.env`. Note the build script (`package.json`) does **not** run `prisma migrate deploy` — only `postinstall: prisma generate`. Applying a schema migration to `prod` has always been a manual step in this project's workflow (`prisma migrate deploy` run by hand against the prod `DATABASE_URL`, same command as for dev, just pointed at the other branch); confirm whether Phase 4's migration was actually run against `prod` before assuming it's live there. **Phase 5 has not been pushed or deployed at all** — its migration (`20260810015850_product_catalog_v2`) exists only on the dev branch, and its code exists only in local commits (see gap #8). Before deploying Phase 5: push to GitHub, manually run the migration against `prod`, and first resolve the media-storage gap (#9) or production uploads will silently fail to persist.
 
 ---
 
@@ -141,7 +166,7 @@ Live at **https://seven-eleven-trading.vercel.app** (Vercel project `ahamido/sev
 
 ```bash
 # from D:\Claude Code
-git log --oneline -5          # confirm you're at bc04d28 or later
+git log --oneline -5          # Phase 5's commit should be at HEAD, local-only (not on GitHub yet)
 git status                    # should be clean
 ```
 
@@ -160,12 +185,12 @@ If `prisma generate` seems out of sync after a fresh checkout: `npx prisma gener
 
 ## Natural next steps (not started, just candidates)
 
-- Apply Phase 4's schema migration to the production Neon branch and deploy (see "Production deployment" above)
+- Push Phase 5 to GitHub and deploy to Vercel (mirrors what was done for Phase 4) — but first resolve the production media-storage gap (#9 above), since local-filesystem uploads won't survive on Vercel
+- Apply Phase 5's schema migration to the production Neon branch as part of that deploy (see "Production deployment" above); also double-check Phase 4's migration actually landed on `prod`
 - Wire public header/footer to real `Menu`/`MenuItem` data
-- Build public `/blog` + `/blog/[slug]`
-- Build `Certification` admin + public display
+- Build a dedicated public certifications page once real certification data exists (admin UI is ready, seeded empty by design)
 - Custom role/permission builder UI
 - Consume remaining `SiteSetting` fields on the public site (logo, favicon, map, hours)
 - Automated test suite
-- Clean up or keep the test data listed above, including the new `/page-builder-e2e-test` page (ask the user)
+- Clean up or keep the test data listed above, including the new `/page-builder-e2e-test` page and the leftover test SVG (ask the user)
 - Migrate the hardcoded marketing homepage into the Page Builder, if ever wanted (deliberately out of scope for Phase 4)

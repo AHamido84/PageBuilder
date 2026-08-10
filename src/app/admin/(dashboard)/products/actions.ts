@@ -20,6 +20,8 @@ const productSchema = z.object({
   temperatureClass: z.enum(["FROZEN", "CHILLED", "AMBIENT"]),
   nameEn: z.string().min(1).max(200),
   nameAr: z.string().min(1).max(200),
+  shortDescriptionEn: z.string().max(300).optional().or(z.literal("")),
+  shortDescriptionAr: z.string().max(300).optional().or(z.literal("")),
   descriptionEn: z.string().max(4000).optional().or(z.literal("")),
   descriptionAr: z.string().max(4000).optional().or(z.literal("")),
 });
@@ -56,8 +58,8 @@ export async function createProductAction(_prev: FormActionState, formData: Form
       temperatureClass: data.temperatureClass,
       translations: {
         create: [
-          { locale: "EN", name: data.nameEn, description: data.descriptionEn || null },
-          { locale: "AR", name: data.nameAr, description: data.descriptionAr || null },
+          { locale: "EN", name: data.nameEn, shortDescription: data.shortDescriptionEn || null, description: data.descriptionEn || null },
+          { locale: "AR", name: data.nameAr, shortDescription: data.shortDescriptionAr || null, description: data.descriptionAr || null },
         ],
       },
     },
@@ -68,20 +70,16 @@ export async function createProductAction(_prev: FormActionState, formData: Form
   return { success: true, id: product.id };
 }
 
-const updateProductSchema = productSchema.extend({
+const updateDetailsSchema = productSchema.extend({
   id: z.string().min(1),
   originCountry: z.string().max(120).optional().or(z.literal("")),
-  packagingEn: z.string().max(2000).optional().or(z.literal("")),
-  packagingAr: z.string().max(2000).optional().or(z.literal("")),
-  storageEn: z.string().max(2000).optional().or(z.literal("")),
-  storageAr: z.string().max(2000).optional().or(z.literal("")),
 });
 
-export async function updateProductAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+export async function updateProductDetailsAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "products", "update");
 
-  const parsed = updateProductSchema.safeParse(Object.fromEntries(formData));
+  const parsed = updateDetailsSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
@@ -110,42 +108,63 @@ export async function updateProductAction(_prev: FormActionState, formData: Form
     }),
     prisma.productTranslation.upsert({
       where: { productId_locale: { productId: data.id, locale: "EN" } },
-      create: {
-        productId: data.id,
-        locale: "EN",
-        name: data.nameEn,
-        description: data.descriptionEn || null,
-        packagingInfo: data.packagingEn || null,
-        storageInfo: data.storageEn || null,
-      },
-      update: {
-        name: data.nameEn,
-        description: data.descriptionEn || null,
-        packagingInfo: data.packagingEn || null,
-        storageInfo: data.storageEn || null,
-      },
+      create: { productId: data.id, locale: "EN", name: data.nameEn, shortDescription: data.shortDescriptionEn || null, description: data.descriptionEn || null },
+      update: { name: data.nameEn, shortDescription: data.shortDescriptionEn || null, description: data.descriptionEn || null },
     }),
     prisma.productTranslation.upsert({
       where: { productId_locale: { productId: data.id, locale: "AR" } },
-      create: {
-        productId: data.id,
-        locale: "AR",
-        name: data.nameAr,
-        description: data.descriptionAr || null,
-        packagingInfo: data.packagingAr || null,
-        storageInfo: data.storageAr || null,
-      },
-      update: {
-        name: data.nameAr,
-        description: data.descriptionAr || null,
-        packagingInfo: data.packagingAr || null,
-        storageInfo: data.storageAr || null,
-      },
+      create: { productId: data.id, locale: "AR", name: data.nameAr, shortDescription: data.shortDescriptionAr || null, description: data.descriptionAr || null },
+      update: { name: data.nameAr, shortDescription: data.shortDescriptionAr || null, description: data.descriptionAr || null },
     }),
   ]);
 
   await logActivity({ userId: currentUser.id, action: "product.update", entityType: "Product", entityId: data.id });
   revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${data.id}`);
+  return { success: true, id: data.id };
+}
+
+const updateSpecsSchema = z.object({
+  id: z.string().min(1),
+  weight: z.string().max(60).optional().or(z.literal("")),
+  dimensions: z.string().max(120).optional().or(z.literal("")),
+  packagingEn: z.string().max(2000).optional().or(z.literal("")),
+  packagingAr: z.string().max(2000).optional().or(z.literal("")),
+  storageEn: z.string().max(2000).optional().or(z.literal("")),
+  storageAr: z.string().max(2000).optional().or(z.literal("")),
+  ingredientsEn: z.string().max(2000).optional().or(z.literal("")),
+  ingredientsAr: z.string().max(2000).optional().or(z.literal("")),
+  nutritionInfoEn: z.string().max(2000).optional().or(z.literal("")),
+  nutritionInfoAr: z.string().max(2000).optional().or(z.literal("")),
+  allergensEn: z.string().max(1000).optional().or(z.literal("")),
+  allergensAr: z.string().max(1000).optional().or(z.literal("")),
+});
+
+export async function updateProductSpecsAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "products", "update");
+
+  const parsed = updateSpecsSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const data = parsed.data;
+
+  await prisma.$transaction([
+    prisma.product.update({ where: { id: data.id }, data: { weight: data.weight || null, dimensions: data.dimensions || null } }),
+    prisma.productTranslation.upsert({
+      where: { productId_locale: { productId: data.id, locale: "EN" } },
+      create: { productId: data.id, locale: "EN", name: "", packagingInfo: data.packagingEn || null, storageInfo: data.storageEn || null, ingredients: data.ingredientsEn || null, nutritionInfo: data.nutritionInfoEn || null, allergens: data.allergensEn || null },
+      update: { packagingInfo: data.packagingEn || null, storageInfo: data.storageEn || null, ingredients: data.ingredientsEn || null, nutritionInfo: data.nutritionInfoEn || null, allergens: data.allergensEn || null },
+    }),
+    prisma.productTranslation.upsert({
+      where: { productId_locale: { productId: data.id, locale: "AR" } },
+      create: { productId: data.id, locale: "AR", name: "", packagingInfo: data.packagingAr || null, storageInfo: data.storageAr || null, ingredients: data.ingredientsAr || null, nutritionInfo: data.nutritionInfoAr || null, allergens: data.allergensAr || null },
+      update: { packagingInfo: data.packagingAr || null, storageInfo: data.storageAr || null, ingredients: data.ingredientsAr || null, nutritionInfo: data.nutritionInfoAr || null, allergens: data.allergensAr || null },
+    }),
+  ]);
+
+  await logActivity({ userId: currentUser.id, action: "product.update", entityType: "Product", entityId: data.id });
   revalidatePath(`/admin/products/${data.id}`);
   return { success: true, id: data.id };
 }
@@ -163,12 +182,7 @@ export async function deleteProductAction(productId: string): Promise<{ error?: 
 export async function addProductImageAction(productId: string, mediaId: string): Promise<{ error?: string }> {
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "products", "update");
-
-  await prisma.product.update({
-    where: { id: productId },
-    data: { images: { connect: { id: mediaId } } },
-  });
-
+  await prisma.product.update({ where: { id: productId }, data: { images: { connect: { id: mediaId } } } });
   revalidatePath(`/admin/products/${productId}`);
   return {};
 }
@@ -176,21 +190,55 @@ export async function addProductImageAction(productId: string, mediaId: string):
 export async function removeProductImageAction(productId: string, mediaId: string): Promise<{ error?: string }> {
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "products", "update");
-
-  await prisma.product.update({
-    where: { id: productId },
-    data: { images: { disconnect: { id: mediaId } } },
-  });
-
+  await prisma.product.update({ where: { id: productId }, data: { images: { disconnect: { id: mediaId } } } });
   revalidatePath(`/admin/products/${productId}`);
   return {};
 }
 
-export async function setProductSpecSheetAction(productId: string, mediaId: string | null): Promise<{ error?: string }> {
+export async function addProductVideoAction(productId: string, mediaId: string): Promise<{ error?: string }> {
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "products", "update");
+  await prisma.product.update({ where: { id: productId }, data: { videos: { connect: { id: mediaId } } } });
+  revalidatePath(`/admin/products/${productId}`);
+  return {};
+}
 
-  await prisma.product.update({ where: { id: productId }, data: { specSheetId: mediaId } });
+export async function removeProductVideoAction(productId: string, mediaId: string): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "products", "update");
+  await prisma.product.update({ where: { id: productId }, data: { videos: { disconnect: { id: mediaId } } } });
+  revalidatePath(`/admin/products/${productId}`);
+  return {};
+}
+
+export async function addProductDocumentAction(productId: string, mediaId: string): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "products", "update");
+  await prisma.product.update({ where: { id: productId }, data: { documents: { connect: { id: mediaId } } } });
+  revalidatePath(`/admin/products/${productId}`);
+  return {};
+}
+
+export async function removeProductDocumentAction(productId: string, mediaId: string): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "products", "update");
+  await prisma.product.update({ where: { id: productId }, data: { documents: { disconnect: { id: mediaId } } } });
+  revalidatePath(`/admin/products/${productId}`);
+  return {};
+}
+
+export async function updateRelatedProductsAction(productId: string, relatedIds: string[]): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "products", "update");
+  await prisma.product.update({ where: { id: productId }, data: { relatedProductIds: relatedIds.filter((id) => id !== productId) } });
+  revalidatePath(`/admin/products/${productId}`);
+  return {};
+}
+
+export async function updateProductCertificationsAction(productId: string, certificationIds: string[]): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "products", "update");
+  await prisma.product.update({ where: { id: productId }, data: { certifications: { set: certificationIds.map((id) => ({ id })) } } });
   revalidatePath(`/admin/products/${productId}`);
   return {};
 }
@@ -277,7 +325,13 @@ export async function duplicateProductAction(productId: string): Promise<{ error
 
   const source = await prisma.product.findUnique({
     where: { id: productId },
-    include: { translations: true, images: { select: { id: true } } },
+    include: {
+      translations: true,
+      images: { select: { id: true } },
+      videos: { select: { id: true } },
+      documents: { select: { id: true } },
+      certifications: { select: { id: true } },
+    },
   });
   if (!source) return { error: "Product not found." };
 
@@ -298,17 +352,26 @@ export async function duplicateProductAction(productId: string): Promise<{ error
       brandId: source.brandId,
       temperatureClass: source.temperatureClass,
       originCountry: source.originCountry,
-      specSheetId: source.specSheetId,
+      weight: source.weight,
+      dimensions: source.dimensions,
+      relatedProductIds: source.relatedProductIds,
       isPublished: false,
       isFeatured: false,
-      images: { connect: source.images.map((image) => ({ id: image.id })) },
+      images: { connect: source.images.map((m) => ({ id: m.id })) },
+      videos: { connect: source.videos.map((m) => ({ id: m.id })) },
+      documents: { connect: source.documents.map((m) => ({ id: m.id })) },
+      certifications: { connect: source.certifications.map((c) => ({ id: c.id })) },
       translations: {
         create: source.translations.map((t) => ({
           locale: t.locale,
           name: t.name,
+          shortDescription: t.shortDescription,
           description: t.description,
           packagingInfo: t.packagingInfo,
           storageInfo: t.storageInfo,
+          ingredients: t.ingredients,
+          nutritionInfo: t.nutritionInfo,
+          allergens: t.allergens,
         })),
       },
     },

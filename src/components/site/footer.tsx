@@ -68,6 +68,8 @@ export async function SiteFooter({ categories, locale }: FooterProps) {
               <li><Link href={`/${locale}/quality-food-safety`} className="hover:text-paper">{tNav("quality")}</Link></li>
               <li><Link href={`/${locale}/distribution-logistics`} className="hover:text-paper">{tNav("distribution")}</Link></li>
               <li><Link href={`/${locale}/brands`} className="hover:text-paper">{tNav("brands")}</Link></li>
+              <li><Link href={`/${locale}/blog`} className="hover:text-paper">{tNav("blog")}</Link></li>
+              <li><Link href={`/${locale}/faq`} className="hover:text-paper">{tNav("faq")}</Link></li>
             </ul>
           </div>
 

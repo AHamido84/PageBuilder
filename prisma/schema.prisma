@@ -54,6 +54,12 @@ enum LeadStatus {
   LOST
 }
 
+enum LeadInquiryType {
+  GENERAL
+  INFO
+  QUOTE
+}
+
 // ---------------------------------------------------------------------------
 // Auth / RBAC
 // ---------------------------------------------------------------------------
@@ -256,6 +262,9 @@ model Product {
   isPublished      Boolean          @default(false)
   isFeatured       Boolean          @default(false)
   originCountry    String?
+  weight           String?
+  dimensions       String?
+  relatedProductIds String[]        @default([])
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -265,10 +274,10 @@ model Product {
   brandId String?
   brand   Brand?  @relation(fields: [brandId], references: [id], onDelete: SetNull)
 
-  specSheetId String?
-  specSheet   Media?  @relation("ProductSpecSheet", fields: [specSheetId], references: [id], onDelete: SetNull)
-
   images       Media[]              @relation("ProductImages")
+  videos       Media[]              @relation("ProductVideos")
+  documents    Media[]              @relation("ProductDocuments")
+  certifications Certification[]
   translations ProductTranslation[]
   seo          SEO?
   leads        Lead[]
@@ -281,13 +290,17 @@ model Product {
 }
 
 model ProductTranslation {
-  id            String  @id @default(cuid())
-  productId     String
-  locale        Locale
-  name          String
-  description   String?
-  packagingInfo String?
-  storageInfo   String?
+  id               String  @id @default(cuid())
+  productId        String
+  locale           Locale
+  name             String
+  shortDescription String?
+  description      String?
+  packagingInfo    String?
+  storageInfo      String?
+  ingredients      String?
+  nutritionInfo    String?
+  allergens        String?
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
@@ -320,7 +333,8 @@ model Media {
   brandLogoOf          Brand[]         @relation("BrandLogo")
   brandBannerOf        Brand[]         @relation("BrandBanner")
   productImagesOf      Product[]       @relation("ProductImages")
-  productSpecSheetOf   Product[]       @relation("ProductSpecSheet")
+  productVideosOf      Product[]       @relation("ProductVideos")
+  productDocumentsOf   Product[]       @relation("ProductDocuments")
   blogPostsCoverOf     BlogPost[]
   certificationsUsing  Certification[]
   siteSettingLogoOf    SiteSetting[]   @relation("SiteSettingLogo")
@@ -484,6 +498,7 @@ model Lead {
   phone       String?
   message     String?
   status      LeadStatus @default(NEW)
+  inquiryType LeadInquiryType @default(GENERAL)
   sourceUrl   String?
   locale      Locale?
   createdAt   DateTime   @default(now())
@@ -537,6 +552,24 @@ model Certification {
 
   imageId String?
   image   Media?  @relation(fields: [imageId], references: [id], onDelete: SetNull)
+
+  products Product[]
+}
+
+model Faq {
+  id          String   @id @default(cuid())
+  questionEn  String
+  questionAr  String
+  answerEn    String
+  answerAr    String
+  category    String?
+  order       Int      @default(0)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([order])
 }
 
 model SiteSetting {

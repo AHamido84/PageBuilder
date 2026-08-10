@@ -11,6 +11,8 @@ export const leadSchema = z.object({
   message: z.string().max(4000).optional().or(z.literal("")),
   locale: z.enum(["EN", "AR"]),
   sourceUrl: z.string().max(500).optional().or(z.literal("")),
+  productId: z.string().optional().or(z.literal("")),
+  inquiryType: z.enum(["GENERAL", "INFO", "QUOTE"]).optional().or(z.literal("")),
   // Honeypot: real users never fill this hidden field.
   website: z.string().max(0).optional().or(z.literal("")),
 });
@@ -22,9 +24,9 @@ export interface LeadFormState {
 
 /**
  * Shared honeypot + rate-limit + create pipeline for any public lead-capture
- * form (the site-wide contact form, and page-builder Contact Form/Quote Form
- * blocks). Runs unauthenticated by design -- the submitter has no admin
- * session, so this intentionally never calls assertCan.
+ * form (the site-wide contact form, product inquiry, and page-builder Contact
+ * Form/Quote Form blocks). Runs unauthenticated by design -- the submitter
+ * has no admin session, so this intentionally never calls assertCan.
  */
 export async function submitLead(formData: FormData, rateLimitKeyPrefix = "lead"): Promise<LeadFormState> {
   const parsed = leadSchema.safeParse(Object.fromEntries(formData));
@@ -46,6 +48,13 @@ export async function submitLead(formData: FormData, rateLimitKeyPrefix = "lead"
 
   const referer = h.get("referer") ?? "";
 
+  // If a productId was supplied but doesn't resolve to a real product, drop the
+  // link rather than fail the whole submission -- a stale/tampered id shouldn't
+  // block a genuine inquiry.
+  const productId = parsed.data.productId
+    ? await prisma.product.findUnique({ where: { id: parsed.data.productId }, select: { id: true } }).then((p) => p?.id ?? null)
+    : null;
+
   await prisma.lead.create({
     data: {
       companyName: parsed.data.companyName || null,
@@ -55,6 +64,8 @@ export async function submitLead(formData: FormData, rateLimitKeyPrefix = "lead"
       message: parsed.data.message || null,
       locale: parsed.data.locale,
       sourceUrl: parsed.data.sourceUrl || referer || null,
+      productId,
+      inquiryType: parsed.data.inquiryType || "GENERAL",
     },
   });
 

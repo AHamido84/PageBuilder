@@ -34,6 +34,9 @@ async function getProduct(slug: string, locale: string) {
       category: { include: { translations: true } },
       brand: { include: { translations: true } },
       images: { select: { id: true, url: true } },
+      videos: { select: { id: true, url: true } },
+      documents: { select: { id: true, url: true, originalName: true } },
+      certifications: { where: { isPublished: true }, include: { image: { select: { url: true } } } },
     },
   });
 
@@ -42,20 +45,42 @@ async function getProduct(slug: string, locale: string) {
   const upperLocale = locale.toUpperCase();
   const translation = product.translations.find((t) => t.locale === upperLocale) ?? product.translations[0];
 
+  const related =
+    product.relatedProductIds.length > 0
+      ? await prisma.product.findMany({
+          where: { id: { in: product.relatedProductIds }, isPublished: true },
+          include: { translations: true, category: { include: { translations: true } }, images: { take: 1, select: { url: true } } },
+        })
+      : [];
+
   return {
     id: product.id,
     slug: product.slug,
     sku: product.sku,
     temperatureClass: product.temperatureClass,
     originCountry: product.originCountry,
+    weight: product.weight,
+    dimensions: product.dimensions,
     categoryId: product.categoryId,
     categoryName: product.category.translations.find((t) => t.locale === upperLocale)?.name ?? product.category.slug,
     brandName: product.brand?.translations.find((t) => t.locale === upperLocale)?.name ?? product.brand?.slug ?? null,
     images: product.images,
+    videos: product.videos,
+    documents: product.documents,
+    certifications: product.certifications.map((c) => ({
+      id: c.id,
+      name: locale === "ar" ? c.nameAr : c.nameEn,
+      imageUrl: c.image?.url ?? null,
+    })),
+    curatedRelated: related,
     name: translation?.name ?? product.sku,
+    shortDescription: translation?.shortDescription ?? null,
     description: translation?.description ?? null,
     packagingInfo: translation?.packagingInfo ?? null,
     storageInfo: translation?.storageInfo ?? null,
+    ingredients: translation?.ingredients ?? null,
+    nutritionInfo: translation?.nutritionInfo ?? null,
+    allergens: translation?.allergens ?? null,
   };
 }
 
@@ -86,7 +111,25 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const product = await getProduct(slug, locale);
   if (!product) notFound();
 
-  const related = await getRelated(product.categoryId, product.id, locale);
+  const curatedRelatedCards: ProductCardData[] = product.curatedRelated.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    sku: p.sku,
+    temperatureClass: p.temperatureClass,
+    name: p.translations.find((t2) => t2.locale === locale.toUpperCase())?.name ?? p.sku,
+    categoryName: p.category.translations.find((t2) => t2.locale === locale.toUpperCase())?.name ?? p.category.slug,
+    imageUrl: p.images[0]?.url ?? null,
+  }));
+
+  const related = curatedRelatedCards.length > 0 ? curatedRelatedCards : await getRelated(product.categoryId, product.id, locale);
+
+  const additionalInfo = [
+    { label: t("weight"), value: product.weight },
+    { label: t("dimensions"), value: product.dimensions },
+    { label: t("ingredients"), value: product.ingredients },
+    { label: t("nutritionInfo"), value: product.nutritionInfo },
+    { label: t("allergens"), value: product.allergens },
+  ].filter((row) => row.value);
 
   return (
     <div>
@@ -118,12 +161,55 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 <span className="font-mono-data text-sm text-ink/30">{product.sku}</span>
               </div>
             )}
+
+            {product.videos.length > 0 ? (
+              <div className="mt-3 grid gap-3">
+                {product.videos.map((video) => (
+                  <video key={video.id} controls className="aspect-video w-full rounded-[var(--radius-md)] bg-ink/5 object-cover">
+                    <source src={video.url} />
+                  </video>
+                ))}
+              </div>
+            ) : null}
+
+            {product.certifications.length > 0 ? (
+              <div className="mt-6">
+                <p className="mb-2 text-sm font-medium">{t("certifications")}</p>
+                <div className="flex flex-wrap gap-3">
+                  {product.certifications.map((cert) => (
+                    <div key={cert.id} className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-ink/10 px-3 py-2">
+                      {cert.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={cert.imageUrl} alt="" className="h-8 w-8 object-contain" />
+                      ) : null}
+                      <span className="text-xs font-medium">{cert.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {product.documents.length > 0 ? (
+              <div className="mt-6">
+                <p className="mb-2 text-sm font-medium">{t("documents")}</p>
+                <ul className="space-y-1.5">
+                  {product.documents.map((doc) => (
+                    <li key={doc.id}>
+                      <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-sm text-harbor underline hover:text-ink">
+                        {doc.originalName}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
 
           {/* Info */}
           <div>
             <p className="manifest-strip mb-2 text-harbor">{product.categoryName}</p>
             <h1 className="font-display text-3xl leading-[1.1] sm:text-4xl">{product.name}</h1>
+            {product.shortDescription ? <p className="mt-3 text-lg text-ink/60">{product.shortDescription}</p> : null}
             {product.description ? <p className="mt-4 text-base leading-relaxed text-ink/70">{product.description}</p> : null}
 
             {/* Specifications */}
@@ -150,13 +236,24 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 <p className="text-sm leading-relaxed text-ink/65">{product.storageInfo}</p>
               </div>
             ) : null}
+
+            {additionalInfo.length > 0 ? (
+              <div className="mt-6 rounded-[var(--radius-md)] border border-ink/10">
+                <p className="border-b border-ink/10 px-5 py-3 text-sm font-medium">{t("additionalInfo")}</p>
+                <dl className="divide-y divide-ink/10">
+                  {additionalInfo.map((row) => (
+                    <SpecRow key={row.label} label={row.label} value={row.value!} />
+                  ))}
+                </dl>
+              </div>
+            ) : null}
           </div>
         </div>
       </Section>
 
       {/* Inquiry */}
       <Section tone="frost" title={t("inquiryTitle")} description={t("inquiryBody")} containerClassName="max-w-3xl">
-        <InquiryForm productName={product.name} />
+        <InquiryForm productId={product.id} productName={product.name} />
       </Section>
 
       {/* Related */}

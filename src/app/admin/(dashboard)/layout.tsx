@@ -26,6 +26,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/media", label: "Media Library", resource: "media" },
       { href: "/admin/menus", label: "Menus", resource: "menus" },
       { href: "/admin/blog", label: "Blog", resource: "blog" },
+      { href: "/admin/faqs", label: "FAQs", resource: "faqs" },
     ],
   },
   {
@@ -34,6 +35,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/products", label: "Products", resource: "products" },
       { href: "/admin/categories", label: "Categories", resource: "categories" },
       { href: "/admin/brands", label: "Brands", resource: "brands" },
+      { href: "/admin/certifications", label: "Certifications", resource: "certifications" },
     ],
   },
   {

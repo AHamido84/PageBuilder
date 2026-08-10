@@ -67,6 +67,8 @@ export async function POST(request: Request) {
         type: saved.type,
         sizeBytes: saved.sizeBytes,
         url: saved.url,
+        width: saved.width,
+        height: saved.height,
         uploadedById: user.id,
       },
     });

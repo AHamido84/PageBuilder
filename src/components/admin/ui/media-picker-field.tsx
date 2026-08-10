@@ -72,7 +72,7 @@ export function MediaPickerField({ name, label, accept = "IMAGE", defaultMediaId
 
   const acceptAttr =
     accept === "IMAGE"
-      ? "image/jpeg,image/png,image/webp"
+      ? "image/jpeg,image/png,image/webp,image/svg+xml"
       : accept === "VIDEO"
         ? "video/mp4,video/webm"
         : "application/pdf";
@@ -214,7 +214,7 @@ export function MediaPickerControlled({ label, accept = "IMAGE", mediaId, previe
   }
 
   const acceptAttr =
-    accept === "IMAGE" ? "image/jpeg,image/png,image/webp" : accept === "VIDEO" ? "video/mp4,video/webm" : "application/pdf";
+    accept === "IMAGE" ? "image/jpeg,image/png,image/webp,image/svg+xml" : accept === "VIDEO" ? "video/mp4,video/webm" : "application/pdf";
 
   return (
     <div>

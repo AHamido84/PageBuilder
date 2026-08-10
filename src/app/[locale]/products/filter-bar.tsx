@@ -6,11 +6,12 @@ import { useTransition } from "react";
 
 interface FilterBarProps {
   categories: { slug: string; name: string }[];
+  brands: { slug: string; name: string }[];
 }
 
 const TEMPERATURE_VALUES = ["FROZEN", "CHILLED", "AMBIENT"] as const;
 
-export function FilterBar({ categories }: FilterBarProps) {
+export function FilterBar({ categories, brands }: FilterBarProps) {
   const t = useTranslations("products");
   const router = useRouter();
   const pathname = usePathname();
@@ -21,11 +22,12 @@ export function FilterBar({ categories }: FilterBarProps) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
+    params.delete("page");
     startTransition(() => router.push(`${pathname}?${params.toString()}`));
   }
 
   return (
-    <div className="mb-10 grid grid-cols-1 gap-3 sm:grid-cols-4">
+    <div className="mb-10 grid grid-cols-1 gap-3 sm:grid-cols-5">
       <input
         type="search"
         defaultValue={searchParams.get("q") ?? ""}
@@ -46,6 +48,18 @@ export function FilterBar({ categories }: FilterBarProps) {
         ))}
       </select>
       <select
+        defaultValue={searchParams.get("brand") ?? ""}
+        onChange={(e) => update("brand", e.target.value)}
+        className="rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm"
+      >
+        <option value="">{t("allBrands")}</option>
+        {brands.map((b) => (
+          <option key={b.slug} value={b.slug}>
+            {b.name}
+          </option>
+        ))}
+      </select>
+      <select
         defaultValue={searchParams.get("temp") ?? ""}
         onChange={(e) => update("temp", e.target.value)}
         className="rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm"
@@ -60,7 +74,7 @@ export function FilterBar({ categories }: FilterBarProps) {
       <select
         defaultValue={searchParams.get("sort") ?? "newest"}
         onChange={(e) => update("sort", e.target.value)}
-        className="rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm sm:col-start-4"
+        className="rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm sm:col-start-5"
       >
         <option value="newest">{t("sortNewest")}</option>
         <option value="name-asc">{t("sortNameAsc")}</option>
