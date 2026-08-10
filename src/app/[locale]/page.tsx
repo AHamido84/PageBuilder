@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { ContactForm } from "./contact-form";
@@ -9,8 +10,20 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Arrow } from "@/components/ui/arrow";
 import { ManifestStrip } from "@/components/site/manifest-strip";
 import { ProductCard, type ProductCardData } from "@/components/site/product-card";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "home" });
+  return buildMetadata({
+    locale,
+    path: "/",
+    fallbackTitle: t("heroTitle"),
+    fallbackDescription: t("heroSubtitle"),
+  });
+}
 
 async function getCategories(locale: string) {
   const categories = await prisma.category.findMany({

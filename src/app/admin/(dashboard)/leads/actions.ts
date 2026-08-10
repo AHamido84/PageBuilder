@@ -72,6 +72,7 @@ const updateLeadSchema = z.object({
   phone: z.string().max(40).optional().or(z.literal("")),
   message: z.string().max(4000).optional().or(z.literal("")),
   status: statusSchema,
+  assigneeId: z.string().optional().or(z.literal("")),
 });
 
 export async function updateLeadAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
@@ -91,6 +92,7 @@ export async function updateLeadAction(_prev: FormActionState, formData: FormDat
       phone: data.phone || null,
       message: data.message || null,
       status: data.status,
+      assigneeId: data.assigneeId || null,
     },
   });
 

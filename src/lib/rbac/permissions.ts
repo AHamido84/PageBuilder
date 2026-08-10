@@ -15,6 +15,7 @@ export const RESOURCES = [
   "certifications",
   "industries",
   "faqs",
+  "redirects",
 ] as const;
 
 export const ACTIONS = ["create", "read", "update", "delete", "publish"] as const;
@@ -62,6 +63,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Exclude<RoleSlug, "super-admin">, 
     { resource: "faqs", action: "update" },
     { resource: "faqs", action: "publish" },
     { resource: "industries", action: "read" },
+    { resource: "redirects", action: "create" },
+    { resource: "redirects", action: "read" },
+    { resource: "redirects", action: "update" },
+    { resource: "redirects", action: "delete" },
   ],
   [ROLE_SLUGS.MARKETING_MANAGER]: [
     { resource: "leads", action: "read" },

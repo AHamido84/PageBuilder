@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
@@ -6,8 +7,15 @@ import { Section } from "@/components/ui/section";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/admin/ui/pagination";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "blog" });
+  return buildMetadata({ locale, path: "/blog", fallbackTitle: t("title") });
+}
 
 const PAGE_SIZE = 9;
 

@@ -1,11 +1,19 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "brands" });
+  return buildMetadata({ locale, path: "/brands", fallbackTitle: t("title") });
+}
 
 async function getBrands(locale: string) {
   const brands = await prisma.brand.findMany({

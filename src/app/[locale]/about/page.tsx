@@ -1,10 +1,18 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
 import { Section } from "@/components/ui/section";
 import { Container } from "@/components/ui/container";
 import { buttonClasses } from "@/components/ui/button";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "about" });
+  return buildMetadata({ locale, path: "/about", fallbackTitle: t("title"), fallbackDescription: t("storyBody") });
+}
 
 export default async function AboutPage() {
   const locale = await getLocale();

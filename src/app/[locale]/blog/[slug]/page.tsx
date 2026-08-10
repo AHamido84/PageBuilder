@@ -1,11 +1,34 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { Section } from "@/components/ui/section";
 import { BackArrow } from "@/components/ui/arrow";
+import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
+import { articleSchema, breadcrumbSchema } from "@/lib/seo/structured-data";
+import { JsonLd } from "@/components/site/json-ld";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string; slug: string }> }): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const post = await prisma.blogPost.findUnique({
+    where: { slug },
+    include: { seo: { include: { ogImage: { select: { url: true } } } }, coverImage: { select: { url: true } } },
+  });
+  if (!post || post.status !== "PUBLISHED") return {};
+  const title = locale === "ar" ? post.titleAr : post.titleEn;
+  const excerpt = locale === "ar" ? post.excerptAr : post.excerptEn;
+  return buildMetadata({
+    locale,
+    path: `/blog/${slug}`,
+    seo: post.seo ?? { titleEn: null, titleAr: null, descriptionEn: null, descriptionAr: null, canonicalUrl: null, noIndex: false, ogImage: post.coverImage },
+    fallbackTitle: title,
+    fallbackDescription: excerpt,
+    ogType: "article",
+  });
+}
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -21,9 +44,28 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   const title = locale === "ar" ? post.titleAr : post.titleEn;
   const content = locale === "ar" ? post.contentAr : post.contentEn;
+  const excerpt = locale === "ar" ? post.excerptAr : post.excerptEn;
+
+  const structuredData = [
+    articleSchema({
+      headline: title,
+      description: excerpt,
+      imageUrl: post.coverImage?.url,
+      authorName: post.author?.name,
+      publishedAt: (post.publishedAt ?? post.createdAt).toISOString(),
+      updatedAt: post.updatedAt.toISOString(),
+      url: `${SITE_URL}/${locale}/blog/${slug}`,
+    }),
+    breadcrumbSchema([
+      { name: "Home", url: `${SITE_URL}/${locale}` },
+      { name: t("title"), url: `${SITE_URL}/${locale}/blog` },
+      { name: title, url: `${SITE_URL}/${locale}/blog/${slug}` },
+    ]),
+  ];
 
   return (
     <Section tone="paper" className="border-t-0 pb-16 pt-10 sm:pt-14">
+      <JsonLd data={structuredData} />
       <div className="mx-auto max-w-3xl">
         <Link href={`/${locale}/blog`} className="text-sm text-ink/50 hover:text-harbor">
           <BackArrow /> {t("backToBlog")}

@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { Section } from "@/components/ui/section";
 import { ContactForm } from "../contact-form";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "contactPage" });
+  return buildMetadata({ locale, path: "/contact", fallbackTitle: t("title"), fallbackDescription: t("subtitle") });
+}
 
 export default async function ContactPage() {
   const t = await getTranslations("contactPage");
@@ -40,8 +48,17 @@ export default async function ContactPage() {
               </div>
             ) : null}
           </dl>
+          {settings?.mapEmbedUrl ? (
+            <iframe
+              src={settings.mapEmbedUrl}
+              className="mt-6 h-64 w-full rounded-[var(--radius-md)] border border-ink/10"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title={t("locationLabel")}
+            />
+          ) : null}
         </div>
-        <ContactForm />
+        <ContactForm showTypeSelector />
       </div>
     </Section>
   );

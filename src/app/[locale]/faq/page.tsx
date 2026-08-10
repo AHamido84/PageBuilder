@@ -1,10 +1,20 @@
+import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FaqAccordion } from "./faq-accordion";
+import { buildMetadata } from "@/lib/seo/metadata";
+import { faqSchema } from "@/lib/seo/structured-data";
+import { JsonLd } from "@/components/site/json-ld";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "faq" });
+  return buildMetadata({ locale, path: "/faq", fallbackTitle: t("title") });
+}
 
 export default async function FaqPage() {
   const locale = await getLocale();
@@ -20,21 +30,18 @@ export default async function FaqPage() {
     groups.set(key, list);
   }
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((faq) => ({
-      "@type": "Question",
-      name: locale === "ar" ? faq.questionAr : faq.questionEn,
-      acceptedAnswer: { "@type": "Answer", text: locale === "ar" ? faq.answerAr : faq.answerEn },
-    })),
-  };
+  const faqJsonLd = faqSchema(
+    faqs.map((faq) => ({
+      question: locale === "ar" ? faq.questionAr : faq.questionEn,
+      answer: locale === "ar" ? faq.answerAr : faq.answerEn,
+    }))
+  );
 
   return (
     <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
       {faqs.length > 0 ? (
         <>
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+          <JsonLd data={faqJsonLd} />
           <div className="mx-auto max-w-3xl space-y-10">
             {Array.from(groups.entries()).map(([category, items]) => (
               <div key={category}>

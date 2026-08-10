@@ -12,13 +12,16 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "leads", "read");
 
-  const lead = await prisma.lead.findUnique({
-    where: { id },
-    include: {
-      notes: { orderBy: { createdAt: "desc" }, include: { author: { select: { name: true } } } },
-      product: { select: { id: true, sku: true, translations: { where: { locale: "EN" }, select: { name: true } } } },
-    },
-  });
+  const [lead, users] = await Promise.all([
+    prisma.lead.findUnique({
+      where: { id },
+      include: {
+        notes: { orderBy: { createdAt: "desc" }, include: { author: { select: { name: true } } } },
+        product: { select: { id: true, sku: true, translations: { where: { locale: "EN" }, select: { name: true } } } },
+      },
+    }),
+    prisma.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
 
   if (!lead) notFound();
 
@@ -38,7 +41,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </>
           ) : null}
         </p>
-        <EditLeadForm lead={lead} />
+        <EditLeadForm lead={lead} users={users} />
       </div>
       <div>
         <LeadNotes

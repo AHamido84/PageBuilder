@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { LegalPage } from "@/components/site/legal-page";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "legal" });
+  return buildMetadata({ locale, path: "/terms", fallbackTitle: t("termsTitle") });
+}
 
 const content = {
   en: [

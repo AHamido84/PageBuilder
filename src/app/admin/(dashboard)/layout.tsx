@@ -27,6 +27,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/menus", label: "Menus", resource: "menus" },
       { href: "/admin/blog", label: "Blog", resource: "blog" },
       { href: "/admin/faqs", label: "FAQs", resource: "faqs" },
+      { href: "/admin/redirects", label: "Redirects", resource: "redirects" },
     ],
   },
   {

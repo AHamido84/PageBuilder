@@ -23,7 +23,8 @@
     "backToProducts": "Back to products",
     "menu": "Menu",
     "close": "Close",
-    "skuCount": "{count, plural, =0 {No SKUs} one {# SKU} other {# SKUs}}"
+    "skuCount": "{count, plural, =0 {No SKUs} one {# SKU} other {# SKUs}}",
+    "chatOnWhatsApp": "Chat on WhatsApp"
   },
   "home": {
     "manifestStrip": "JEDDAH, KSA — WHOLESALE IMPORT & EXPORT — FROZEN / CHILLED / AMBIENT",
@@ -245,7 +246,13 @@
     "submit": "Send request",
     "submitting": "Sending…",
     "success": "Thank you — we've received your request and will be in touch shortly.",
-    "error": "Something went wrong. Please try again."
+    "error": "Something went wrong. Please try again.",
+    "inquiryType": {
+      "GENERAL": "General inquiry",
+      "QUOTE": "Request a quote",
+      "BECOME_CUSTOMER": "Become a customer",
+      "SALES_INQUIRY": "Sales inquiry"
+    }
   },
   "contactPage": {
     "eyebrow": "Contact",

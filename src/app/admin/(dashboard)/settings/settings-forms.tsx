@@ -48,6 +48,8 @@ export interface Settings {
   seoDefaultDescriptionEn: string | null;
   seoDefaultDescriptionAr: string | null;
   analyticsId: string | null;
+  gtmId: string | null;
+  metaPixelId: string | null;
   defaultOgImageId: string | null;
   defaultOgImage: { url: string } | null;
   footerAboutEn: string | null;
@@ -187,8 +189,17 @@ export function SeoForm({ settings }: { settings: Settings }) {
         <textarea name="seoDefaultDescriptionAr" defaultValue={settings.seoDefaultDescriptionAr ?? ""} rows={2} className={inputClass} />
       </div>
       <div>
-        <label className="mb-1 block text-xs text-neutral-400">Analytics ID (e.g. GA4 measurement ID)</label>
+        <label className="mb-1 block text-xs text-neutral-400">Google Analytics 4 measurement ID</label>
         <input name="analyticsId" defaultValue={settings.analyticsId ?? ""} placeholder="G-XXXXXXXXXX" className={inputClass} />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Google Tag Manager container ID</label>
+        <input name="gtmId" defaultValue={settings.gtmId ?? ""} placeholder="GTM-XXXXXXX" className={inputClass} />
+        <p className="mt-1 text-xs text-neutral-500">When set, GTM is used instead of loading gtag.js directly (fire GA4 through GTM to avoid double-counting).</p>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Meta (Facebook) Pixel ID</label>
+        <input name="metaPixelId" defaultValue={settings.metaPixelId ?? ""} placeholder="123456789012345" className={inputClass} />
       </div>
       <MediaPickerField name="defaultOgImageId" label="Default social share image" accept="IMAGE" defaultMediaId={settings.defaultOgImageId} defaultUrl={settings.defaultOgImage?.url} />
       <StatusLine state={state} />

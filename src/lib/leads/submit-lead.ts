@@ -2,6 +2,7 @@ import { z } from "zod";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
+import { sendMail } from "@/lib/email";
 
 export const leadSchema = z.object({
   companyName: z.string().max(200).optional().or(z.literal("")),
@@ -12,7 +13,7 @@ export const leadSchema = z.object({
   locale: z.enum(["EN", "AR"]),
   sourceUrl: z.string().max(500).optional().or(z.literal("")),
   productId: z.string().optional().or(z.literal("")),
-  inquiryType: z.enum(["GENERAL", "INFO", "QUOTE"]).optional().or(z.literal("")),
+  inquiryType: z.enum(["GENERAL", "INFO", "QUOTE", "BECOME_CUSTOMER", "SALES_INQUIRY"]).optional().or(z.literal("")),
   // Honeypot: real users never fill this hidden field.
   website: z.string().max(0).optional().or(z.literal("")),
 });
@@ -55,7 +56,7 @@ export async function submitLead(formData: FormData, rateLimitKeyPrefix = "lead"
     ? await prisma.product.findUnique({ where: { id: parsed.data.productId }, select: { id: true } }).then((p) => p?.id ?? null)
     : null;
 
-  await prisma.lead.create({
+  const lead = await prisma.lead.create({
     data: {
       companyName: parsed.data.companyName || null,
       contactName: parsed.data.contactName,
@@ -68,6 +69,25 @@ export async function submitLead(formData: FormData, rateLimitKeyPrefix = "lead"
       inquiryType: parsed.data.inquiryType || "GENERAL",
     },
   });
+
+  const settings = await prisma.siteSetting.findUnique({ where: { id: "singleton" }, select: { contactEmail: true } });
+  if (settings?.contactEmail) {
+    await sendMail({
+      to: settings.contactEmail,
+      subject: `New ${lead.inquiryType.toLowerCase().replace("_", " ")} lead — ${lead.contactName}`,
+      text: [
+        `Contact: ${lead.contactName}`,
+        lead.companyName ? `Company: ${lead.companyName}` : null,
+        `Email: ${lead.email}`,
+        lead.phone ? `Phone: ${lead.phone}` : null,
+        `Type: ${lead.inquiryType}`,
+        lead.message ? `\nMessage:\n${lead.message}` : null,
+        `\nView in admin: ${process.env.NEXT_PUBLIC_SITE_URL}/admin/leads/${lead.id}`,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    });
+  }
 
   return { success: true };
 }

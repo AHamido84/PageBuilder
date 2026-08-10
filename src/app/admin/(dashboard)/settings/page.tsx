@@ -40,6 +40,8 @@ export default async function SettingsPage() {
     seoDefaultDescriptionEn: record.seoDefaultDescriptionEn,
     seoDefaultDescriptionAr: record.seoDefaultDescriptionAr,
     analyticsId: record.analyticsId,
+    gtmId: record.gtmId,
+    metaPixelId: record.metaPixelId,
     defaultOgImageId: record.defaultOgImageId,
     defaultOgImage: record.defaultOgImage,
     footerAboutEn: record.footerAboutEn,

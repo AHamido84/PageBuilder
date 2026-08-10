@@ -16,6 +16,7 @@ interface FooterProps {
 }
 
 interface SocialLinks {
+  facebook?: string;
   linkedin?: string;
   instagram?: string;
   twitter?: string;
@@ -40,8 +41,13 @@ export async function SiteFooter({ categories, locale }: FooterProps) {
           <div className="col-span-2 sm:col-span-3 lg:col-span-2">
             <p className="font-display text-lg">{t("aboutTitle")}</p>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-paper/60">{t("aboutBody")}</p>
-            {social && (social.linkedin || social.instagram || social.twitter) ? (
+            {social && (social.facebook || social.linkedin || social.instagram || social.twitter) ? (
               <div className="mt-5 flex gap-4 text-sm text-paper/60">
+                {social.facebook ? (
+                  <a href={social.facebook} target="_blank" rel="noreferrer" className="hover:text-paper">
+                    Facebook
+                  </a>
+                ) : null}
                 {social.linkedin ? (
                   <a href={social.linkedin} target="_blank" rel="noreferrer" className="hover:text-paper">
                     LinkedIn

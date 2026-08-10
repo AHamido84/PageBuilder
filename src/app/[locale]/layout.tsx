@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Archivo, Public_Sans, IBM_Plex_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { routing } from "@/i18n/routing";
@@ -7,6 +8,10 @@ import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { ToastProvider } from "@/components/ui/toast";
 import { prisma } from "@/lib/prisma";
+import { organizationSchema } from "@/lib/seo/structured-data";
+import { JsonLd } from "@/components/site/json-ld";
+import { AnalyticsScripts } from "@/components/site/analytics-scripts";
+import { WhatsAppCta } from "@/components/site/whatsapp-cta";
 import "../globals.css";
 
 const archivo = Archivo({
@@ -31,6 +36,10 @@ export const metadata: Metadata = {
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
+}
+
+async function getSiteSettings() {
+  return prisma.siteSetting.findUnique({ where: { id: "singleton" }, include: { logo: { select: { url: true } } } });
 }
 
 async function getNavData(locale: string) {
@@ -66,7 +75,16 @@ export default async function LocaleLayout({
   }
 
   const dir = locale === "ar" ? "rtl" : "ltr";
-  const categories = await getNavData(locale);
+  const [categories, settings, tCommon] = await Promise.all([getNavData(locale), getSiteSettings(), getTranslations({ locale, namespace: "common" })]);
+
+  const orgSchema = organizationSchema({
+    siteName: locale === "ar" ? settings?.siteNameAr ?? "" : settings?.siteNameEn ?? "",
+    logoUrl: settings?.logo?.url,
+    contactEmail: settings?.contactEmail,
+    contactPhone: settings?.contactPhone,
+    socialLinks: settings?.socialLinks as { facebook?: string; instagram?: string; linkedin?: string; twitter?: string } | null,
+    address: settings?.address,
+  });
 
   return (
     <html
@@ -75,6 +93,8 @@ export default async function LocaleLayout({
       className={`${archivo.variable} ${publicSans.variable} ${plexMono.variable} ${plexArabic.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-paper text-ink">
+        <JsonLd data={orgSchema} />
+        <AnalyticsScripts gtmId={settings?.gtmId} ga4Id={settings?.analyticsId} metaPixelId={settings?.metaPixelId} />
         <NextIntlClientProvider>
           <ToastProvider>
             <SiteHeader categories={categories} locale={locale} />
@@ -82,6 +102,7 @@ export default async function LocaleLayout({
             <SiteFooter categories={categories} locale={locale} />
           </ToastProvider>
         </NextIntlClientProvider>
+        <WhatsAppCta whatsapp={settings?.whatsapp} label={tCommon("chatOnWhatsApp")} />
       </body>
     </html>
   );

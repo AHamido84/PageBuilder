@@ -4,8 +4,13 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 
 const STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "IN_PROGRESS", "WON", "LOST"];
+const TYPES = ["GENERAL", "INFO", "QUOTE", "BECOME_CUSTOMER", "SALES_INQUIRY"];
 
-export function LeadsFilterBar() {
+interface LeadsFilterBarProps {
+  users: { id: string; name: string }[];
+}
+
+export function LeadsFilterBar({ users }: LeadsFilterBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -15,6 +20,7 @@ export function LeadsFilterBar() {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
+    params.delete("page");
     startTransition(() => router.push(`${pathname}?${params.toString()}`));
   }
 
@@ -38,6 +44,31 @@ export function LeadsFilterBar() {
         {STATUSES.map((s) => (
           <option key={s} value={s}>
             {s}
+          </option>
+        ))}
+      </select>
+      <select
+        defaultValue={searchParams.get("type") ?? ""}
+        onChange={(e) => update("type", e.target.value)}
+        className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm"
+      >
+        <option value="">All types</option>
+        {TYPES.map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </select>
+      <select
+        defaultValue={searchParams.get("assignee") ?? ""}
+        onChange={(e) => update("assignee", e.target.value)}
+        className="rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm"
+      >
+        <option value="">All assignees</option>
+        <option value="unassigned">Unassigned</option>
+        {users.map((u) => (
+          <option key={u.id} value={u.id}>
+            {u.name}
           </option>
         ))}
       </select>

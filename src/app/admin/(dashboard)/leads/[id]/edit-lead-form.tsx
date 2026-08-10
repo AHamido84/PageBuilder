@@ -16,10 +16,12 @@ interface Props {
     phone: string | null;
     message: string | null;
     status: string;
+    assigneeId: string | null;
   };
+  users: { id: string; name: string }[];
 }
 
-export function EditLeadForm({ lead }: Props) {
+export function EditLeadForm({ lead, users }: Props) {
   const [state, formAction, pending] = useActionState(updateLeadAction, initialState);
 
   return (
@@ -51,6 +53,17 @@ export function EditLeadForm({ lead }: Props) {
           {STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Assigned to</label>
+        <select name="assigneeId" defaultValue={lead.assigneeId ?? ""} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm">
+          <option value="">Unassigned</option>
+          {users.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.name}
             </option>
           ))}
         </select>

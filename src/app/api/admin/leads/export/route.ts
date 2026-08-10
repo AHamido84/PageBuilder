@@ -18,10 +18,14 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
+  const type = searchParams.get("type");
+  const assignee = searchParams.get("assignee");
   const q = searchParams.get("q");
 
   const where: Prisma.LeadWhereInput = {};
   if (status) where.status = status as Prisma.EnumLeadStatusFilter["equals"];
+  if (type) where.inquiryType = type as Prisma.EnumLeadInquiryTypeFilter["equals"];
+  if (assignee) where.assigneeId = assignee === "unassigned" ? null : assignee;
   if (q) {
     where.OR = [
       { contactName: { contains: q, mode: "insensitive" } },
@@ -33,16 +37,18 @@ export async function GET(request: Request) {
   const leads = await prisma.lead.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    include: { industry: { select: { nameEn: true } }, product: { select: { sku: true } } },
+    include: { industry: { select: { nameEn: true } }, product: { select: { sku: true } }, assignee: { select: { name: true } } },
   });
 
-  const header = ["Contact name", "Company", "Email", "Phone", "Status", "Industry", "Product SKU", "Message", "Received"];
+  const header = ["Contact name", "Company", "Email", "Phone", "Type", "Status", "Assigned to", "Industry", "Product SKU", "Message", "Received"];
   const rows = leads.map((lead) => [
     lead.contactName,
     lead.companyName ?? "",
     lead.email,
     lead.phone ?? "",
+    lead.inquiryType,
     lead.status,
+    lead.assignee?.name ?? "",
     lead.industry?.nameEn ?? "",
     lead.product?.sku ?? "",
     (lead.message ?? "").replace(/\r?\n/g, " "),

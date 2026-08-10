@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { Section } from "@/components/ui/section";
@@ -7,8 +8,31 @@ import { TemperatureBadge } from "@/components/ui/badge";
 import { BackArrow } from "@/components/ui/arrow";
 import { ProductCard, type ProductCardData } from "@/components/site/product-card";
 import { InquiryForm } from "./inquiry-form";
+import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
+import { productSchema, breadcrumbSchema } from "@/lib/seo/structured-data";
+import { JsonLd } from "@/components/site/json-ld";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string; slug: string }> }): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    include: { translations: true, seo: { include: { ogImage: { select: { url: true } } } } },
+  });
+  if (!product || !product.isPublished) return {};
+
+  const upperLocale = locale.toUpperCase();
+  const translation = product.translations.find((t) => t.locale === upperLocale) ?? product.translations[0];
+
+  return buildMetadata({
+    locale,
+    path: `/products/${slug}`,
+    seo: product.seo,
+    fallbackTitle: translation?.name ?? product.sku,
+    fallbackDescription: translation?.shortDescription ?? translation?.description ?? null,
+  });
+}
 
 const ORIGIN_LABELS: Record<string, { en: string; ar: string }> = {
   "Saudi Arabia": { en: "Saudi Arabia", ar: "المملكة العربية السعودية" },
@@ -123,6 +147,23 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   const related = curatedRelatedCards.length > 0 ? curatedRelatedCards : await getRelated(product.categoryId, product.id, locale);
 
+  const structuredData = [
+    productSchema({
+      name: product.name,
+      description: product.shortDescription ?? product.description,
+      sku: product.sku,
+      imageUrls: product.images.map((img) => img.url),
+      brandName: product.brandName,
+      url: `${SITE_URL}/${locale}/products/${product.slug}`,
+      isAvailable: true,
+    }),
+    breadcrumbSchema([
+      { name: "Home", url: `${SITE_URL}/${locale}` },
+      { name: tCommon("backToProducts"), url: `${SITE_URL}/${locale}/products` },
+      { name: product.name, url: `${SITE_URL}/${locale}/products/${product.slug}` },
+    ]),
+  ];
+
   const additionalInfo = [
     { label: t("weight"), value: product.weight },
     { label: t("dimensions"), value: product.dimensions },
@@ -133,6 +174,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div>
+      <JsonLd data={structuredData} />
       <Section tone="paper" className="border-t-0 pb-10 pt-10 sm:pb-12 sm:pt-14">
         <Link href={`/${locale}/products`} className="text-sm text-ink/50 hover:text-harbor">
           <BackArrow /> {tCommon("backToProducts")}

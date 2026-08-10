@@ -127,12 +127,23 @@ export async function updateHoursSettingsAction(_prev: FormActionState, formData
   return { success: true };
 }
 
+// Analytics IDs get interpolated directly into inline <script> content (see
+// analytics-scripts.tsx) to build the vendor init snippets, so they're restricted to the
+// real-world character set for each ID format -- this is what stops a malicious/compromised
+// admin account from using this field to inject arbitrary JS that would then run for every
+// site visitor (not just an admin-only self-XSS, since these settings render sitewide).
+const ga4IdSchema = z.string().regex(/^G-[A-Z0-9]+$/, "Must look like a GA4 measurement ID, e.g. G-XXXXXXXXXX.");
+const gtmIdSchema = z.string().regex(/^GTM-[A-Z0-9]+$/, "Must look like a GTM container ID, e.g. GTM-XXXXXXX.");
+const pixelIdSchema = z.string().regex(/^\d+$/, "Must be a numeric Meta Pixel ID.");
+
 const seoSchema = z.object({
   seoDefaultTitleEn: z.string().max(200).optional().or(z.literal("")),
   seoDefaultTitleAr: z.string().max(200).optional().or(z.literal("")),
   seoDefaultDescriptionEn: z.string().max(400).optional().or(z.literal("")),
   seoDefaultDescriptionAr: z.string().max(400).optional().or(z.literal("")),
-  analyticsId: z.string().max(50).optional().or(z.literal("")),
+  analyticsId: ga4IdSchema.optional().or(z.literal("")),
+  gtmId: gtmIdSchema.optional().or(z.literal("")),
+  metaPixelId: pixelIdSchema.optional().or(z.literal("")),
   defaultOgImageId: z.string().optional().or(z.literal("")),
 });
 
@@ -155,6 +166,8 @@ export async function updateSeoSettingsAction(_prev: FormActionState, formData: 
       seoDefaultDescriptionEn: data.seoDefaultDescriptionEn || null,
       seoDefaultDescriptionAr: data.seoDefaultDescriptionAr || null,
       analyticsId: data.analyticsId || null,
+      gtmId: data.gtmId || null,
+      metaPixelId: data.metaPixelId || null,
       defaultOgImageId: data.defaultOgImageId || null,
     },
     update: {
@@ -163,6 +176,8 @@ export async function updateSeoSettingsAction(_prev: FormActionState, formData: 
       seoDefaultDescriptionEn: data.seoDefaultDescriptionEn || null,
       seoDefaultDescriptionAr: data.seoDefaultDescriptionAr || null,
       analyticsId: data.analyticsId || null,
+      gtmId: data.gtmId || null,
+      metaPixelId: data.metaPixelId || null,
       defaultOgImageId: data.defaultOgImageId || null,
     },
   });

@@ -58,6 +58,13 @@ enum LeadInquiryType {
   GENERAL
   INFO
   QUOTE
+  BECOME_CUSTOMER
+  SALES_INQUIRY
+}
+
+enum RedirectStatusCode {
+  MOVED_PERMANENTLY
+  FOUND
 }
 
 // ---------------------------------------------------------------------------
@@ -590,6 +597,8 @@ model SiteSetting {
   seoDefaultDescriptionEn String?
   seoDefaultDescriptionAr String?
   analyticsId             String?
+  gtmId                   String?
+  metaPixelId             String?
   updatedAt               DateTime @updatedAt
 
   logoId String?
@@ -629,6 +638,16 @@ model SEO {
 
   brandId String? @unique
   brand   Brand?  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+}
+
+model Redirect {
+  id         String             @id @default(cuid())
+  fromPath   String             @unique
+  toPath     String
+  statusCode RedirectStatusCode @default(MOVED_PERMANENTLY)
+  isActive   Boolean            @default(true)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
 }
 
 model NewsletterSubscriber {
