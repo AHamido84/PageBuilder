@@ -20,7 +20,7 @@ Built in 6 phases so far, each a separate user-issued command:
 
 Also: this app is deployed to production on Vercel at `https://seven-eleven-trading.vercel.app`, on a separate Neon branch (`prod`) from the dev database described below — see "Production deployment" further down.
 
-Everything through Phase 5 (plus the Vercel Blob storage migration) is committed, pushed to **https://github.com/AHamido84/PageBuilder** (branch `main`), and deployed to production. **Phase 6 is committed locally only as of this writing** — not pushed, not deployed, and its migration (`20260810082045_phase6_seo_leads_integrations`) has only been applied to the dev Neon branch. Confirm `git status`/`git log` and `prisma migrate status` against both branches for the current state before assuming otherwise.
+Everything through Phase 6 is committed, pushed to **https://github.com/AHamido84/PageBuilder** (branch `main`), and deployed to production, including its migration (`20260810082045_phase6_seo_leads_integrations`) on the `prod` Neon branch. Confirm `git status`/`git log` and `prisma migrate status` against both branches for the current state before assuming otherwise.
 
 ---
 
@@ -126,7 +126,7 @@ Header (sticky, mega menus for Products/Solutions/Company, mobile drawer) and Fo
     - Page `/page-builder-e2e-test` (Phase 4's end-to-end test page — Hero/Rich Text/Feature Cards/Accordion sections, published). Same disposable-test-data status as the rest of this list.
     - Plus Phase 5's real demo catalog from `scripts/seed-demo-content.ts` (19 categories, 6 brands, 23 products, 6 blog posts, 10 FAQs, 0 certifications) — see "Demo content" below. This is meant to look like real catalog data (it's what a visitor/reviewer will see), unlike the items above which are throwaway single-record test fixtures.
     - One test SVG (`public/uploads/2026/08/…svg`) uploaded while verifying the Phase 5 SVG-sanitizer fix — left on disk, not committed (see `.gitignore`).
-    - The user has been asked multiple times whether to clean up the single-record test fixtures and hasn't answered yet — worth asking again or just doing it (low-risk, clearly-labeled test data) if it comes up. **Note: the production Vercel deployment's database has no seed/demo catalog data** — it's only the dev Neon branch that has the items above. Prod is not necessarily *empty* though (see gap #15) — check `/admin` before assuming.
+    - The user has been asked multiple times whether to clean up the single-record test fixtures and hasn't answered yet — worth asking again or just doing it (low-risk, clearly-labeled test data) if it comes up. **Note: the production Vercel deployment's database has no seed/demo catalog data** — it's only the dev Neon branch that has the items above. Prod is not necessarily *empty* though (see gap #15) — check `/admin` before assuming. **As of Phase 6's deploy, prod also has one real test lead**: "Layla Mansour" (`SALES_INQUIRY`, `layla@example.com`), submitted live against production to verify the new inquiry-type pipeline end-to-end. Same no-delete-action caveat as the dev test leads.
     - **The entire dev database was rebuilt from scratch mid-Phase-6** (see "Environment setup" above) — everything in this list as of this writing was recreated via the seed scripts, not carried over from earlier phases. Functionally identical, just worth knowing the row ids all changed.
 11. ~~Not every `SiteSetting` field is consumed on the public site yet~~ — **partially resolved in Phase 6.** `whatsapp` (floating CTA), `mapEmbedUrl` (`/contact` iframe), and `socialLinks.facebook` (footer, was silently dropped before) now render. Still unconsumed: logo/favicon replacing the text wordmark, business hours display.
 12. **The hardcoded marketing homepage (`src/app/[locale]/page.tsx`) is still hardcoded React**, not a Page Builder-driven `Page`/`PageSection` record. This was a deliberate Phase 4 scope boundary, not an oversight — ask before migrating it if that comes up.
@@ -198,7 +198,9 @@ Live at **https://seven-eleven-trading.vercel.app** (Vercel project `ahamido/sev
 
 **Phase 5 is live**: pushed to GitHub, migration `20260810015850_product_catalog_v2` applied to `prod`, deployed. Prod's database has **no demo/seed catalog data** — only whatever's been created directly through the live admin (unlike the dev branch, which has the full `seed-demo-content.ts` catalog plus assorted test fixtures, see gap #10). Don't assume prod is empty without checking `/admin` — it's been used directly (real logo uploaded via `/admin/media` or `/admin/settings` at least once, see the note on concurrent-session risk below).
 
-**Phase 6 is not deployed.** Committed locally only. Before pushing/deploying: apply migration `20260810082045_phase6_seo_leads_integrations` to `prod` (same `vercel env pull` + override-`DATABASE_URL` pattern as before), and re-run `prisma/seed.ts` against `prod` afterward — it adds the `redirects` RBAC resource, and skipping that step will reproduce the exact `Forbidden: missing permission X:read` bug hit (and fixed) when Phase 5's `faqs` resource shipped without a matching prod re-seed (see "Environment setup" above for why `migrate deploy` alone isn't enough). Don't push or deploy without the user explicitly asking, per standing instruction.
+**Phase 6 is live**: migration `20260810082045_phase6_seo_leads_integrations` applied to `prod` and `prisma/seed.ts` re-run against `prod` (adds the new `redirects` RBAC resource) *before* pushing this time — learned from Phase 5's `faqs`-resource gap, so `/admin/redirects` worked on prod on the very first load, no `Forbidden: missing permission` repeat.
+
+**Real bug found live on this deploy, fixed same session**: prod's `NEXT_PUBLIC_SITE_URL` env var carries a leading U+FEFF byte-order mark, which nothing before Phase 6 ever exercised (no code built absolute URLs from it until this phase's SEO work). It silently broke every canonical/hreflang/OG/sitemap/JSON-LD URL in production (`https://.../%EF%BB%BFhttps://...`-shaped garbage). Fixed **defensively in code** (`src/lib/seo/metadata.ts` strips a leading BOM via `String.fromCharCode(0xfeff)`, not a literal invisible character in source — that's deliberate, an invisible codepoint typed directly into a file is a landmine for the next person editing nearby) rather than by editing the Vercel env var, so it's correct regardless of how that variable ever gets set again. The env var itself still has the BOM — harmless now, but worth cleaning up in the Vercel dashboard if anyone's in there anyway.
 
 ---
 
@@ -226,7 +228,6 @@ If `prisma generate` seems out of sync after a fresh checkout: `npx prisma gener
 
 ## Natural next steps (not started, just candidates)
 
-- Push Phase 6 to GitHub and deploy to Vercel (apply its migration + re-seed RBAC on `prod` first — see "Production deployment" above) — ask before doing this
 - Wire public header/footer to real `Menu`/`MenuItem` data
 - Build a dedicated public certifications page once real certification data exists (admin UI is ready, seeded empty by design)
 - Custom role/permission builder UI
