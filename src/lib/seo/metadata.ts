@@ -2,7 +2,17 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import type { AppLocale } from "@/i18n/routing";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+// Strips a leading BOM/zero-width character and trims whitespace before the trailing-slash
+// cleanup -- found NEXT_PUBLIC_SITE_URL carrying a leading U+FEFF in the Vercel production
+// env (likely set at some point via a BOM-prefixed file, same class of issue as the
+// PowerShell Out-File gotcha documented in HANDOFF.md), which silently broke every absolute
+// URL built from this constant: canonical, hreflang alternates, OG/Twitter urls, sitemap
+// entries, JSON-LD urls. Defensive here so it's correct regardless of env var hygiene.
+const BOM_PATTERN = new RegExp("^" + String.fromCharCode(0xfeff));
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000")
+  .replace(BOM_PATTERN, "")
+  .trim()
+  .replace(/\/$/, "");
 
 export { SITE_URL };
 
