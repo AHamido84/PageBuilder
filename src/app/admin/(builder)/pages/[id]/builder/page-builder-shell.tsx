@@ -32,7 +32,7 @@ export function PageBuilderShell({ pageId, slug, initialStatus, initialSections,
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [device, setDevice] = useState<Breakpoint>("desktop");
   const [mode, setMode] = useState<"select" | "preview">("select");
-  const [editorLocale] = useState<EditorLocale>("en");
+  const [editorLocale, setEditorLocale] = useState<EditorLocale>("en");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [pageStatus, setPageStatus] = useState(initialStatus);
   const revisions = initialRevisions;
@@ -209,7 +209,14 @@ export function PageBuilderShell({ pageId, slug, initialStatus, initialSections,
             onToggleVisible={toggleVisible}
           />
           {selectedSection ? (
-            <SettingsPanel section={selectedSection} device={device} onUpdateData={updateData} onUpdateSettings={updateSettings} />
+            <SettingsPanel
+              section={selectedSection}
+              device={device}
+              locale={editorLocale}
+              onLocaleChange={setEditorLocale}
+              onUpdateData={updateData}
+              onUpdateSettings={updateSettings}
+            />
           ) : (
             <div className="border-s border-neutral-800 bg-neutral-950 p-4 text-sm text-neutral-500">Select a section to edit it.</div>
           )}

@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { getBlock } from "@/lib/page-builder/registry";
-import type { BuilderSection, Breakpoint, StyleTokens } from "@/lib/page-builder/types";
+import type { BuilderSection, Breakpoint, EditorLocale, StyleTokens } from "@/lib/page-builder/types";
 import { defaultStyleTokens } from "@/lib/page-builder/types";
 import {
   ALIGN_OPTIONS, BACKGROUND_OPTIONS, BODY_SIZE_OPTIONS, COLUMNS_OPTIONS, HEADING_SIZE_OPTIONS, MARGIN_OPTIONS, PADDING_OPTIONS,
@@ -14,12 +13,13 @@ import { Tabs } from "@/components/admin/ui/tabs";
 interface Props {
   section: BuilderSection;
   device: Breakpoint;
+  locale: EditorLocale;
+  onLocaleChange: (locale: EditorLocale) => void;
   onUpdateData: (locale: "en" | "ar", data: unknown) => void;
   onUpdateSettings: (next: BuilderSection["settings"]) => void;
 }
 
-export function SettingsPanel({ section, device, onUpdateData, onUpdateSettings }: Props) {
-  const [editorLocale, setEditorLocale] = useState<"en" | "ar">("en");
+export function SettingsPanel({ section, device, locale: editorLocale, onLocaleChange, onUpdateData, onUpdateSettings }: Props) {
   const block = getBlock(section.type);
   if (!block) return <div className="p-4 text-sm text-neutral-500">Unknown block type.</div>;
 
@@ -46,7 +46,7 @@ export function SettingsPanel({ section, device, onUpdateData, onUpdateSettings 
               <div className="space-y-3 p-3">
                 <SegmentedControl
                   value={editorLocale}
-                  onChange={setEditorLocale}
+                  onChange={onLocaleChange}
                   options={[
                     { value: "en", label: "English" },
                     { value: "ar", label: "العربية" },
