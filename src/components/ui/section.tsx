@@ -1,5 +1,6 @@
 import { cn } from "@/lib/cn";
 import { Container } from "./container";
+import { ScrollReveal } from "@/lib/motion/primitives";
 
 type SectionTone = "paper" | "ink" | "harbor" | "frost";
 
@@ -29,14 +30,14 @@ export function Section({
   ...props
 }: SectionProps) {
   return (
-    <section className={cn("border-t border-ink/10 py-16 sm:py-20 lg:py-28", toneClasses[tone], className)} {...props}>
+    <section className={cn("border-t border-ink/10 py-14 sm:py-20 lg:py-32", toneClasses[tone], className)} {...props}>
       <Container className={containerClassName}>
         {(eyebrow || title || description) && (
-          <div className="mb-10 max-w-2xl sm:mb-14">
+          <ScrollReveal variant="fade-up" className="mb-12 max-w-2xl sm:mb-16">
             {eyebrow ? <p className="manifest-strip mb-3 text-harbor">{eyebrow}</p> : null}
-            {title ? <h2 className="font-display text-3xl sm:text-4xl lg:text-[2.75rem] leading-[1.05]">{title}</h2> : null}
+            {title ? <h2 className="font-display text-h2">{title}</h2> : null}
             {description ? <p className="mt-4 text-base leading-relaxed text-ink/70 sm:text-lg">{description}</p> : null}
-          </div>
+          </ScrollReveal>
         )}
         {children}
       </Container>

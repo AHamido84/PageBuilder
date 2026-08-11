@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
-import { TemperatureBadge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
+import { Badge, TemperatureBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
+import { DURATION, EASE_PREMIUM } from "@/lib/motion/motionTokens";
 
 export interface ProductCardData {
   id: string;
@@ -11,19 +16,38 @@ export interface ProductCardData {
   categoryName: string;
   imageUrl: string | null;
   shortDescription?: string | null;
+  isFeatured?: boolean;
+  createdAt?: string | Date;
+}
+
+const NEW_WINDOW_DAYS = 30;
+
+function isRecentlyAdded(createdAt?: string | Date): boolean {
+  if (!createdAt) return false;
+  const days = (Date.now() - new Date(createdAt).getTime()) / 86_400_000;
+  return days >= 0 && days <= NEW_WINDOW_DAYS;
 }
 
 export function ProductCard({ product, locale }: { product: ProductCardData; locale: string }) {
+  const t = useTranslations("productCard");
+  const isNew = isRecentlyAdded(product.createdAt);
+
   return (
     <Link href={`/${locale}/products/${product.slug}`} className="group block">
       <Card className="overflow-hidden p-0">
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-frost">
+          {(product.isFeatured || isNew) && (
+            <span className="absolute start-3 top-3 z-10">
+              <Badge tone={product.isFeatured ? "featured" : "new"}>{product.isFeatured ? t("featured") : t("new")}</Badge>
+            </span>
+          )}
           {product.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <motion.img
               src={product.imageUrl}
               alt=""
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              className="h-full w-full object-cover"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: DURATION.standard, ease: EASE_PREMIUM }}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
@@ -33,7 +57,7 @@ export function ProductCard({ product, locale }: { product: ProductCardData; loc
         </div>
         <div className="p-4">
           <p className="manifest-strip mb-2 text-ink/40">{product.categoryName}</p>
-          <p className="mb-1 font-medium leading-snug">{product.name}</p>
+          <p className="mb-1 font-medium leading-snug transition-colors group-hover:text-harbor">{product.name}</p>
           {product.shortDescription ? <p className="mb-2 line-clamp-2 text-sm text-ink/55">{product.shortDescription}</p> : null}
           <div className="flex items-center justify-between">
             <span className="font-mono-data text-xs text-ink/40">{product.sku}</span>

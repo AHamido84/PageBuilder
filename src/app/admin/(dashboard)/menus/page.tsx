@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { Tabs } from "@/components/admin/ui/tabs";
 import { MenuEditor, type MenuItemNode } from "./menu-editor";
+import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +63,7 @@ export default async function MenusPage() {
     prisma.product.findMany({ include: { translations: true }, orderBy: { sku: "asc" }, take: 200 }),
   ]);
 
-  const pageOptions = pages.map((p) => ({ id: p.id, label: p.slug }));
+  const pageOptions = pages.map((p) => ({ id: p.id, label: p.slug === HOMEPAGE_SLUG ? "Homepage (/)" : p.slug }));
   const categoryOptions = categories.map((c) => ({ id: c.id, label: c.translations.find((t) => t.locale === "EN")?.name ?? c.slug }));
   const productOptions = products.map((p) => ({ id: p.id, label: p.translations.find((t) => t.locale === "EN")?.name ?? p.sku }));
 

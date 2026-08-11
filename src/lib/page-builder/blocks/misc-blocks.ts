@@ -13,6 +13,8 @@ const imageTextSchema = z.object({
   body: z.string().max(1000).optional().default(""),
   image: mediaRefSchema.nullable().default(null),
   imagePosition: z.enum(["left", "right"]).default("left"),
+  ctaLabel: z.string().max(60).optional().default(""),
+  ctaUrl: z.string().max(300).optional().default(""),
 });
 export type ImageTextData = z.infer<typeof imageTextSchema>;
 
@@ -23,6 +25,11 @@ const socialLinkSchema = z.object({ platform: z.string().max(30), url: z.string(
 const socialMediaSchema = z.object({ heading: z.string().max(200).optional().default(""), links: z.array(socialLinkSchema).default([]) });
 export type SocialMediaData = z.infer<typeof socialMediaSchema>;
 
+// `any` is required here, not a shortcut: this array holds BlockDefinition<T> for many different T (each
+// entry individually typed via its own `as BlockDefinition<XData>` cast below), and TData's contravariant
+// use in `onChange: (next: TData) => void` makes `BlockDefinition<unknown>[]` fail to typecheck against
+// any specific entry -- confirmed by trying it and getting real tsc errors, not assumed.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const miscBlocks: BlockDefinition<any>[] = [
   {
     type: "IMAGE_TEXT",
@@ -31,8 +38,8 @@ export const miscBlocks: BlockDefinition<any>[] = [
     icon: SplitSquareHorizontal,
     dataSchema: imageTextSchema,
     defaultData: {
-      en: { heading: "Heading", body: "", image: null, imagePosition: "left" },
-      ar: { heading: "العنوان", body: "", image: null, imagePosition: "left" },
+      en: { heading: "Heading", body: "", image: null, imagePosition: "left", ctaLabel: "", ctaUrl: "" },
+      ar: { heading: "العنوان", body: "", image: null, imagePosition: "left", ctaLabel: "", ctaUrl: "" },
     },
     defaultSettings: defaultSectionSettings({ background: "frost" }),
     Edit: ImageTextEdit,

@@ -36,6 +36,16 @@ async function getCategories(locale: string) {
   }));
 }
 
+async function getCategoryIntro(slug: string, locale: string) {
+  const category = await prisma.category.findUnique({
+    where: { slug, isActive: true },
+    include: { translations: true },
+  });
+  if (!category) return null;
+  const translation = category.translations.find((t) => t.locale === locale.toUpperCase());
+  return { name: translation?.name ?? category.slug, description: translation?.description ?? null };
+}
+
 async function getBrands(locale: string) {
   const brands = await prisma.brand.findMany({ where: { isActive: true }, orderBy: { slug: "asc" }, include: { translations: true } });
   return brands.map((b) => ({
@@ -88,6 +98,8 @@ async function getProducts(
     shortDescription: product.translations.find((t) => t.locale === locale.toUpperCase())?.shortDescription ?? null,
     categoryName: product.category.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.category.slug,
     imageUrl: product.images[0]?.url ?? null,
+    isFeatured: product.isFeatured,
+    createdAt: product.createdAt,
   }));
 
   if (params.sort === "name-asc" || params.sort === "name-desc") {
@@ -101,7 +113,12 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const params = await searchParams;
   const locale = await getLocale();
   const t = await getTranslations("products");
-  const [categories, brands, { items: products, total }] = await Promise.all([getCategories(locale), getBrands(locale), getProducts(locale, params)]);
+  const [categories, brands, { items: products, total }, activeCategory] = await Promise.all([
+    getCategories(locale),
+    getBrands(locale),
+    getProducts(locale, params),
+    params.category ? getCategoryIntro(params.category, locale) : Promise.resolve(null),
+  ]);
 
   const page = Math.max(1, Number(params.page) || 1);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -118,7 +135,12 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   }
 
   return (
-    <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
+    <Section
+      tone="paper"
+      eyebrow={activeCategory ? t("filterCategory") : t("eyebrow")}
+      title={activeCategory ? activeCategory.name : t("title")}
+      description={activeCategory?.description ?? undefined}
+    >
       <FilterBar categories={categories} brands={brands} />
       <p className="font-mono-data mb-6 text-xs text-ink/40">{t("resultsCount", { count: total })}</p>
       {products.length > 0 ? (

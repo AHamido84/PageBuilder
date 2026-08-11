@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { logActivity } from "@/lib/activity-log";
+import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
 
 const slugSchema = z
   .string()
@@ -41,6 +42,9 @@ export async function updatePageSlugAction(_prev: FormActionState, formData: For
   const id = String(formData.get("id"));
   const parsed = slugSchema.safeParse(formData.get("slug"));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid slug." };
+
+  const current = await prisma.page.findUnique({ where: { id }, select: { slug: true } });
+  if (current?.slug === HOMEPAGE_SLUG) return { error: "The homepage's slug can't be changed." };
 
   const duplicate = await prisma.page.findFirst({ where: { slug: parsed.data, NOT: { id } } });
   if (duplicate) return { error: "A page with that slug already exists." };
@@ -83,6 +87,9 @@ export async function setPageStatusAction(pageId: string, status: string): Promi
 export async function deletePageAction(pageId: string): Promise<{ error?: string }> {
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "pages", "delete");
+
+  const page = await prisma.page.findUnique({ where: { id: pageId }, select: { slug: true } });
+  if (page?.slug === HOMEPAGE_SLUG) return { error: "The homepage can't be deleted." };
 
   await prisma.page.delete({ where: { id: pageId } });
   await logActivity({ userId: currentUser.id, action: "page.delete", entityType: "Page", entityId: pageId });

@@ -40,7 +40,7 @@ export function RichTextEdit({ data, onChange, locale }: BlockEditProps<RichText
       </div>
       <div
         dir={locale === "ar" ? "rtl" : "ltr"}
-        className="max-w-none px-3 py-2 text-sm text-neutral-100 [&_.ProseMirror]:min-h-24 [&_.ProseMirror]:outline-none [&_a]:text-neutral-300 [&_a]:underline [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-3 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
+        className="max-w-none px-3 py-2 text-sm text-neutral-100 [&_.ProseMirror]:min-h-24 [&_.ProseMirror]:outline-none [&_a]:text-neutral-300 [&_a]:underline [&_ol]:list-decimal [&_ol]:ps-5 [&_p]:mb-3 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:ps-5"
       >
         <EditorContent editor={editor} />
       </div>
@@ -51,7 +51,7 @@ export function RichTextEdit({ data, onChange, locale }: BlockEditProps<RichText
 export function RichTextRender({ data, settings }: BlockRenderProps<RichTextData>) {
   return (
     <div
-      className={`max-w-none leading-relaxed [&_a]:underline [&_a]:opacity-80 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-3 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 ${resolveBodyClasses(settings)}`}
+      className={`max-w-none leading-relaxed [&_a]:underline [&_a]:opacity-80 [&_ol]:list-decimal [&_ol]:ps-5 [&_p]:mb-3 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:ps-5 ${resolveBodyClasses(settings)}`}
       // Trusted: data.html is sanitized server-side (sanitize-html) in saveDraftAction before persisting. Never re-sanitized here — see saveDraftAction.
       dangerouslySetInnerHTML={{ __html: data.html }}
     />

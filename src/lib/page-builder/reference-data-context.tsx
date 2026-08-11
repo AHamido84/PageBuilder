@@ -10,9 +10,10 @@ export interface ReferenceOption {
 export interface ReferenceData {
   categories: ReferenceOption[];
   brands: ReferenceOption[];
+  blogCategories: ReferenceOption[];
 }
 
-const ReferenceDataContext = createContext<ReferenceData>({ categories: [], brands: [] });
+const ReferenceDataContext = createContext<ReferenceData>({ categories: [], brands: [], blogCategories: [] });
 
 export function ReferenceDataProvider({ value, children }: { value: ReferenceData; children: React.ReactNode }) {
   return <ReferenceDataContext.Provider value={value}>{children}</ReferenceDataContext.Provider>;

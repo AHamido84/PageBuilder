@@ -26,9 +26,10 @@ export function NewsletterForm() {
         id="newsletter-email"
         name="email"
         type="email"
+        dir="ltr"
         required
         placeholder={t("newsletterPlaceholder")}
-        className="w-full min-w-0 rounded-[var(--radius-sm)] border border-paper/25 bg-transparent px-3 py-2 text-sm text-paper placeholder:text-paper/40"
+        className="w-full min-w-0 rounded-[var(--radius-sm)] border border-paper/25 bg-transparent px-3 py-2 text-end text-sm text-paper placeholder:text-paper/40"
       />
       <button type="submit" disabled={pending} className={buttonClasses("ghost-light", "sm", "shrink-0")}>
         {pending ? "…" : t("newsletterSubmit")}

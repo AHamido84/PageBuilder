@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import type { AppLocale } from "@/i18n/routing";
 
 // Strips a leading BOM/zero-width character and trims whitespace before the trailing-slash
 // cleanup -- found NEXT_PUBLIC_SITE_URL carrying a leading U+FEFF in the Vercel production

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface DrawerProps {
@@ -12,6 +12,14 @@ interface DrawerProps {
 }
 
 export function Drawer({ open, onClose, title, children, widthClassName = "w-full max-w-md" }: DrawerProps) {
+  // Portals render nothing on the server; a plain `typeof document === "undefined"` check still returns
+  // the real portal content on the client's very first (pre-hydration) render, which mismatches the
+  // server's `null` and throws a hydration error. Delaying the portal to a post-mount effect makes the
+  // client's first render match the server (both `null`), and only reveals it on the next commit.
+  const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate mount-detection flag, not state sync
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -21,7 +29,7 @@ export function Drawer({ open, onClose, title, children, widthClassName = "w-ful
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  if (typeof document === "undefined") return null;
+  if (!mounted) return null;
 
   return createPortal(
     <div className={`fixed inset-0 z-[250] ${open ? "" : "pointer-events-none"}`}>

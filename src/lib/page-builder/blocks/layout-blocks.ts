@@ -50,6 +50,11 @@ function columnsBlock(
   };
 }
 
+// `any` is required here, not a shortcut: this array holds BlockDefinition<T> for many different T (each
+// entry individually typed via its own `as BlockDefinition<XData>` cast below), and TData's contravariant
+// use in `onChange: (next: TData) => void` makes `BlockDefinition<unknown>[]` fail to typecheck against
+// any specific entry -- confirmed by trying it and getting real tsc errors, not assumed.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const layoutBlocks: BlockDefinition<any>[] = [
   columnsBlock(2, "TWO_COLUMNS", "Two Columns", Columns2, TwoColumnsEdit, TwoColumnsRender),
   columnsBlock(3, "THREE_COLUMNS", "Three Columns", Columns3, ThreeColumnsEdit, ThreeColumnsRender),

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { CreatePageForm } from "./create-page-form";
 import { PageRowActions } from "./page-row-actions";
+import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export default async function PagesListPage() {
               <tr key={page.id} className="border-t border-neutral-800">
                 <td className="px-4 py-2">
                   <Link href={`/admin/pages/${page.id}`} className="hover:underline">
-                    /{page.slug}
+                    {page.slug === HOMEPAGE_SLUG ? "Homepage (/)" : `/${page.slug}`}
                   </Link>
                 </td>
                 <td className="px-4 py-2 text-neutral-400">{page._count.sections}</td>

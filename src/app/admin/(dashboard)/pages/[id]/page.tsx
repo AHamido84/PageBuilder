@@ -7,6 +7,7 @@ import { SeoForm } from "@/components/admin/ui/seo-form";
 import { PageDetailsForm } from "./page-details-form";
 import { PageRowActions } from "../page-row-actions";
 import { updatePageSeoAction } from "../actions";
+import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
 
 export const dynamic = "force-dynamic";
 
@@ -19,17 +20,20 @@ export default async function EditPagePage({ params }: { params: Promise<{ id: s
 
   if (!page) notFound();
 
+  const isHomepage = page.slug === HOMEPAGE_SLUG;
+  const publicPath = isHomepage ? "" : `/${page.slug}`;
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold">/{page.slug}</h1>
+          <h1 className="text-lg font-semibold">{isHomepage ? "Homepage (/)" : `/${page.slug}`}</h1>
           <p className="text-sm text-neutral-500">
             {page.status} · {page.sections.length} section{page.sections.length === 1 ? "" : "s"}
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <Link href={`/en/${page.slug}`} target="_blank" className="text-sm text-neutral-400 hover:text-neutral-100">
+          <Link href={`/en${publicPath}`} target="_blank" className="text-sm text-neutral-400 hover:text-neutral-100">
             Preview →
           </Link>
           <Link href={`/admin/pages/${page.id}/builder`} className="rounded-md bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-white">

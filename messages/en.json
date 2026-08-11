@@ -13,7 +13,9 @@
     "contact": "Contact",
     "requestQuote": "Request a quote",
     "viewAllProducts": "View all products",
-    "viewAllCategories": "All categories"
+    "viewAllCategories": "All categories",
+    "featured": "Featured",
+    "discoverProducts": "Discover Our Full Product Range"
   },
   "common": {
     "loading": "Loading…",
@@ -25,6 +27,15 @@
     "close": "Close",
     "skuCount": "{count, plural, =0 {No SKUs} one {# SKU} other {# SKUs}}",
     "chatOnWhatsApp": "Chat on WhatsApp"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "body": "An unexpected error occurred. Please try again, or head back to the homepage.",
+    "backHome": "Back to home"
+  },
+  "productCard": {
+    "featured": "Featured",
+    "new": "New"
   },
   "home": {
     "manifestStrip": "JEDDAH, KSA — WHOLESALE IMPORT & EXPORT — FROZEN / CHILLED / AMBIENT",
@@ -163,12 +174,20 @@
     "eyebrow": "Distribution & logistics",
     "title": "From sourcing to your loading dock",
     "intro": "Distribution is the core of what we do — moving frozen, chilled, and ambient product from source to storage to your business, on a schedule that fits how you order.",
-    "section1Title": "Sourcing",
-    "section1Body": "Product is sourced both internationally and locally, against the category and temperature-class requirements of our catalog.",
-    "section2Title": "Temperature-controlled storage",
-    "section2Body": "Held in storage separated by temperature class — frozen, chilled, and ambient — until it's scheduled for delivery.",
-    "section3Title": "Delivery across Saudi Arabia",
-    "section3Body": "Delivered to hotels, restaurants, catering companies, hospitals, and wholesale markets across the Kingdom, on schedules built around foodservice operations."
+    "flowEyebrow": "How it moves",
+    "flowTitle": "Six steps, one continuous cold chain",
+    "step1Title": "Sourcing",
+    "step1Body": "Product is sourced both internationally and locally, against the category and temperature-class requirements of our catalog.",
+    "step2Title": "Import",
+    "step2Body": "Import and customs clearance handled end-to-end, so product moves from origin to our storage without unplanned delay.",
+    "step3Title": "Quality control",
+    "step3Body": "Received and checked against temperature and quality requirements on arrival, before it enters storage.",
+    "step4Title": "Temperature-controlled storage",
+    "step4Body": "Held in storage separated by temperature class — frozen, chilled, and ambient — until it's scheduled for delivery.",
+    "step5Title": "Distribution",
+    "step5Body": "Picked and loaded for delivery on a schedule built around your operation, not a fixed weekly slot.",
+    "step6Title": "Customer",
+    "step6Body": "Delivered to hotels, restaurants, catering companies, hospitals, and wholesale markets across the Kingdom — to your loading dock, ready to use."
   },
   "brands": {
     "eyebrow": "Sourcing",
@@ -221,7 +240,13 @@
     "requestInfo": "Request information",
     "requestQuote": "Request a quote",
     "notFoundTitle": "Product not found",
-    "notFoundBody": "This product may have been removed or unpublished."
+    "notFoundBody": "This product may have been removed or unpublished.",
+    "galleryOpenImage": "Open full-size image",
+    "galleryShowVideo": "Show video",
+    "galleryShowImage": "Show image {index}",
+    "galleryClose": "Close",
+    "galleryPrevious": "Previous",
+    "galleryNext": "Next"
   },
   "blog": {
     "eyebrow": "Insights",
@@ -262,7 +287,18 @@
     "locationLabel": "Location",
     "location": "Jeddah, Saudi Arabia",
     "emailLabel": "Email",
-    "phoneLabel": "Phone"
+    "phoneLabel": "Phone",
+    "hoursLabel": "Business hours",
+    "closed": "Closed",
+    "days": {
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    }
   },
   "legal": {
     "privacyTitle": "Privacy Policy",

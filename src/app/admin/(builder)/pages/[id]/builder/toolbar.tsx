@@ -5,6 +5,7 @@ import { ArrowLeft, Eye, History, Laptop, MousePointer2, Redo2, Smartphone, Tabl
 import { SegmentedControl } from "@/components/admin/ui/segmented-control";
 import { StatusLabel, type SaveStatus } from "@/components/admin/ui/status-label";
 import type { Breakpoint } from "@/lib/page-builder/types";
+import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
 
 interface Props {
   pageId: string;
@@ -26,6 +27,8 @@ interface Props {
 }
 
 export function Toolbar({ pageId, slug, pageStatus, saveStatus, device, onDeviceChange, mode, onModeChange, canUndo, canRedo, onUndo, onRedo, onSave, onPublish, publishing, onOpenRevisions }: Props) {
+  const isHomepage = slug === HOMEPAGE_SLUG;
+  const publicPath = isHomepage ? "" : `/${slug}`;
   return (
     <div className="flex h-14 shrink-0 items-center justify-between border-b border-neutral-800 bg-neutral-950 px-3">
       <div className="flex items-center gap-3">
@@ -33,7 +36,7 @@ export function Toolbar({ pageId, slug, pageStatus, saveStatus, device, onDevice
           <ArrowLeft size={16} />
         </Link>
         <div>
-          <p className="text-sm font-medium leading-tight">/{slug}</p>
+          <p className="text-sm font-medium leading-tight">{isHomepage ? "Homepage (/)" : `/${slug}`}</p>
           <p className="text-[11px] leading-tight text-neutral-500">
             {pageStatus} · <StatusLabel status={saveStatus} />
           </p>
@@ -70,7 +73,7 @@ export function Toolbar({ pageId, slug, pageStatus, saveStatus, device, onDevice
         <button type="button" onClick={onOpenRevisions} className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100" title="Revision history">
           <History size={16} />
         </button>
-        <a href={`/en/${slug}`} target="_blank" rel="noreferrer" className="rounded-md border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300 hover:bg-neutral-900">
+        <a href={`/en${publicPath}`} target="_blank" rel="noreferrer" className="rounded-md border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300 hover:bg-neutral-900">
           Preview
         </a>
         <button type="button" onClick={onSave} className="rounded-md border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300 hover:bg-neutral-900">

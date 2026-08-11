@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { sendMail } from "@/lib/email";
+import { SITE_URL } from "@/lib/seo/metadata";
 
 export const leadSchema = z.object({
   companyName: z.string().max(200).optional().or(z.literal("")),
@@ -82,7 +83,7 @@ export async function submitLead(formData: FormData, rateLimitKeyPrefix = "lead"
         lead.phone ? `Phone: ${lead.phone}` : null,
         `Type: ${lead.inquiryType}`,
         lead.message ? `\nMessage:\n${lead.message}` : null,
-        `\nView in admin: ${process.env.NEXT_PUBLIC_SITE_URL}/admin/leads/${lead.id}`,
+        `\nView in admin: ${SITE_URL}/admin/leads/${lead.id}`,
       ]
         .filter(Boolean)
         .join("\n"),

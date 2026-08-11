@@ -7,6 +7,7 @@ import { Section } from "@/components/ui/section";
 import { TemperatureBadge } from "@/components/ui/badge";
 import { BackArrow } from "@/components/ui/arrow";
 import { ProductCard, type ProductCardData } from "@/components/site/product-card";
+import { ProductGallery } from "./product-gallery";
 import { InquiryForm } from "./inquiry-form";
 import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
 import { productSchema, breadcrumbSchema } from "@/lib/seo/structured-data";
@@ -123,6 +124,8 @@ async function getRelated(categoryId: string, excludeId: string, locale: string)
     name: product.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.sku,
     categoryName: product.category.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.category.slug,
     imageUrl: product.images[0]?.url ?? null,
+    isFeatured: product.isFeatured,
+    createdAt: product.createdAt,
   }));
 }
 
@@ -143,6 +146,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     name: p.translations.find((t2) => t2.locale === locale.toUpperCase())?.name ?? p.sku,
     categoryName: p.category.translations.find((t2) => t2.locale === locale.toUpperCase())?.name ?? p.category.slug,
     imageUrl: p.images[0]?.url ?? null,
+    isFeatured: p.isFeatured,
+    createdAt: p.createdAt,
   }));
 
   const related = curatedRelatedCards.length > 0 ? curatedRelatedCards : await getRelated(product.categoryId, product.id, locale);
@@ -183,36 +188,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         <div className="mt-6 grid gap-10 lg:grid-cols-2 lg:gap-16">
           {/* Gallery */}
           <div>
-            {product.images.length > 0 ? (
-              <div className="grid gap-3">
-                <div className="aspect-[4/3] overflow-hidden rounded-[var(--radius-md)] bg-frost">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={product.images[0].url} alt={product.name} className="h-full w-full object-cover" />
-                </div>
-                {product.images.length > 1 ? (
-                  <div className="grid grid-cols-4 gap-3">
-                    {product.images.slice(1, 5).map((image) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img key={image.id} src={image.url} alt="" className="aspect-square rounded-[var(--radius-sm)] object-cover" />
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <div className="flex aspect-[4/3] items-center justify-center rounded-[var(--radius-md)] bg-frost">
-                <span className="font-mono-data text-sm text-ink/30">{product.sku}</span>
-              </div>
-            )}
-
-            {product.videos.length > 0 ? (
-              <div className="mt-3 grid gap-3">
-                {product.videos.map((video) => (
-                  <video key={video.id} controls className="aspect-video w-full rounded-[var(--radius-md)] bg-ink/5 object-cover">
-                    <source src={video.url} />
-                  </video>
-                ))}
-              </div>
-            ) : null}
+            <ProductGallery images={product.images} videos={product.videos} productName={product.name} />
 
             {product.certifications.length > 0 ? (
               <div className="mt-6">

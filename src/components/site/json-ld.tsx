@@ -6,7 +6,6 @@ export function JsonLd({ data }: { data: unknown | unknown[] }) {
   return (
     <>
       {items.map((item, index) => (
-        // eslint-disable-next-line react/no-danger
         <script key={index} type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(item) }} />
       ))}
     </>

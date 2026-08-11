@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Award, Boxes, Clock, Globe, Handshake, Leaf, Package, Phone, Plus,
   Shield, Snowflake, Star, Thermometer, Trash2, Truck, Users,
@@ -9,6 +10,7 @@ import { TextField, TextareaField, SelectField } from "@/components/admin/ui/fie
 import { IconButton } from "@/components/admin/ui/icon-button";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveColumnsClasses } from "../../style-tokens";
+import { resolveHref } from "../../href";
 import type { IconCardsData } from "../social-proof-blocks";
 
 export const ICON_OPTIONS: Record<string, LucideIcon> = {
@@ -40,11 +42,12 @@ export function IconCardsEdit({ data, onChange, locale }: BlockEditProps<IconCar
           />
           <TextField label="Title" value={item.title} onChange={(title) => setItems(items.map((it, idx) => (idx === i ? { ...it, title } : it)))} dir={dir} />
           <TextareaField label="Body" value={item.body} onChange={(body) => setItems(items.map((it, idx) => (idx === i ? { ...it, body } : it)))} dir={dir} rows={2} />
+          <TextField label="Link (optional)" value={item.link ?? ""} onChange={(link) => setItems(items.map((it, idx) => (idx === i ? { ...it, link } : it)))} />
         </div>
       ))}
       <button
         type="button"
-        onClick={() => setItems([...items, { icon: "star", title: "", body: "" }])}
+        onClick={() => setItems([...items, { icon: "star", title: "", body: "", link: "" }])}
         className="flex items-center gap-1.5 rounded-md border border-dashed border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-200"
       >
         <Plus size={14} /> Add card
@@ -53,18 +56,28 @@ export function IconCardsEdit({ data, onChange, locale }: BlockEditProps<IconCar
   );
 }
 
-export function IconCardsRender({ data, settings }: BlockRenderProps<IconCardsData>) {
+export function IconCardsRender({ data, settings, locale }: BlockRenderProps<IconCardsData>) {
   return (
     <div>
       {data.heading ? <h2 className="mb-8 font-display text-3xl">{data.heading}</h2> : null}
       <div className={`grid gap-6 ${resolveColumnsClasses(settings)}`}>
         {data.items.map((item, i) => {
           const Icon = ICON_OPTIONS[item.icon] ?? Star;
-          return (
-            <div key={i} className="rounded-[var(--radius-md)] border border-current/10 p-6">
+          const cardContent = (
+            <>
               <Icon size={24} className="opacity-70" />
               <p className="mt-3 font-display text-lg">{item.title}</p>
               <p className="mt-1 text-sm opacity-65">{item.body}</p>
+            </>
+          );
+          const cardClasses = "rounded-[var(--radius-md)] border border-current/10 p-6";
+          return item.link ? (
+            <Link key={i} href={resolveHref(item.link, locale)} className={`${cardClasses} block transition-shadow hover:shadow-[var(--shadow-card)]`}>
+              {cardContent}
+            </Link>
+          ) : (
+            <div key={i} className={cardClasses}>
+              {cardContent}
             </div>
           );
         })}

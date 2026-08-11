@@ -25,7 +25,7 @@ const featureCardItemSchema = z.object({ title: z.string().max(150), body: z.str
 const featureCardsSchema = z.object({ heading: z.string().max(200).optional().default(""), items: z.array(featureCardItemSchema).max(6).default([]) });
 export type FeatureCardsData = z.infer<typeof featureCardsSchema>;
 
-const iconCardItemSchema = z.object({ icon: z.string().max(40), title: z.string().max(150), body: z.string().max(500) });
+const iconCardItemSchema = z.object({ icon: z.string().max(40), title: z.string().max(150), body: z.string().max(500), link: z.string().max(300).optional().default("") });
 const iconCardsSchema = z.object({ heading: z.string().max(200).optional().default(""), items: z.array(iconCardItemSchema).default([]) });
 export type IconCardsData = z.infer<typeof iconCardsSchema>;
 
@@ -34,6 +34,11 @@ const defaultFeatureCards = [
   { title: "Full-catalog distribution", body: "One supplier across frozen, chilled, and ambient goods." },
 ];
 
+// `any` is required here, not a shortcut: this array holds BlockDefinition<T> for many different T (each
+// entry individually typed via its own `as BlockDefinition<XData>` cast below), and TData's contravariant
+// use in `onChange: (next: TData) => void` makes `BlockDefinition<unknown>[]` fail to typecheck against
+// any specific entry -- confirmed by trying it and getting real tsc errors, not assumed.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const socialProofBlocks: BlockDefinition<any>[] = [
   {
     type: "TESTIMONIALS",

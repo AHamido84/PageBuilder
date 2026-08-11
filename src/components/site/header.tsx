@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { AnimatePresence, motion } from "framer-motion";
 import { buttonClasses } from "@/components/ui/button";
 import { Arrow } from "@/components/ui/arrow";
+import { EASE_PREMIUM, DURATION } from "@/lib/motion/motionTokens";
 import { cn } from "@/lib/cn";
 import { SOLUTIONS_SEGMENTS } from "@/lib/solutions-segments";
 
@@ -13,21 +15,33 @@ interface CategoryNavItem {
   id: string;
   slug: string;
   name: string;
+  imageUrl?: string | null;
   children: { id: string; slug: string; name: string }[];
+}
+
+interface FeaturedProductNav {
+  id: string;
+  slug: string;
+  name: string;
+  imageUrl: string | null;
 }
 
 interface HeaderProps {
   categories: CategoryNavItem[];
+  featuredProducts?: FeaturedProductNav[];
+  logoUrl?: string | null;
   locale: string;
 }
 
 type MegaKey = "products" | "solutions" | "company" | null;
 
-export function SiteHeader({ categories, locale }: HeaderProps) {
+export function SiteHeader({ categories, featuredProducts = [], logoUrl, locale }: HeaderProps) {
   const t = useTranslations("nav");
+  const tCommon = useTranslations("common");
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [openMega, setOpenMega] = useState<MegaKey>(null);
+  const [hoverMega, setHoverMega] = useState<MegaKey>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
 
@@ -58,30 +72,67 @@ export function SiteHeader({ categories, locale }: HeaderProps) {
     return () => document.removeEventListener("click", onClick);
   }, []);
 
-  const solutionsSegments = SOLUTIONS_SEGMENTS;
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpenMega(null);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
+  const solutionsSegments = SOLUTIONS_SEGMENTS;
   const pathWithoutLocale = pathname.replace(/^\/(ar|en)/, "") || "/";
+  const promoCategory = categories.find((c) => c.imageUrl) ?? null;
+  const activeMega = openMega ?? hoverMega;
 
   return (
     <header
       ref={headerRef}
       className={cn(
-        "sticky top-0 z-50 border-b border-ink/10 bg-paper/95 backdrop-blur transition-shadow",
-        scrolled && "shadow-[var(--shadow-card)]"
+        "sticky top-0 z-50 border-b transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ease-[var(--ease-premium)]",
+        scrolled
+          ? "border-ink/10 bg-paper/97 shadow-[var(--shadow-card)] backdrop-blur-md"
+          : "border-transparent bg-paper/92 backdrop-blur-sm"
       )}
     >
       <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-4 px-5 sm:px-8 lg:h-20 lg:px-12">
-        <Link href={`/${locale}`} className="font-display shrink-0 text-lg lg:text-xl">
-          Seven Eleven Trading
+        <Link href={`/${locale}`} className="flex shrink-0 items-center gap-2.5">
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt="Seven Eleven Trading" className="h-8 w-auto lg:h-9" />
+          ) : (
+            <span className="font-display text-lg leading-none lg:text-xl">Seven Eleven Trading</span>
+          )}
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex">
-          <MegaButton label={t("products")} active={openMega === "products"} onToggle={() => setOpenMega((k) => (k === "products" ? null : "products"))} />
-          <MegaButton label={t("solutions")} active={openMega === "solutions"} onToggle={() => setOpenMega((k) => (k === "solutions" ? null : "solutions"))} />
-          <MegaButton label={t("company")} active={openMega === "company"} onToggle={() => setOpenMega((k) => (k === "company" ? null : "company"))} />
+        <nav className="hidden items-center gap-1 lg:flex" onMouseLeave={() => setHoverMega(null)}>
+          <MegaButton
+            label={t("products")}
+            megaKey="products"
+            active={activeMega === "products"}
+            open={openMega === "products"}
+            onToggle={() => setOpenMega((k) => (k === "products" ? null : "products"))}
+            onHover={setHoverMega}
+          />
+          <MegaButton
+            label={t("solutions")}
+            megaKey="solutions"
+            active={activeMega === "solutions"}
+            open={openMega === "solutions"}
+            onToggle={() => setOpenMega((k) => (k === "solutions" ? null : "solutions"))}
+            onHover={setHoverMega}
+          />
+          <MegaButton
+            label={t("company")}
+            megaKey="company"
+            active={activeMega === "company"}
+            open={openMega === "company"}
+            onToggle={() => setOpenMega((k) => (k === "company" ? null : "company"))}
+            onHover={setHoverMega}
+          />
         </nav>
 
-        <div className="hidden items-center gap-4 lg:flex">
+        <div className="hidden items-center gap-5 lg:flex">
           <LocaleLinks locale={locale} pathWithoutLocale={pathWithoutLocale} />
           <Link href={`/${locale}/contact`} className={buttonClasses("primary", "sm")}>
             {t("requestQuote")}
@@ -91,92 +142,174 @@ export function SiteHeader({ categories, locale }: HeaderProps) {
         <button
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
-          className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] border border-ink/15 lg:hidden"
-          aria-label={mobileOpen ? "Close" : "Menu"}
+          className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-sm)] border border-ink/15 lg:hidden"
+          aria-label={mobileOpen ? tCommon("close") : tCommon("menu")}
           aria-expanded={mobileOpen}
         >
           <span className="relative block h-3 w-4">
-            <span className={cn("absolute inset-x-0 top-0 h-[1.5px] bg-ink transition-transform", mobileOpen && "translate-y-[6px] rotate-45")} />
-            <span className={cn("absolute inset-x-0 bottom-0 h-[1.5px] bg-ink transition-transform", mobileOpen && "-translate-y-[6px] -rotate-45")} />
+            <span className={cn("absolute inset-x-0 top-0 h-[1.5px] bg-ink transition-transform duration-200", mobileOpen && "translate-y-[6px] rotate-45")} />
+            <span className={cn("absolute inset-x-0 bottom-0 h-[1.5px] bg-ink transition-transform duration-200", mobileOpen && "-translate-y-[6px] -rotate-45")} />
           </span>
         </button>
       </div>
 
-      {/* Desktop mega panels */}
-      {openMega === "products" && (
-        <MegaPanel>
-          <div className="grid grid-cols-4 gap-8">
-            {categories.length > 0 ? (
-              categories.map((category) => (
-                <div key={category.id}>
-                  <Link href={`/${locale}/products?category=${category.slug}`} className="font-medium hover:text-harbor">
-                    {category.name}
-                  </Link>
-                  {category.children.length > 0 ? (
-                    <ul className="mt-2 space-y-1.5">
-                      {category.children.map((child) => (
-                        <li key={child.id}>
-                          <Link href={`/${locale}/products?category=${child.slug}`} className="text-sm text-ink/60 hover:text-harbor">
-                            {child.name}
+      {/* Desktop mega panels. aria-hidden tracks close *intent* immediately, independent of the
+          exit-animation's own DOM-removal timing, so keyboard/screen-reader users can never land
+          on links inside a panel that's mid-fade-out after Escape or an outside click. */}
+      <div className="hidden lg:block" aria-hidden={!openMega} inert={!openMega} onMouseEnter={() => openMega && setHoverMega(openMega)}>
+        <AnimatePresence>
+          {openMega === "products" ? (
+            <MegaPanel key="products">
+              <div className="grid grid-cols-[1.1fr_1fr_1fr] gap-10">
+                <div>
+                  <p className="manifest-strip mb-4 text-ink/40">{t("products")}</p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                    {categories.length > 0 ? (
+                      categories.map((category) => (
+                        <div key={category.id}>
+                          <Link href={`/${locale}/products?category=${category.slug}`} className="font-medium transition-colors hover:text-harbor">
+                            {category.name}
+                          </Link>
+                          {category.children.length > 0 ? (
+                            <ul className="mt-2 space-y-1.5">
+                              {category.children.map((child) => (
+                                <li key={child.id}>
+                                  <Link href={`/${locale}/products?category=${child.slug}`} className="text-sm text-ink/55 transition-colors hover:text-harbor">
+                                    {child.name}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="col-span-2 text-sm text-ink/50">No categories yet.</p>
+                    )}
+                  </div>
+                  <div className="mt-6 border-t border-ink/10 pt-4">
+                    <Link href={`/${locale}/products`} className="inline-flex items-center gap-1.5 text-sm font-medium text-harbor hover:underline">
+                      {t("viewAllProducts")} <Arrow />
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="border-s border-ink/10 ps-10">
+                  <p className="manifest-strip mb-4 text-ink/40">{t("featured")}</p>
+                  {featuredProducts.length > 0 ? (
+                    <ul className="space-y-4">
+                      {featuredProducts.map((product) => (
+                        <li key={product.id}>
+                          <Link href={`/${locale}/products/${product.slug}`} className="group/fp flex items-center gap-3">
+                            <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-frost">
+                              {product.imageUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={product.imageUrl} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover/fp:scale-110" />
+                              ) : null}
+                            </span>
+                            <span className="text-sm font-medium leading-snug transition-colors group-hover/fp:text-harbor">{product.name}</span>
                           </Link>
                         </li>
                       ))}
                     </ul>
-                  ) : null}
+                  ) : (
+                    <p className="text-sm text-ink/45">{t("viewAllProducts")}</p>
+                  )}
                 </div>
-              ))
-            ) : (
-              <p className="col-span-4 text-sm text-ink/50">No categories yet.</p>
-            )}
-          </div>
-          <div className="mt-6 border-t border-ink/10 pt-4">
-            <Link href={`/${locale}/products`} className="text-sm font-medium text-harbor hover:underline">
-              {t("viewAllProducts")} <Arrow />
-            </Link>
-          </div>
-        </MegaPanel>
-      )}
 
-      {openMega === "solutions" && (
-        <MegaPanel>
-          <div className="grid grid-cols-4 gap-x-8 gap-y-5">
-            {solutionsSegments.map((segment) => (
-              <SolutionsLink key={segment.slug} locale={locale} segmentSlug={segment.slug} segmentKey={segment.key} />
-            ))}
-          </div>
-        </MegaPanel>
-      )}
+                <div
+                  className={cn(
+                    "flex flex-col justify-between overflow-hidden rounded-[var(--radius-md)] p-6",
+                    promoCategory ? "relative bg-ink text-paper" : "border border-wheat/30 bg-wheat-soft text-ink"
+                  )}
+                >
+                  {promoCategory?.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={promoCategory.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" />
+                  ) : null}
+                  <div className="relative">
+                    <p className="manifest-strip mb-2 opacity-60">{t("products")}</p>
+                    <p className="font-display text-xl leading-tight">
+                      {promoCategory ? promoCategory.name : t("discoverProducts")}
+                    </p>
+                  </div>
+                  <Link
+                    href={promoCategory ? `/${locale}/products?category=${promoCategory.slug}` : `/${locale}/products`}
+                    className="relative mt-6 inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
+                  >
+                    {t("viewAllProducts")} <Arrow />
+                  </Link>
+                </div>
+              </div>
+            </MegaPanel>
+          ) : null}
 
-      {openMega === "company" && (
-        <MegaPanel>
-          <div className="grid grid-cols-4 gap-8">
-            <Link href={`/${locale}/about`} className="font-medium hover:text-harbor">
-              {t("about")}
-            </Link>
-            <Link href={`/${locale}/quality-food-safety`} className="font-medium hover:text-harbor">
-              {t("quality")}
-            </Link>
-            <Link href={`/${locale}/distribution-logistics`} className="font-medium hover:text-harbor">
-              {t("distribution")}
-            </Link>
-            <Link href={`/${locale}/brands`} className="font-medium hover:text-harbor">
-              {t("brands")}
-            </Link>
-          </div>
-        </MegaPanel>
-      )}
+          {openMega === "solutions" ? (
+            <MegaPanel key="solutions">
+              <div className="grid grid-cols-4 gap-x-8 gap-y-6">
+                {solutionsSegments.map((segment) => (
+                  <SolutionsLink key={segment.slug} locale={locale} segmentSlug={segment.slug} segmentKey={segment.key} />
+                ))}
+              </div>
+            </MegaPanel>
+          ) : null}
+
+          {openMega === "company" ? (
+            <MegaPanel key="company">
+              <div className="grid grid-cols-4 gap-8">
+                <Link href={`/${locale}/about`} className="font-medium transition-colors hover:text-harbor">
+                  {t("about")}
+                </Link>
+                <Link href={`/${locale}/quality-food-safety`} className="font-medium transition-colors hover:text-harbor">
+                  {t("quality")}
+                </Link>
+                <Link href={`/${locale}/distribution-logistics`} className="font-medium transition-colors hover:text-harbor">
+                  {t("distribution")}
+                </Link>
+                <Link href={`/${locale}/brands`} className="font-medium transition-colors hover:text-harbor">
+                  {t("brands")}
+                </Link>
+              </div>
+            </MegaPanel>
+          ) : null}
+        </AnimatePresence>
+      </div>
 
       {/* Mobile drawer */}
-      {mobileOpen ? (
-        <div className="border-t border-ink/10 bg-paper px-5 py-6 lg:hidden">
-          <MobileNav categories={categories} locale={locale} solutionsSegments={solutionsSegments} />
-        </div>
-      ) : null}
+      <AnimatePresence>
+        {mobileOpen ? (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: DURATION.standard, ease: EASE_PREMIUM }}
+            className="overflow-hidden border-t border-ink/10 bg-paper lg:hidden"
+          >
+            <div className="max-h-[calc(100vh-4rem)] overflow-y-auto px-5 py-6">
+              <MobileNav categories={categories} locale={locale} solutionsSegments={solutionsSegments} />
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </header>
   );
 }
 
-function MegaButton({ label, active, onToggle }: { label: string; active: boolean; onToggle: () => void }) {
+function MegaButton({
+  label,
+  megaKey,
+  active,
+  open,
+  onToggle,
+  onHover,
+}: {
+  label: string;
+  megaKey: Exclude<MegaKey, null>;
+  active: boolean;
+  open: boolean;
+  onToggle: () => void;
+  onHover: (key: MegaKey) => void;
+}) {
   return (
     <button
       type="button"
@@ -184,30 +317,42 @@ function MegaButton({ label, active, onToggle }: { label: string; active: boolea
         e.stopPropagation();
         onToggle();
       }}
-      className={cn(
-        "rounded-[var(--radius-sm)] px-4 py-2 text-sm font-medium transition-colors",
-        active ? "bg-ink text-paper" : "text-ink/80 hover:bg-ink/5"
-      )}
-      aria-expanded={active}
+      onMouseEnter={() => onHover(megaKey)}
+      className={cn("relative rounded-[var(--radius-sm)] px-4 py-2.5 text-sm font-medium transition-colors", open ? "text-ink" : "text-ink/75 hover:text-ink")}
+      aria-expanded={open}
     >
       {label}
+      {active ? (
+        <motion.span
+          layoutId="mega-nav-indicator"
+          className="absolute inset-x-3 -bottom-[1px] h-[2px] rounded-full bg-wheat"
+          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+        />
+      ) : null}
     </button>
   );
 }
 
 function MegaPanel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="hidden border-t border-ink/10 bg-paper lg:block" onClick={(e) => e.stopPropagation()}>
-      <div className="mx-auto max-w-[1400px] px-12 py-8">{children}</div>
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: DURATION.standard, ease: EASE_PREMIUM }}
+      className="border-t border-ink/10 bg-paper"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="mx-auto max-w-[1400px] px-12 py-9">{children}</div>
+    </motion.div>
   );
 }
 
 function SolutionsLink({ locale, segmentSlug, segmentKey }: { locale: string; segmentSlug: string; segmentKey: string }) {
   const t = useTranslations("solutions");
   return (
-    <Link href={`/${locale}/solutions/${segmentSlug}`} className="block">
-      <p className="font-medium hover:text-harbor">{t(`${segmentKey}.name`)}</p>
+    <Link href={`/${locale}/solutions/${segmentSlug}`} className="group/sl block">
+      <p className="font-medium transition-colors group-hover/sl:text-harbor">{t(`${segmentKey}.name`)}</p>
       <p className="mt-1 text-sm text-ink/55">{t(`${segmentKey}.summary`)}</p>
     </Link>
   );
@@ -242,30 +387,30 @@ function MobileNav({
   const pathWithoutLocale = pathname.replace(/^\/(ar|en)/, "") || "/";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div>
-        <p className="manifest-strip mb-2 text-ink/40">{t("products")}</p>
-        <ul className="space-y-2">
+        <p className="manifest-strip mb-3 text-ink/40">{t("products")}</p>
+        <ul className="space-y-1">
           {categories.map((category) => (
             <li key={category.id}>
-              <Link href={`/${locale}/products?category=${category.slug}`} className="text-base">
+              <Link href={`/${locale}/products?category=${category.slug}`} className="block min-h-11 py-2.5 text-base">
                 {category.name}
               </Link>
             </li>
           ))}
           <li>
-            <Link href={`/${locale}/products`} className="text-sm font-medium text-harbor">
+            <Link href={`/${locale}/products`} className="inline-flex min-h-11 items-center gap-1.5 py-2.5 text-sm font-medium text-harbor">
               {t("viewAllProducts")} <Arrow />
             </Link>
           </li>
         </ul>
       </div>
       <div>
-        <p className="manifest-strip mb-2 text-ink/40">{t("solutions")}</p>
-        <ul className="space-y-2">
+        <p className="manifest-strip mb-3 text-ink/40">{t("solutions")}</p>
+        <ul className="space-y-1">
           {solutionsSegments.map((segment) => (
             <li key={segment.slug}>
-              <Link href={`/${locale}/solutions/${segment.slug}`} className="text-base">
+              <Link href={`/${locale}/solutions/${segment.slug}`} className="block min-h-11 py-2.5 text-base">
                 {tSolutions(`${segment.key}.name`)}
               </Link>
             </li>
@@ -273,25 +418,25 @@ function MobileNav({
         </ul>
       </div>
       <div>
-        <p className="manifest-strip mb-2 text-ink/40">{t("company")}</p>
-        <ul className="space-y-2">
+        <p className="manifest-strip mb-3 text-ink/40">{t("company")}</p>
+        <ul className="space-y-1">
           <li>
-            <Link href={`/${locale}/about`} className="text-base">
+            <Link href={`/${locale}/about`} className="block min-h-11 py-2.5 text-base">
               {t("about")}
             </Link>
           </li>
           <li>
-            <Link href={`/${locale}/quality-food-safety`} className="text-base">
+            <Link href={`/${locale}/quality-food-safety`} className="block min-h-11 py-2.5 text-base">
               {t("quality")}
             </Link>
           </li>
           <li>
-            <Link href={`/${locale}/distribution-logistics`} className="text-base">
+            <Link href={`/${locale}/distribution-logistics`} className="block min-h-11 py-2.5 text-base">
               {t("distribution")}
             </Link>
           </li>
           <li>
-            <Link href={`/${locale}/brands`} className="text-base">
+            <Link href={`/${locale}/brands`} className="block min-h-11 py-2.5 text-base">
               {t("brands")}
             </Link>
           </li>

@@ -8,10 +8,13 @@ import { RichTextEdit, RichTextRender } from "./content/rich-text";
 import { CtaEdit, CtaRender } from "./content/cta";
 
 const heroSchema = z.object({
+  eyebrow: z.string().max(80).optional().default(""),
   headline: z.string().max(200),
   subheading: z.string().max(400).optional().default(""),
   ctaLabel: z.string().max(60).optional().default(""),
   ctaUrl: z.string().max(300).optional().default(""),
+  ctaLabel2: z.string().max(60).optional().default(""),
+  ctaUrl2: z.string().max(300).optional().default(""),
   imageId: z.string().optional().default(""),
 });
 export type HeroData = z.infer<typeof heroSchema>;
@@ -35,6 +38,11 @@ const ctaSchema = z.object({
 });
 export type CtaData = z.infer<typeof ctaSchema>;
 
+// `any` is required here, not a shortcut: this array holds BlockDefinition<T> for many different T (each
+// entry individually typed via its own `as BlockDefinition<XData>` cast below), and TData's contravariant
+// use in `onChange: (next: TData) => void` makes `BlockDefinition<unknown>[]` fail to typecheck against
+// any specific entry -- confirmed by trying it and getting real tsc errors, not assumed.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const contentBlocks: BlockDefinition<any>[] = [
   {
     type: "HERO",
@@ -43,8 +51,8 @@ export const contentBlocks: BlockDefinition<any>[] = [
     icon: Sparkles,
     dataSchema: heroSchema,
     defaultData: {
-      en: { headline: "Your headline here", subheading: "", ctaLabel: "", ctaUrl: "", imageId: "" },
-      ar: { headline: "العنوان الرئيسي هنا", subheading: "", ctaLabel: "", ctaUrl: "", imageId: "" },
+      en: { eyebrow: "", headline: "Your headline here", subheading: "", ctaLabel: "", ctaUrl: "", ctaLabel2: "", ctaUrl2: "", imageId: "" },
+      ar: { eyebrow: "", headline: "العنوان الرئيسي هنا", subheading: "", ctaLabel: "", ctaUrl: "", ctaLabel2: "", ctaUrl2: "", imageId: "" },
     },
     defaultSettings: defaultSectionSettings({ background: "ink", desktop: { paddingY: "xl", marginY: "none", align: "center", columns: "1", headingSize: "2xl", bodySize: "md", visible: true } }),
     Edit: HeroEdit,

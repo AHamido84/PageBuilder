@@ -20,6 +20,8 @@ export async function ProductGridRender({ data, locale }: BlockRenderProps<Produ
     name: product.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.sku,
     categoryName: product.category.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.category.slug,
     imageUrl: product.images[0]?.url ?? null,
+    isFeatured: product.isFeatured,
+    createdAt: product.createdAt,
   }));
 
   return (
@@ -51,6 +53,8 @@ export async function ProductCarouselRender({ data, locale }: BlockRenderProps<P
     name: product.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.sku,
     categoryName: product.category.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.category.slug,
     imageUrl: product.images[0]?.url ?? null,
+    isFeatured: product.isFeatured,
+    createdAt: product.createdAt,
   }));
 
   return (

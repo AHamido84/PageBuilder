@@ -2,11 +2,17 @@
 
 import { useActionState } from "react";
 import { updatePageSlugAction, type FormActionState } from "../actions";
+import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
 
 const initialState: FormActionState = {};
 
 export function PageDetailsForm({ pageId, slug }: { pageId: string; slug: string }) {
   const [state, formAction, pending] = useActionState(updatePageSlugAction, initialState);
+  const isHomepage = slug === HOMEPAGE_SLUG;
+
+  if (isHomepage) {
+    return <p className="text-sm text-neutral-400">This is the homepage — it&apos;s always served at <code>/</code> and its URL can&apos;t be changed.</p>;
+  }
 
   return (
     <form action={formAction} className="max-w-md space-y-3">

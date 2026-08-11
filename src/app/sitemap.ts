@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/seo/metadata";
 import { SOLUTIONS_SEGMENTS } from "@/lib/solutions-segments";
 import { routing } from "@/i18n/routing";
+import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
 
 // Avoid prerendering this at build time -- it needs a live DB connection, and every other
 // DB-backed route in this app is already force-dynamic for the same reason (see HANDOFF.md
@@ -40,7 +41,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     prisma.product.findMany({ where: { isPublished: true }, select: { slug: true, updatedAt: true } }),
     prisma.brand.findMany({ where: { isActive: true }, select: { slug: true } }),
     prisma.blogPost.findMany({ where: { status: "PUBLISHED" }, select: { slug: true, updatedAt: true } }),
-    prisma.page.findMany({ where: { status: "PUBLISHED" }, select: { slug: true, updatedAt: true } }),
+    // Excludes the reserved homepage Page row -- it's already covered by STATIC_PATHS's "/" entry,
+    // and its real slug (__homepage__) is deliberately unreachable (see [...slug]/page.tsx's guard).
+    prisma.page.findMany({ where: { status: "PUBLISHED", slug: { not: HOMEPAGE_SLUG } }, select: { slug: true, updatedAt: true } }),
   ]);
 
   const entries: MetadataRoute.Sitemap = STATIC_PATHS.flatMap((path) => entriesForPath(path));

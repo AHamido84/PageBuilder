@@ -35,13 +35,15 @@ export function PageBuilderShell({ pageId, slug, initialStatus, initialSections,
   const [editorLocale] = useState<EditorLocale>("en");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [pageStatus, setPageStatus] = useState(initialStatus);
-  const [revisions, setRevisions] = useState(initialRevisions);
+  const revisions = initialRevisions;
   const [revisionsOpen, setRevisionsOpen] = useState(false);
   const [publishing, startPublishTransition] = useTransition();
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sectionsRef = useRef(sections);
-  sectionsRef.current = sections;
+  useEffect(() => {
+    sectionsRef.current = sections;
+  }, [sections]);
   // Set right before a deliberate window.location.reload() (e.g. after a
   // revision restore) so the in-flight/beforeunload autosave -- which would
   // otherwise persist this component's stale in-memory `sections`, since a

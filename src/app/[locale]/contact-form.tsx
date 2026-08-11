@@ -78,11 +78,11 @@ export function ContactForm({ productId, showTypeSelector }: ContactFormProps) {
       </div>
       <div>
         <label className="mb-1.5 block text-sm text-ink/60">{t("email")}</label>
-        <input name="email" type="email" required className={inputClasses} />
+        <input name="email" type="email" dir="ltr" required className={`${inputClasses} text-end`} />
       </div>
       <div>
         <label className="mb-1.5 block text-sm text-ink/60">{t("phone")}</label>
-        <input name="phone" className={inputClasses} />
+        <input name="phone" type="tel" dir="ltr" className={`${inputClasses} text-end`} />
       </div>
       <div className="sm:col-span-2">
         <label className="mb-1.5 block text-sm text-ink/60">{t("message")}</label>

@@ -42,7 +42,7 @@ export function Canvas({ sections, selectedId, mode, locale, device, onSelect, o
             <p className="text-sm">No sections yet — add one from the left panel.</p>
           </div>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext id="page-builder-canvas" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
               {sections.map((section) => (
                 <CanvasSectionFrame

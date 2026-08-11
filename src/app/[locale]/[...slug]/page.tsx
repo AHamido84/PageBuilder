@@ -5,12 +5,14 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, can } from "@/lib/rbac/current-user";
 import { SectionRenderer, type SectionRow } from "@/components/site/section-renderer";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string; slug: string[] }> }): Promise<Metadata> {
   const { locale, slug } = await params;
   const fullSlug = slug.join("/");
+  if (fullSlug === HOMEPAGE_SLUG) return {};
   const page = await prisma.page.findUnique({
     where: { slug: fullSlug },
     include: { seo: { include: { ogImage: { select: { url: true } } } } },
@@ -33,6 +35,7 @@ export default async function CmsPage({ params }: { params: Promise<{ slug: stri
   const { slug } = await params;
   const locale = await getLocale();
   const fullSlug = slug.join("/");
+  if (fullSlug === HOMEPAGE_SLUG) notFound();
 
   const page = await prisma.page.findUnique({
     where: { slug: fullSlug },

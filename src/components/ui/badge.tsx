@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 
-type BadgeTone = "ink" | "harbor" | "wheat" | "signal" | "frost";
+type BadgeTone = "ink" | "harbor" | "wheat" | "signal" | "frost" | "featured" | "new";
 
 const toneClasses: Record<BadgeTone, string> = {
   ink: "bg-ink text-paper",
@@ -8,6 +8,8 @@ const toneClasses: Record<BadgeTone, string> = {
   wheat: "bg-wheat-soft text-ink",
   signal: "bg-signal-soft text-signal",
   frost: "bg-frost text-ink",
+  featured: "bg-wheat text-ink",
+  new: "bg-harbor text-paper",
 };
 
 export function Badge({ tone = "frost", className, ...props }: { tone?: BadgeTone } & React.HTMLAttributes<HTMLSpanElement>) {

@@ -1,26 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --color-ink: #0b1c2c;
-  --color-ink-soft: #1c3245;
+  --color-ink: #0a1826;
+  --color-ink-soft: #172c3f;
   --color-paper: #f7f5f0;
   --color-paper-dim: #eeebe2;
-  --color-harbor: #1f4e5f;
+  --color-harbor: #1b4655;
   --color-harbor-soft: #e6edee;
-  --color-wheat: #c99a4b;
+  --color-wheat: #c69a48;
+  --color-wheat-strong: #b78638;
   --color-wheat-soft: #f1e4c9;
   --color-frost: #dce6e4;
   --color-signal: #b23a2f;
   --color-signal-soft: #f4e0dd;
 
-  --shadow-card: 0 1px 2px rgba(11, 28, 44, 0.06), 0 8px 24px -12px rgba(11, 28, 44, 0.18);
-  --shadow-lifted: 0 4px 8px rgba(11, 28, 44, 0.08), 0 24px 48px -16px rgba(11, 28, 44, 0.28);
+  /* Three-step elevation: flat (resting cards) -> card (default) -> lifted (hover/active). */
+  --shadow-flat: 0 1px 2px rgba(10, 24, 38, 0.05);
+  --shadow-card: 0 1px 2px rgba(10, 24, 38, 0.07), 0 10px 28px -14px rgba(10, 24, 38, 0.22);
+  --shadow-lifted: 0 6px 12px rgba(10, 24, 38, 0.1), 0 28px 56px -18px rgba(10, 24, 38, 0.32);
+  --shadow-focus: 0 0 0 3px rgba(198, 154, 72, 0.35);
 
   --radius-sm: 2px;
   --radius-md: 4px;
-  --radius-lg: 6px;
+  --radius-lg: 8px;
 
   --container-max: 1400px;
+
+  /* Responsive type scale (clamp: mobile floor -> viewport-fluid -> desktop ceiling). */
+  --text-display: clamp(2.75rem, 2rem + 3.2vw, 5rem);
+  /* Lower mobile floor than the desktop-driven slope would otherwise give: at 375px, Archivo
+     Expanded's 133% stretch made a full sentence wrap 5+ lines and dominate the first screen. */
+  --text-hero: clamp(2rem, 1.4rem + 3vw, 4.5rem);
+  --text-h1: clamp(2.25rem, 1.85rem + 1.9vw, 3.75rem);
+  --text-h2: clamp(1.75rem, 1.5rem + 1.15vw, 3rem);
+  --text-h3: clamp(1.375rem, 1.2rem + 0.7vw, 2.125rem);
+
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @theme inline {
@@ -31,6 +46,7 @@
   --color-harbor: var(--color-harbor);
   --color-harbor-soft: var(--color-harbor-soft);
   --color-wheat: var(--color-wheat);
+  --color-wheat-strong: var(--color-wheat-strong);
   --color-wheat-soft: var(--color-wheat-soft);
   --color-frost: var(--color-frost);
   --color-signal: var(--color-signal);
@@ -45,8 +61,10 @@
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
 
+  --shadow-flat: var(--shadow-flat);
   --shadow-card: var(--shadow-card);
   --shadow-lifted: var(--shadow-lifted);
+  --shadow-focus: var(--shadow-focus);
 }
 
 html[dir="rtl"] {
@@ -87,6 +105,52 @@ html[dir="rtl"] .font-display {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
+}
+
+/* Responsive heading scale. Pair with .font-display for the display typeface;
+   these classes only set size/line-height so they compose with either font. */
+.text-display {
+  font-size: var(--text-display);
+  line-height: 1.02;
+}
+.text-hero {
+  font-size: var(--text-hero);
+  line-height: 1.04;
+}
+.text-h1 {
+  font-size: var(--text-h1);
+  line-height: 1.08;
+}
+.text-h2 {
+  font-size: var(--text-h2);
+  line-height: 1.12;
+}
+.text-h3 {
+  font-size: var(--text-h3);
+  line-height: 1.2;
+}
+
+/* Arabic headings need more breathing room than the tight Latin display leading,
+   and long Arabic words wrap less gracefully — never blindly mirror Latin metrics. */
+html[dir="rtl"] .text-display,
+html[dir="rtl"] .text-hero {
+  line-height: 1.22;
+  letter-spacing: 0;
+}
+html[dir="rtl"] .text-h1,
+html[dir="rtl"] .text-h2 {
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+html[dir="rtl"] .text-h3 {
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+/* Comfortable reading measure for Arabic body copy — narrower than a bare max-width
+   utility would give, since Arabic word density reads differently at the same char count. */
+html[dir="rtl"] .measure-ar {
+  max-inline-size: 34ch;
 }
 
 @media (prefers-reduced-motion: reduce) {

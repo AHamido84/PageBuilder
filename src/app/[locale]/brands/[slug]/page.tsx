@@ -3,8 +3,10 @@ import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { Section } from "@/components/ui/section";
+import { Container } from "@/components/ui/container";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ProductCard, type ProductCardData } from "@/components/site/product-card";
+import { ScrollReveal } from "@/lib/motion/primitives";
 import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
 import { breadcrumbSchema } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
@@ -37,7 +39,7 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ sl
 
   const brand = await prisma.brand.findUnique({
     where: { slug },
-    include: { translations: true, logo: { select: { url: true } } },
+    include: { translations: true, logo: { select: { url: true } }, banner: { select: { url: true } } },
   });
 
   if (!brand || !brand.isActive) notFound();
@@ -64,24 +66,38 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ sl
     name: product.translations.find((tr) => tr.locale === upperLocale)?.name ?? product.sku,
     categoryName: product.category.translations.find((tr) => tr.locale === upperLocale)?.name ?? product.category.slug,
     imageUrl: product.images[0]?.url ?? null,
+    isFeatured: product.isFeatured,
+    createdAt: product.createdAt,
   }));
 
   return (
     <div>
       <JsonLd data={breadcrumb} />
-      <Section tone="paper" className="border-t-0">
-        <div className="flex items-center gap-6">
-          {brand.logo?.url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={brand.logo.url} alt={name} className="h-14 max-w-[180px] object-contain" />
-          ) : null}
-          <div>
-            <h1 className="font-display text-3xl sm:text-4xl">{name}</h1>
-            {description ? <p className="mt-2 max-w-xl text-ink/65">{description}</p> : null}
-          </div>
-        </div>
-      </Section>
-      <Section tone="frost" title={t("productsFrom") + " " + name}>
+      <div className="relative overflow-hidden bg-ink text-paper">
+        {brand.banner?.url ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={brand.banner.url} alt="" className="absolute inset-0 h-full w-full object-cover opacity-35" />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/70 to-ink/40" />
+          </>
+        ) : null}
+        <Container className="relative py-16 sm:py-24">
+          <ScrollReveal variant="fade-up">
+            <p className="manifest-strip mb-5 opacity-60">{t("title")}</p>
+            <div className="flex flex-wrap items-center gap-6">
+              {brand.logo?.url ? (
+                <span className="flex h-16 items-center rounded-[var(--radius-md)] bg-paper px-5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={brand.logo.url} alt={name} className="h-9 max-w-[160px] object-contain" />
+                </span>
+              ) : null}
+              <h1 className="font-display text-hero">{name}</h1>
+            </div>
+            {description ? <p className="measure-ar mt-6 max-w-2xl text-lg leading-relaxed opacity-75">{description}</p> : null}
+          </ScrollReveal>
+        </Container>
+      </div>
+      <Section tone="paper" title={t("productsFrom") + " " + name}>
         {productCards.length > 0 ? (
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
             {productCards.map((product) => (

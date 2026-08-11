@@ -9,6 +9,7 @@ import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { logActivity } from "@/lib/activity-log";
 import { getBlock } from "@/lib/page-builder/registry";
 import type { BuilderSection } from "@/lib/page-builder/types";
+import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
 
 const sectionInputSchema = z.object({
   id: z.string().min(1),
@@ -61,27 +62,44 @@ export async function saveDraftAction(pageId: string, sections: unknown[]): Prom
     dataAr: sanitizeSectionData(s.type, s.dataAr),
   }));
 
+  // Split into a bulk createMany for genuinely-new rows (added this session, not yet
+  // in the DB) and per-row updates only for rows that already exist -- a page with
+  // many sections (e.g. the homepage) doing N sequential upserts in one interactive
+  // transaction against Neon's per-query latency can exceed Prisma's 5s default
+  // transaction timeout (P2028, "Transaction already closed"); createMany is one
+  // round trip regardless of row count, and the explicit timeout below is a safety
+  // margin for the remaining per-row updates.
   await prisma.$transaction(async (tx) => {
     const existing = await tx.pageSection.findMany({ where: { pageId }, select: { id: true } });
+    const existingIds = new Set(existing.map((e) => e.id));
     const incomingIds = new Set(sanitized.map((s) => s.id));
     const toDelete = existing.filter((e) => !incomingIds.has(e.id)).map((e) => e.id);
     if (toDelete.length) await tx.pageSection.deleteMany({ where: { id: { in: toDelete } } });
 
-    for (let i = 0; i < sanitized.length; i++) {
-      const s = sanitized[i];
-      await tx.pageSection.upsert({
-        where: { id: s.id },
-        create: {
+    const toCreate = sanitized
+      .map((s, order) => ({ s, order }))
+      .filter(({ s }) => !existingIds.has(s.id));
+    if (toCreate.length) {
+      await tx.pageSection.createMany({
+        data: toCreate.map(({ s, order }) => ({
           id: s.id,
           pageId,
           type: s.type,
-          order: i,
+          order,
           dataEn: s.dataEn as Prisma.InputJsonValue,
           dataAr: s.dataAr as Prisma.InputJsonValue,
           settings: s.settings as unknown as Prisma.InputJsonValue,
           isVisible: s.isVisible,
-        },
-        update: {
+        })),
+      });
+    }
+
+    for (let i = 0; i < sanitized.length; i++) {
+      const s = sanitized[i];
+      if (!existingIds.has(s.id)) continue;
+      await tx.pageSection.update({
+        where: { id: s.id },
+        data: {
           type: s.type,
           order: i,
           dataEn: s.dataEn as Prisma.InputJsonValue,
@@ -91,7 +109,7 @@ export async function saveDraftAction(pageId: string, sections: unknown[]): Prom
         },
       });
     }
-  });
+  }, { timeout: 20000 });
 
   await logActivity({ userId: currentUser.id, action: "pageSection.saveDraft", entityType: "Page", entityId: pageId });
   revalidatePath(`/admin/pages/${pageId}/builder`);
@@ -125,8 +143,9 @@ export async function publishPageAction(pageId: string): Promise<{ success: bool
   });
 
   await logActivity({ userId: currentUser.id, action: "page.publish", entityType: "Page", entityId: pageId });
-  revalidatePath(`/en/${page.slug}`);
-  revalidatePath(`/ar/${page.slug}`);
+  const publicPath = page.slug === HOMEPAGE_SLUG ? "" : `/${page.slug}`;
+  revalidatePath(`/en${publicPath}`);
+  revalidatePath(`/ar${publicPath}`);
   revalidatePath(`/admin/pages/${pageId}/builder`);
   return { success: true };
 }

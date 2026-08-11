@@ -3,6 +3,7 @@
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
+import { Search } from "lucide-react";
 
 interface FilterBarProps {
   categories: { slug: string; name: string }[];
@@ -10,6 +11,9 @@ interface FilterBarProps {
 }
 
 const TEMPERATURE_VALUES = ["FROZEN", "CHILLED", "AMBIENT"] as const;
+
+const selectClasses =
+  "h-11 rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 text-sm text-ink transition-colors hover:border-ink/30";
 
 export function FilterBar({ categories, brands }: FilterBarProps) {
   const t = useTranslations("products");
@@ -28,17 +32,22 @@ export function FilterBar({ categories, brands }: FilterBarProps) {
 
   return (
     <div className="mb-10 grid grid-cols-1 gap-3 sm:grid-cols-5">
-      <input
-        type="search"
-        defaultValue={searchParams.get("q") ?? ""}
-        onChange={(e) => update("q", e.target.value)}
-        placeholder={t("searchPlaceholder")}
-        className="rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm placeholder:text-ink/35 sm:col-span-2"
-      />
+      <div className="relative sm:col-span-2">
+        <Search size={16} className="pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 text-ink/35" aria-hidden="true" />
+        <input
+          type="search"
+          defaultValue={searchParams.get("q") ?? ""}
+          onChange={(e) => update("q", e.target.value)}
+          placeholder={t("searchPlaceholder")}
+          aria-label={t("searchPlaceholder")}
+          className="h-11 w-full rounded-[var(--radius-sm)] border border-ink/15 bg-paper ps-10 pe-3 text-sm placeholder:text-ink/40 transition-colors hover:border-ink/30"
+        />
+      </div>
       <select
         defaultValue={searchParams.get("category") ?? ""}
         onChange={(e) => update("category", e.target.value)}
-        className="rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm"
+        aria-label={t("filterCategory")}
+        className={selectClasses}
       >
         <option value="">{t("allCategories")}</option>
         {categories.map((c) => (
@@ -50,7 +59,8 @@ export function FilterBar({ categories, brands }: FilterBarProps) {
       <select
         defaultValue={searchParams.get("brand") ?? ""}
         onChange={(e) => update("brand", e.target.value)}
-        className="rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm"
+        aria-label={t("filterBrand")}
+        className={selectClasses}
       >
         <option value="">{t("allBrands")}</option>
         {brands.map((b) => (
@@ -62,7 +72,8 @@ export function FilterBar({ categories, brands }: FilterBarProps) {
       <select
         defaultValue={searchParams.get("temp") ?? ""}
         onChange={(e) => update("temp", e.target.value)}
-        className="rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm"
+        aria-label={t("filterTemperature")}
+        className={selectClasses}
       >
         <option value="">{t("allTemperatures")}</option>
         {TEMPERATURE_VALUES.map((value) => (
@@ -74,7 +85,8 @@ export function FilterBar({ categories, brands }: FilterBarProps) {
       <select
         defaultValue={searchParams.get("sort") ?? "newest"}
         onChange={(e) => update("sort", e.target.value)}
-        className="rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm sm:col-start-5"
+        aria-label={t("sortLabel")}
+        className={`${selectClasses} sm:col-start-5`}
       >
         <option value="newest">{t("sortNewest")}</option>
         <option value="name-asc">{t("sortNameAsc")}</option>

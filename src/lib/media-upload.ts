@@ -31,6 +31,27 @@ export interface SavedFile {
 
 export class MediaUploadError extends Error {}
 
+// Raster images are implicitly content-validated by sharp() below (it throws on non-image
+// bytes regardless of the claimed MIME type). PDF/video had no equivalent check -- a request
+// could claim `file.type: "application/pdf"` while uploading arbitrary bytes, since `file.type`
+// is client-supplied and trivially spoofable. These check real magic bytes, matching the
+// project's existing "verify content, don't just trust the label" posture (see sanitizeSvg above,
+// and the anchored GA4/GTM regexes in settings validation).
+function hasValidMagicBytes(mimeType: string, buffer: Buffer): boolean {
+  if (mimeType === "application/pdf") {
+    return buffer.subarray(0, 5).toString("latin1") === "%PDF-";
+  }
+  if (mimeType === "video/mp4") {
+    // ISO base media file format: a 4-byte box size, then the ASCII box type "ftyp".
+    return buffer.length > 8 && buffer.subarray(4, 8).toString("latin1") === "ftyp";
+  }
+  if (mimeType === "video/webm") {
+    // EBML header magic number (also matches Matroska, webm's container family).
+    return buffer.length > 4 && buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3;
+  }
+  return true; // images: sharp()/sanitizeSvg below validate content directly.
+}
+
 // Explicit allowlist, NOT `allowedAttributes: false` -- that means "allow every
 // attribute", which lets onload/onclick/etc. straight through. Every attribute
 // name below is a presentation/geometry attribute; none of them execute script.
@@ -71,6 +92,10 @@ export async function saveUploadedFile(file: File): Promise<SavedFile> {
   let buffer = Buffer.from(await file.arrayBuffer());
   let width: number | null = null;
   let height: number | null = null;
+
+  if (!hasValidMagicBytes(file.type, buffer)) {
+    throw new MediaUploadError(`File content doesn't match its declared type (${file.type}).`);
+  }
 
   if (file.type === "image/svg+xml") {
     const sanitized = sanitizeSvg(buffer.toString("utf-8"));

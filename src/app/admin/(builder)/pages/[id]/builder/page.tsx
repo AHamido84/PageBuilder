@@ -12,7 +12,7 @@ export default async function PageBuilderPage({ params }: { params: Promise<{ id
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "pages", "update");
 
-  const [page, categories, brands] = await Promise.all([
+  const [page, categories, brands, blogCategories] = await Promise.all([
     prisma.page.findUnique({
       where: { id },
       include: {
@@ -22,6 +22,7 @@ export default async function PageBuilderPage({ params }: { params: Promise<{ id
     }),
     prisma.category.findMany({ include: { translations: true }, orderBy: { slug: "asc" } }),
     prisma.brand.findMany({ include: { translations: true }, orderBy: { slug: "asc" } }),
+    prisma.blogCategory.findMany({ orderBy: { nameEn: "asc" } }),
   ]);
 
   if (!page) notFound();
@@ -47,6 +48,7 @@ export default async function PageBuilderPage({ params }: { params: Promise<{ id
   const referenceData = {
     categories: categories.map((c) => ({ id: c.id, label: c.translations.find((t) => t.locale === "EN")?.name ?? c.slug })),
     brands: brands.map((b) => ({ id: b.id, label: b.translations.find((t) => t.locale === "EN")?.name ?? b.slug })),
+    blogCategories: blogCategories.map((c) => ({ id: c.id, label: c.nameEn })),
   };
 
   return (

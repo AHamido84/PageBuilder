@@ -1,11 +1,13 @@
 import { z } from "zod";
-import { GalleryHorizontal, ShoppingBag, Tag, Tags } from "lucide-react";
+import { GalleryHorizontal, Newspaper, ShoppingBag, Tag, Tags } from "lucide-react";
 import type { BlockDefinition } from "../types";
 import { defaultSectionSettings } from "../types";
 import { ProductGridEdit, ProductGridPreview } from "./commerce/product-grid";
 import { ProductGridRender, ProductCarouselRender } from "./commerce/product-grid-render";
 import { CategoryGridEdit, CategoryGridPreview, BrandGridEdit, BrandGridPreview } from "./commerce/category-brand-grid";
 import { CategoryGridRender, BrandGridRender } from "./commerce/category-brand-grid-render";
+import { NewsGridEdit, NewsGridPreview } from "./commerce/news-grid";
+import { NewsGridRender } from "./commerce/news-grid-render";
 
 const productGridSchema = z.object({
   heading: z.string().max(200).optional().default(""),
@@ -26,6 +28,18 @@ const brandGridSchema = z.object({
 });
 export type BrandGridData = z.infer<typeof brandGridSchema>;
 
+const newsGridSchema = z.object({
+  heading: z.string().max(200).optional().default(""),
+  categoryId: z.string().optional().default(""),
+  limit: z.number().int().min(1).max(12).default(3),
+});
+export type NewsGridData = z.infer<typeof newsGridSchema>;
+
+// `any` is required here, not a shortcut: this array holds BlockDefinition<T> for many different T (each
+// entry individually typed via its own `as BlockDefinition<XData>` cast below), and TData's contravariant
+// use in `onChange: (next: TData) => void` makes `BlockDefinition<unknown>[]` fail to typecheck against
+// any specific entry -- confirmed by trying it and getting real tsc errors, not assumed.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const commerceBlocks: BlockDefinition<any>[] = [
   {
     type: "PRODUCT_GRID",
@@ -75,4 +89,16 @@ export const commerceBlocks: BlockDefinition<any>[] = [
     Render: BrandGridRender,
     canvasPreview: BrandGridPreview,
   } as BlockDefinition<BrandGridData>,
+  {
+    type: "NEWS_GRID",
+    label: "News Grid",
+    category: "commerce",
+    icon: Newspaper,
+    dataSchema: newsGridSchema,
+    defaultData: { en: { heading: "Latest from the blog", categoryId: "", limit: 3 }, ar: { heading: "أحدث المقالات", categoryId: "", limit: 3 } },
+    defaultSettings: defaultSectionSettings(),
+    Edit: NewsGridEdit,
+    Render: NewsGridRender,
+    canvasPreview: NewsGridPreview,
+  } as BlockDefinition<NewsGridData>,
 ];
