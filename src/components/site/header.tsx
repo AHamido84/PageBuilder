@@ -9,7 +9,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { Arrow } from "@/components/ui/arrow";
 import { EASE_PREMIUM, DURATION } from "@/lib/motion/motionTokens";
 import { cn } from "@/lib/cn";
-import { SOLUTIONS_SEGMENTS } from "@/lib/solutions-segments";
+import type { PublicMenuItem } from "@/lib/menus";
 
 interface CategoryNavItem {
   id: string;
@@ -30,12 +30,14 @@ interface HeaderProps {
   categories: CategoryNavItem[];
   featuredProducts?: FeaturedProductNav[];
   logoUrl?: string | null;
+  /** Real admin-managed nav items (from /admin/menus, HEADER location) rendered after "Products". */
+  menuItems?: PublicMenuItem[];
   locale: string;
 }
 
-type MegaKey = "products" | "solutions" | "company" | null;
+type MegaKey = string | null;
 
-export function SiteHeader({ categories, featuredProducts = [], logoUrl, locale }: HeaderProps) {
+export function SiteHeader({ categories, featuredProducts = [], logoUrl, menuItems = [], locale }: HeaderProps) {
   const t = useTranslations("nav");
   const tCommon = useTranslations("common");
   const pathname = usePathname();
@@ -80,7 +82,6 @@ export function SiteHeader({ categories, featuredProducts = [], logoUrl, locale 
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  const solutionsSegments = SOLUTIONS_SEGMENTS;
   const pathWithoutLocale = pathname.replace(/^\/(ar|en)/, "") || "/";
   const promoCategory = categories.find((c) => c.imageUrl) ?? null;
   const activeMega = openMega ?? hoverMega;
@@ -114,22 +115,27 @@ export function SiteHeader({ categories, featuredProducts = [], logoUrl, locale 
             onToggle={() => setOpenMega((k) => (k === "products" ? null : "products"))}
             onHover={setHoverMega}
           />
-          <MegaButton
-            label={t("solutions")}
-            megaKey="solutions"
-            active={activeMega === "solutions"}
-            open={openMega === "solutions"}
-            onToggle={() => setOpenMega((k) => (k === "solutions" ? null : "solutions"))}
-            onHover={setHoverMega}
-          />
-          <MegaButton
-            label={t("company")}
-            megaKey="company"
-            active={activeMega === "company"}
-            open={openMega === "company"}
-            onToggle={() => setOpenMega((k) => (k === "company" ? null : "company"))}
-            onHover={setHoverMega}
-          />
+          {menuItems.map((item) =>
+            item.children.length > 0 ? (
+              <MegaButton
+                key={item.id}
+                label={item.label}
+                megaKey={item.id}
+                active={activeMega === item.id}
+                open={openMega === item.id}
+                onToggle={() => setOpenMega((k) => (k === item.id ? null : item.id))}
+                onHover={setHoverMega}
+              />
+            ) : (
+              <Link
+                key={item.id}
+                href={item.href ?? `/${locale}`}
+                className="rounded-[var(--radius-sm)] px-4 py-2.5 text-sm font-medium text-ink/75 transition-colors hover:text-ink"
+              >
+                {item.label}
+              </Link>
+            )
+          )}
         </nav>
 
         <div className="hidden items-center gap-5 lg:flex">
@@ -244,34 +250,19 @@ export function SiteHeader({ categories, featuredProducts = [], logoUrl, locale 
             </MegaPanel>
           ) : null}
 
-          {openMega === "solutions" ? (
-            <MegaPanel key="solutions">
-              <div className="grid grid-cols-4 gap-x-8 gap-y-6">
-                {solutionsSegments.map((segment) => (
-                  <SolutionsLink key={segment.slug} locale={locale} segmentSlug={segment.slug} segmentKey={segment.key} />
-                ))}
-              </div>
-            </MegaPanel>
-          ) : null}
-
-          {openMega === "company" ? (
-            <MegaPanel key="company">
-              <div className="grid grid-cols-4 gap-8">
-                <Link href={`/${locale}/about`} className="font-medium transition-colors hover:text-harbor">
-                  {t("about")}
-                </Link>
-                <Link href={`/${locale}/quality-food-safety`} className="font-medium transition-colors hover:text-harbor">
-                  {t("quality")}
-                </Link>
-                <Link href={`/${locale}/distribution-logistics`} className="font-medium transition-colors hover:text-harbor">
-                  {t("distribution")}
-                </Link>
-                <Link href={`/${locale}/brands`} className="font-medium transition-colors hover:text-harbor">
-                  {t("brands")}
-                </Link>
-              </div>
-            </MegaPanel>
-          ) : null}
+          {menuItems.map((item) =>
+            openMega === item.id ? (
+              <MegaPanel key={item.id}>
+                <div className="grid grid-cols-4 gap-x-8 gap-y-6">
+                  {item.children.map((child) => (
+                    <Link key={child.id} href={child.href ?? `/${locale}`} className="font-medium transition-colors hover:text-harbor">
+                      {child.label}
+                    </Link>
+                  ))}
+                </div>
+              </MegaPanel>
+            ) : null
+          )}
         </AnimatePresence>
       </div>
 
@@ -286,7 +277,7 @@ export function SiteHeader({ categories, featuredProducts = [], logoUrl, locale 
             className="overflow-hidden border-t border-ink/10 bg-paper lg:hidden"
           >
             <div className="max-h-[calc(100vh-4rem)] overflow-y-auto px-5 py-6">
-              <MobileNav categories={categories} locale={locale} solutionsSegments={solutionsSegments} />
+              <MobileNav categories={categories} locale={locale} menuItems={menuItems} />
             </div>
           </motion.div>
         ) : null}
@@ -348,16 +339,6 @@ function MegaPanel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SolutionsLink({ locale, segmentSlug, segmentKey }: { locale: string; segmentSlug: string; segmentKey: string }) {
-  const t = useTranslations("solutions");
-  return (
-    <Link href={`/${locale}/solutions/${segmentSlug}`} className="group/sl block">
-      <p className="font-medium transition-colors group-hover/sl:text-harbor">{t(`${segmentKey}.name`)}</p>
-      <p className="mt-1 text-sm text-ink/55">{t(`${segmentKey}.summary`)}</p>
-    </Link>
-  );
-}
-
 function LocaleLinks({ locale, pathWithoutLocale }: { locale: string; pathWithoutLocale: string }) {
   return (
     <div className="flex items-center gap-2 text-sm">
@@ -375,14 +356,13 @@ function LocaleLinks({ locale, pathWithoutLocale }: { locale: string; pathWithou
 function MobileNav({
   categories,
   locale,
-  solutionsSegments,
+  menuItems,
 }: {
   categories: CategoryNavItem[];
   locale: string;
-  solutionsSegments: { slug: string; key: string }[];
+  menuItems: PublicMenuItem[];
 }) {
   const t = useTranslations("nav");
-  const tSolutions = useTranslations("solutions");
   const pathname = usePathname();
   const pathWithoutLocale = pathname.replace(/^\/(ar|en)/, "") || "/";
 
@@ -405,43 +385,26 @@ function MobileNav({
           </li>
         </ul>
       </div>
-      <div>
-        <p className="manifest-strip mb-3 text-ink/40">{t("solutions")}</p>
-        <ul className="space-y-1">
-          {solutionsSegments.map((segment) => (
-            <li key={segment.slug}>
-              <Link href={`/${locale}/solutions/${segment.slug}`} className="block min-h-11 py-2.5 text-base">
-                {tSolutions(`${segment.key}.name`)}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div>
-        <p className="manifest-strip mb-3 text-ink/40">{t("company")}</p>
-        <ul className="space-y-1">
-          <li>
-            <Link href={`/${locale}/about`} className="block min-h-11 py-2.5 text-base">
-              {t("about")}
+      {menuItems.map((item) => (
+        <div key={item.id}>
+          <p className="manifest-strip mb-3 text-ink/40">{item.label}</p>
+          {item.children.length > 0 ? (
+            <ul className="space-y-1">
+              {item.children.map((child) => (
+                <li key={child.id}>
+                  <Link href={child.href ?? `/${locale}`} className="block min-h-11 py-2.5 text-base">
+                    {child.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Link href={item.href ?? `/${locale}`} className="block min-h-11 py-2.5 text-base">
+              {item.label}
             </Link>
-          </li>
-          <li>
-            <Link href={`/${locale}/quality-food-safety`} className="block min-h-11 py-2.5 text-base">
-              {t("quality")}
-            </Link>
-          </li>
-          <li>
-            <Link href={`/${locale}/distribution-logistics`} className="block min-h-11 py-2.5 text-base">
-              {t("distribution")}
-            </Link>
-          </li>
-          <li>
-            <Link href={`/${locale}/brands`} className="block min-h-11 py-2.5 text-base">
-              {t("brands")}
-            </Link>
-          </li>
-        </ul>
-      </div>
+          )}
+        </div>
+      ))}
       <div className="flex items-center justify-between border-t border-ink/10 pt-6">
         <div className="flex items-center gap-3 text-sm">
           <Link href={`/ar${pathWithoutLocale}`} className={locale === "ar" ? "font-semibold" : "text-ink/45"}>

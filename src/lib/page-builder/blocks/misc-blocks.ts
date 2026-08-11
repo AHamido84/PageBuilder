@@ -1,10 +1,12 @@
 import { z } from "zod";
-import { MapPin, Share2, SplitSquareHorizontal } from "lucide-react";
+import { Contact2, MapPin, Share2, SplitSquareHorizontal } from "lucide-react";
 import type { BlockDefinition } from "../types";
 import { defaultSectionSettings } from "../types";
 import { ImageTextEdit, ImageTextRender } from "./misc/image-text";
 import { MapEdit, MapRender } from "./misc/map";
 import { SocialMediaEdit, SocialMediaRender } from "./misc/social-media";
+import { ContactInfoEdit, ContactInfoPreview } from "./misc/contact-info";
+import { ContactInfoRender } from "./misc/contact-info-render";
 
 const mediaRefSchema = z.object({ id: z.string(), url: z.string() });
 
@@ -24,6 +26,9 @@ export type MapData = z.infer<typeof mapSchema>;
 const socialLinkSchema = z.object({ platform: z.string().max(30), url: z.string().max(300) });
 const socialMediaSchema = z.object({ heading: z.string().max(200).optional().default(""), links: z.array(socialLinkSchema).default([]) });
 export type SocialMediaData = z.infer<typeof socialMediaSchema>;
+
+const contactInfoSchema = z.object({ heading: z.string().max(200).optional().default("") });
+export type ContactInfoData = z.infer<typeof contactInfoSchema>;
 
 // `any` is required here, not a shortcut: this array holds BlockDefinition<T> for many different T (each
 // entry individually typed via its own `as BlockDefinition<XData>` cast below), and TData's contravariant
@@ -67,4 +72,16 @@ export const miscBlocks: BlockDefinition<any>[] = [
     Edit: SocialMediaEdit,
     Render: SocialMediaRender,
   } as BlockDefinition<SocialMediaData>,
+  {
+    type: "CONTACT_INFO",
+    label: "Contact Details",
+    category: "misc",
+    icon: Contact2,
+    dataSchema: contactInfoSchema,
+    defaultData: { en: { heading: "" }, ar: { heading: "" } },
+    defaultSettings: defaultSectionSettings(),
+    Edit: ContactInfoEdit,
+    Render: ContactInfoRender,
+    canvasPreview: ContactInfoPreview,
+  } as BlockDefinition<ContactInfoData>,
 ];

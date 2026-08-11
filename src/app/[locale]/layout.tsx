@@ -9,6 +9,7 @@ import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { ToastProvider } from "@/components/ui/toast";
 import { prisma } from "@/lib/prisma";
+import { getPublicMenu } from "@/lib/menus";
 import { organizationSchema } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
 import { AnalyticsScripts } from "@/components/site/analytics-scripts";
@@ -97,11 +98,13 @@ export default async function LocaleLayout({
   }
 
   const dir = locale === "ar" ? "rtl" : "ltr";
-  const [categories, featuredProducts, settings, tCommon] = await Promise.all([
+  const [categories, featuredProducts, settings, tCommon, headerMenu, footerMenu] = await Promise.all([
     getNavData(locale),
     getMegaMenuFeatured(locale),
     getSiteSettings(),
     getTranslations({ locale, namespace: "common" }),
+    getPublicMenu("HEADER", locale),
+    getPublicMenu("FOOTER", locale),
   ]);
 
   const orgSchema = organizationSchema({
@@ -128,9 +131,9 @@ export default async function LocaleLayout({
         <MotionConfig reducedMotion="user">
           <NextIntlClientProvider>
             <ToastProvider>
-              <SiteHeader categories={categories} featuredProducts={featuredProducts} logoUrl={settings?.logo?.url} locale={locale} />
+              <SiteHeader categories={categories} featuredProducts={featuredProducts} logoUrl={settings?.logo?.url} menuItems={headerMenu} locale={locale} />
               <main className="flex-1">{children}</main>
-              <SiteFooter categories={categories} locale={locale} />
+              <SiteFooter categories={categories} menuItems={footerMenu} locale={locale} />
             </ToastProvider>
           </NextIntlClientProvider>
         </MotionConfig>

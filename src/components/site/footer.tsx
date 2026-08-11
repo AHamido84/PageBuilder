@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { NewsletterForm } from "./newsletter-form";
 import { ScrollReveal } from "@/lib/motion/primitives";
-import { SOLUTIONS_SEGMENTS } from "@/lib/solutions-segments";
+import type { PublicMenuItem } from "@/lib/menus";
 
 interface CategoryNavItem {
   id: string;
@@ -13,6 +13,8 @@ interface CategoryNavItem {
 
 interface FooterProps {
   categories: CategoryNavItem[];
+  /** Real admin-managed nav items (from /admin/menus, FOOTER location) — each top-level item becomes a column. */
+  menuItems?: PublicMenuItem[];
   locale: string;
 }
 
@@ -27,10 +29,9 @@ async function getSiteSettings() {
   return prisma.siteSetting.findUnique({ where: { id: "singleton" } });
 }
 
-export async function SiteFooter({ categories, locale }: FooterProps) {
+export async function SiteFooter({ categories, menuItems = [], locale }: FooterProps) {
   const t = await getTranslations("footer");
   const tNav = await getTranslations("nav");
-  const tSolutions = await getTranslations("solutions");
   const tContact = await getTranslations("contactPage");
   const settings = await getSiteSettings();
   const social = (settings?.socialLinks as SocialLinks | null) ?? null;
@@ -61,17 +62,28 @@ export async function SiteFooter({ categories, locale }: FooterProps) {
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-paper/60">{t("aboutBody")}</p>
           </div>
 
-          <div>
-            <p className="manifest-strip mb-4 text-paper/40">{t("navTitle")}</p>
-            <ul className="space-y-2.5 text-sm text-paper/70">
-              <li><Link href={`/${locale}/about`} className="transition-colors hover:text-paper">{tNav("about")}</Link></li>
-              <li><Link href={`/${locale}/quality-food-safety`} className="transition-colors hover:text-paper">{tNav("quality")}</Link></li>
-              <li><Link href={`/${locale}/distribution-logistics`} className="transition-colors hover:text-paper">{tNav("distribution")}</Link></li>
-              <li><Link href={`/${locale}/brands`} className="transition-colors hover:text-paper">{tNav("brands")}</Link></li>
-              <li><Link href={`/${locale}/blog`} className="transition-colors hover:text-paper">{tNav("blog")}</Link></li>
-              <li><Link href={`/${locale}/faq`} className="transition-colors hover:text-paper">{tNav("faq")}</Link></li>
-            </ul>
-          </div>
+          {menuItems.map((item) => (
+            <div key={item.id}>
+              <p className="manifest-strip mb-4 text-paper/40">{item.label}</p>
+              <ul className="space-y-2.5 text-sm text-paper/70">
+                {item.children.length > 0
+                  ? item.children.map((child) => (
+                      <li key={child.id}>
+                        <Link href={child.href ?? `/${locale}`} className="transition-colors hover:text-paper">
+                          {child.label}
+                        </Link>
+                      </li>
+                    ))
+                  : (
+                      <li>
+                        <Link href={item.href ?? `/${locale}`} className="transition-colors hover:text-paper">
+                          {item.label}
+                        </Link>
+                      </li>
+                    )}
+              </ul>
+            </div>
+          ))}
 
           <div>
             <p className="manifest-strip mb-4 text-paper/40">{t("productsTitle")}</p>
@@ -88,19 +100,6 @@ export async function SiteFooter({ categories, locale }: FooterProps) {
                   {tNav("viewAllProducts")}
                 </Link>
               </li>
-            </ul>
-          </div>
-
-          <div>
-            <p className="manifest-strip mb-4 text-paper/40">{t("solutionsTitle")}</p>
-            <ul className="space-y-2.5 text-sm text-paper/70">
-              {SOLUTIONS_SEGMENTS.slice(0, 5).map((segment) => (
-                <li key={segment.slug}>
-                  <Link href={`/${locale}/solutions/${segment.slug}`} className="transition-colors hover:text-paper">
-                    {tSolutions(`${segment.key}.name`)}
-                  </Link>
-                </li>
-              ))}
             </ul>
           </div>
 
