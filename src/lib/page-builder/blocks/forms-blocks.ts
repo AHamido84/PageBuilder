@@ -14,6 +14,14 @@ const leadFormSchema = z.object({
   // When true, a 4-tab selector lets the visitor pick the inquiry type at submission time
   // (overrides the fixed `inquiryType` above) -- matches the standalone /contact page's behavior.
   showTypeSelector: z.boolean().optional().default(false),
+  // Field labels (Name/Company/Email/Phone/Message) -- empty falls back to FORM_LABELS' built-in
+  // EN/AR translation in lead-form.tsx, so every already-published form keeps its current labels
+  // unmodified until an admin explicitly overrides one.
+  nameLabel: z.string().max(60).optional().default(""),
+  companyLabel: z.string().max(60).optional().default(""),
+  emailLabel: z.string().max(60).optional().default(""),
+  phoneLabel: z.string().max(60).optional().default(""),
+  messageLabel: z.string().max(60).optional().default(""),
 });
 export type LeadFormData = z.infer<typeof leadFormSchema>;
 
@@ -37,8 +45,8 @@ export const formsBlocks: BlockDefinition<any>[] = [
     icon: MessageCircle,
     dataSchema: leadFormSchema,
     defaultData: {
-      en: { heading: "Get in touch", body: "Tell us what your business needs.", submitLabel: "Send message", showMessage: true, inquiryType: "GENERAL", showTypeSelector: false },
-      ar: { heading: "تواصل معنا", body: "أخبرنا بما تحتاجه شركتك.", submitLabel: "إرسال الرسالة", showMessage: true, inquiryType: "GENERAL", showTypeSelector: false },
+      en: { heading: "Get in touch", body: "Tell us what your business needs.", submitLabel: "Send message", showMessage: true, inquiryType: "GENERAL", showTypeSelector: false, nameLabel: "", companyLabel: "", emailLabel: "", phoneLabel: "", messageLabel: "" },
+      ar: { heading: "تواصل معنا", body: "أخبرنا بما تحتاجه شركتك.", submitLabel: "إرسال الرسالة", showMessage: true, inquiryType: "GENERAL", showTypeSelector: false, nameLabel: "", companyLabel: "", emailLabel: "", phoneLabel: "", messageLabel: "" },
     },
     defaultSettings: defaultSectionSettings({ background: "frost" }),
     Edit: LeadFormEdit,
@@ -51,8 +59,8 @@ export const formsBlocks: BlockDefinition<any>[] = [
     icon: PackageSearch,
     dataSchema: leadFormSchema,
     defaultData: {
-      en: { heading: "Request a quote", body: "Send us your product categories and order volumes.", submitLabel: "Request a quote", showMessage: true, inquiryType: "QUOTE", showTypeSelector: false },
-      ar: { heading: "اطلب عرض سعر", body: "أرسل لنا فئات المنتجات وأحجام الطلب.", submitLabel: "طلب عرض سعر", showMessage: true, inquiryType: "QUOTE", showTypeSelector: false },
+      en: { heading: "Request a quote", body: "Send us your product categories and order volumes.", submitLabel: "Request a quote", showMessage: true, inquiryType: "QUOTE", showTypeSelector: false, nameLabel: "", companyLabel: "", emailLabel: "", phoneLabel: "", messageLabel: "" },
+      ar: { heading: "اطلب عرض سعر", body: "أرسل لنا فئات المنتجات وأحجام الطلب.", submitLabel: "طلب عرض سعر", showMessage: true, inquiryType: "QUOTE", showTypeSelector: false, nameLabel: "", companyLabel: "", emailLabel: "", phoneLabel: "", messageLabel: "" },
     },
     defaultSettings: defaultSectionSettings({ background: "frost" }),
     Edit: LeadFormEdit,

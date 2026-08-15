@@ -57,6 +57,17 @@ export function LeadFormEdit({ data, onChange, locale }: BlockEditProps<LeadForm
           ]}
         />
       ) : null}
+
+      <div className="space-y-3 rounded-md border border-neutral-800 p-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Field labels (optional — blank uses the default translation)</p>
+        <TextField label="Name field" value={data.nameLabel ?? ""} onChange={(nameLabel) => onChange({ ...data, nameLabel })} dir={dir} />
+        <TextField label="Company field" value={data.companyLabel ?? ""} onChange={(companyLabel) => onChange({ ...data, companyLabel })} dir={dir} />
+        <TextField label="Email field" value={data.emailLabel ?? ""} onChange={(emailLabel) => onChange({ ...data, emailLabel })} dir={dir} />
+        <TextField label="Phone field" value={data.phoneLabel ?? ""} onChange={(phoneLabel) => onChange({ ...data, phoneLabel })} dir={dir} />
+        {data.showMessage ? (
+          <TextField label="Message field" value={data.messageLabel ?? ""} onChange={(messageLabel) => onChange({ ...data, messageLabel })} dir={dir} />
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -119,24 +130,24 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
         ) : null}
 
         <div>
-          <label className="mb-1.5 block text-sm opacity-60">{t.name}</label>
+          <label className="mb-1.5 block text-sm opacity-60">{data.nameLabel || t.name}</label>
           <input name="contactName" required className={inputClasses} disabled={!interactive} />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm opacity-60">{t.company}</label>
+          <label className="mb-1.5 block text-sm opacity-60">{data.companyLabel || t.company}</label>
           <input name="companyName" className={inputClasses} disabled={!interactive} />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm opacity-60">{t.email}</label>
+          <label className="mb-1.5 block text-sm opacity-60">{data.emailLabel || t.email}</label>
           <input name="email" type="email" dir="ltr" required className={`${inputClasses} text-end`} disabled={!interactive} />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm opacity-60">{t.phone}</label>
+          <label className="mb-1.5 block text-sm opacity-60">{data.phoneLabel || t.phone}</label>
           <input name="phone" type="tel" dir="ltr" className={`${inputClasses} text-end`} disabled={!interactive} />
         </div>
         {data.showMessage ? (
           <div className="sm:col-span-2">
-            <label className="mb-1.5 block text-sm opacity-60">{t.message}</label>
+            <label className="mb-1.5 block text-sm opacity-60">{data.messageLabel || t.message}</label>
             <textarea name="message" rows={4} className={inputClasses} disabled={!interactive} />
           </div>
         ) : null}
