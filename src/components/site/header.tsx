@@ -7,9 +7,13 @@ import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "framer-motion";
 import { buttonClasses } from "@/components/ui/button";
 import { Arrow } from "@/components/ui/arrow";
+import { RouteLine } from "@/components/site/graphics/route-line";
 import { EASE_PREMIUM, DURATION } from "@/lib/motion/motionTokens";
 import { cn } from "@/lib/cn";
 import type { PublicMenuItem } from "@/lib/menus";
+
+/** Matches the accent used on CATEGORY_GRID's no-image card fallback — same graphic language, different scale. */
+const PROMO_ACCENT_PATH = "M4 32 Q 36 4 68 32";
 
 interface CategoryNavItem {
   id: string;
@@ -225,14 +229,16 @@ export function SiteHeader({ categories, featuredProducts = [], logoUrl, menuIte
 
                 <div
                   className={cn(
-                    "flex flex-col justify-between overflow-hidden rounded-[var(--radius-md)] p-6",
-                    promoCategory ? "relative bg-ink text-paper" : "border border-wheat/30 bg-wheat-soft text-ink"
+                    "relative flex flex-col justify-between overflow-hidden rounded-[var(--radius-md)] p-6",
+                    promoCategory ? "bg-ink text-paper" : "bg-grid-fine border border-current/10 bg-frost text-ink"
                   )}
                 >
                   {promoCategory?.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={promoCategory.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" />
-                  ) : null}
+                  ) : (
+                    <RouteLine d={PROMO_ACCENT_PATH} viewBox="0 0 72 36" strokeWidth={1.5} className="h-9 w-[4.5rem] text-harbor/50" />
+                  )}
                   <div className="relative">
                     <p className="manifest-strip mb-2 opacity-60">{t("products")}</p>
                     <p className="font-display text-xl leading-tight">

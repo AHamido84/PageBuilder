@@ -153,6 +153,7 @@ export const BACKGROUND_CLASSES: Record<BackgroundToken, string> = {
   ink: "bg-ink text-paper",
   harbor: "bg-harbor-soft text-ink",
   frost: "bg-frost text-ink",
+  "wheat-soft": "bg-wheat-soft text-ink",
 };
 
 function resolveBreakpointTokens(settings: SectionSettings): Record<Breakpoint, StyleTokens> {
@@ -206,4 +207,4 @@ export const ALIGN_OPTIONS: AlignToken[] = ["left", "center", "right"];
 export const COLUMNS_OPTIONS: ColumnsToken[] = ["1", "2", "3", "4"];
 export const HEADING_SIZE_OPTIONS: HeadingSizeToken[] = ["sm", "md", "lg", "xl", "2xl"];
 export const BODY_SIZE_OPTIONS: BodySizeToken[] = ["sm", "md", "lg"];
-export const BACKGROUND_OPTIONS: BackgroundToken[] = ["none", "paper", "frost", "ink", "harbor"];
+export const BACKGROUND_OPTIONS: BackgroundToken[] = ["none", "paper", "frost", "ink", "harbor", "wheat-soft"];

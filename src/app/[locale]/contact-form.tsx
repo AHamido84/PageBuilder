@@ -2,6 +2,7 @@
 
 import { useActionState, useRef, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { Loader2 } from "lucide-react";
 import { submitLeadAction, type LeadFormState } from "./lead-actions";
 import { buttonClasses } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -9,7 +10,7 @@ import { useToast } from "@/components/ui/toast";
 const initialState: LeadFormState = {};
 
 const inputClasses =
-  "w-full rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm text-ink placeholder:text-ink/35 focus:border-harbor";
+  "w-full rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm text-ink placeholder:text-ink/35 transition-[border-color,box-shadow] duration-200 focus:border-harbor focus:shadow-[var(--shadow-focus)] focus:outline-none";
 
 const INQUIRY_TYPES = ["GENERAL", "QUOTE", "BECOME_CUSTOMER", "SALES_INQUIRY"] as const;
 type InquiryType = (typeof INQUIRY_TYPES)[number];
@@ -37,8 +38,13 @@ export function ContactForm({ productId, showTypeSelector }: ContactFormProps) {
     } else if (state.error) {
       toast.push({ title: state.error, tone: "error" });
     }
+    // Depend on the whole `state` object, not the destructured booleans -- submitLeadAction returns
+    // a fresh object literal each call, so a second submission resolving to the same value (e.g.
+    // success -> success) still changes identity and should re-fire this effect. Depending on
+    // state.success/state.error only catches the false->true transition, silently dropping the
+    // confirmation toast on a second submit within the same page session (found via live testing).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.success, state.error]);
+  }, [state]);
 
   return (
     <form ref={formRef} action={formAction} className="mx-auto grid max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
@@ -92,15 +98,34 @@ export function ContactForm({ productId, showTypeSelector }: ContactFormProps) {
       <div className="flex flex-wrap gap-3 sm:col-span-2">
         {productId ? (
           <>
-            <button type="submit" name="inquiryType" value="INFO" disabled={pending} className={buttonClasses("secondary", "lg")}>
+            <button
+              type="submit"
+              name="inquiryType"
+              value="INFO"
+              disabled={pending}
+              className={`${buttonClasses("secondary", "lg")} inline-flex items-center justify-center gap-2`}
+            >
+              {pending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : null}
               {pending ? t("submitting") : tDetail("requestInfo")}
             </button>
-            <button type="submit" name="inquiryType" value="QUOTE" disabled={pending} className={buttonClasses("primary", "lg")}>
+            <button
+              type="submit"
+              name="inquiryType"
+              value="QUOTE"
+              disabled={pending}
+              className={`${buttonClasses("primary", "lg")} inline-flex items-center justify-center gap-2`}
+            >
+              {pending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : null}
               {pending ? t("submitting") : tDetail("requestQuote")}
             </button>
           </>
         ) : (
-          <button type="submit" disabled={pending} className={buttonClasses("primary", "lg", "w-full sm:w-auto")}>
+          <button
+            type="submit"
+            disabled={pending}
+            className={`${buttonClasses("primary", "lg", "w-full sm:w-auto")} inline-flex items-center justify-center gap-2`}
+          >
+            {pending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : null}
             {pending ? t("submitting") : t("submit")}
           </button>
         )}

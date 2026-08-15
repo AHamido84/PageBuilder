@@ -5,6 +5,8 @@ import { Section } from "@/components/ui/section";
 import { Container } from "@/components/ui/container";
 import { buttonClasses } from "@/components/ui/button";
 import { IconFeatureGrid } from "./icon-feature-grid";
+import { TemperatureIndicator } from "./graphics/temperature-indicator";
+import { KineticText } from "@/lib/motion/primitives";
 
 // Inherits the section's own text color rather than a fixed wheat, which measured under WCAG AA
 // against paper/frost (see about/page.tsx for the contrast numbers that prompted this).
@@ -28,8 +30,11 @@ export async function InfoPage({ namespace }: { namespace: "quality" }) {
   return (
     <div>
       <Section tone="paper" className="border-t-0 pb-10 pt-14 sm:pt-20">
-        <p className="manifest-strip mb-4 text-harbor">{t("eyebrow")}</p>
-        <h1 className="font-display text-hero measure-ar max-w-2xl">{t("title")}</h1>
+        <div className="mb-4 flex items-start gap-4">
+          <TemperatureIndicator className="h-12 text-wheat" />
+          <p className="manifest-strip pt-1 text-harbor">{t("eyebrow")}</p>
+        </div>
+        <KineticText as="h1" text={t("title")} className="font-display text-hero measure-ar max-w-2xl" />
         <p className="measure-ar mt-6 max-w-2xl text-base leading-relaxed text-ink/70 sm:text-lg">{t("intro")}</p>
       </Section>
 

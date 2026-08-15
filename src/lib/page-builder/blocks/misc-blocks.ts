@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Contact2, MapPin, Share2, SplitSquareHorizontal } from "lucide-react";
+import { Contact2, MapPin, Share2, SplitSquareHorizontal, GalleryHorizontalEnd } from "lucide-react";
 import type { BlockDefinition } from "../types";
 import { defaultSectionSettings } from "../types";
 import { ImageTextEdit, ImageTextRender } from "./misc/image-text";
@@ -7,6 +7,8 @@ import { MapEdit, MapRender } from "./misc/map";
 import { SocialMediaEdit, SocialMediaRender } from "./misc/social-media";
 import { ContactInfoEdit, ContactInfoPreview } from "./misc/contact-info";
 import { ContactInfoRender } from "./misc/contact-info-render";
+import { MarqueeEdit, MarqueePreview } from "./misc/marquee";
+import { MarqueeRender } from "./misc/marquee-render";
 
 const mediaRefSchema = z.object({ id: z.string(), url: z.string() });
 
@@ -29,6 +31,14 @@ export type SocialMediaData = z.infer<typeof socialMediaSchema>;
 
 const contactInfoSchema = z.object({ heading: z.string().max(200).optional().default("") });
 export type ContactInfoData = z.infer<typeof contactInfoSchema>;
+
+const marqueeSchema = z.object({
+  heading: z.string().max(200).optional().default(""),
+  // Always real CMS data (brand or category names) -- never free-text, so this block can't be
+  // used to fabricate content.
+  source: z.enum(["brands", "categories"]).default("brands"),
+});
+export type MarqueeData = z.infer<typeof marqueeSchema>;
 
 // `any` is required here, not a shortcut: this array holds BlockDefinition<T> for many different T (each
 // entry individually typed via its own `as BlockDefinition<XData>` cast below), and TData's contravariant
@@ -84,4 +94,16 @@ export const miscBlocks: BlockDefinition<any>[] = [
     Render: ContactInfoRender,
     canvasPreview: ContactInfoPreview,
   } as BlockDefinition<ContactInfoData>,
+  {
+    type: "MARQUEE",
+    label: "Marquee",
+    category: "misc",
+    icon: GalleryHorizontalEnd,
+    dataSchema: marqueeSchema,
+    defaultData: { en: { heading: "", source: "brands" }, ar: { heading: "", source: "brands" } },
+    defaultSettings: defaultSectionSettings({ desktop: { paddingY: "sm", marginY: "none", align: "center", columns: "1", headingSize: "md", bodySize: "md", visible: true } }),
+    Edit: MarqueeEdit,
+    Render: MarqueeRender,
+    canvasPreview: MarqueePreview,
+  } as BlockDefinition<MarqueeData>,
 ];

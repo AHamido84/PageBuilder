@@ -7,6 +7,7 @@ import { Container } from "@/components/ui/container";
 import { buttonClasses } from "@/components/ui/button";
 import { IconFeatureGrid } from "@/components/site/icon-feature-grid";
 import { ProcessTimeline } from "@/components/site/process-timeline";
+import { KineticText } from "@/lib/motion/primitives";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +51,7 @@ export default async function AboutPage() {
     <div>
       <Section tone="paper" className="border-t-0 pb-10 pt-14 text-center sm:pt-20">
         <p className="manifest-strip mb-4 text-harbor">{t("eyebrow")}</p>
-        <h1 className="font-display text-hero measure-ar mx-auto max-w-3xl">{t("title")}</h1>
+        <KineticText as="h1" text={t("title")} className="font-display text-hero measure-ar mx-auto max-w-3xl" />
       </Section>
 
       <Section tone="paper" eyebrow={t("storyEyebrow")} title={t("storyTitle")}>

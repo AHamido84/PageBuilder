@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useRef, useEffect, useState } from "react";
+import { useActionState, useRef, useEffect, useState, useContext } from "react";
+import { Loader2 } from "lucide-react";
 import { TextField, TextareaField, CheckboxField, SelectField } from "@/components/admin/ui/field";
 import { buttonClasses } from "@/components/ui/button";
+import { ToastContext } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { submitBlockLeadAction } from "@/app/[locale]/page-builder-lead-action";
 import type { LeadFormState } from "@/lib/leads/submit-lead";
@@ -10,7 +12,8 @@ import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { LeadFormData } from "../forms-blocks";
 
 const initialState: LeadFormState = {};
-const inputClasses = "w-full rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm text-ink placeholder:text-ink/35 focus:border-harbor";
+const inputClasses =
+  "w-full rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm text-ink placeholder:text-ink/35 transition-[border-color,box-shadow] duration-200 focus:border-harbor focus:shadow-[var(--shadow-focus)] focus:outline-none";
 
 const INQUIRY_TYPES = ["GENERAL", "QUOTE", "BECOME_CUSTOMER", "SALES_INQUIRY"] as const;
 type InquiryType = (typeof INQUIRY_TYPES)[number];
@@ -63,10 +66,24 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedType, setSelectedType] = useState<InquiryType>("GENERAL");
   const t = locale === "ar" ? FORM_LABELS.ar : FORM_LABELS.en;
+  // useContext directly (not the throwing useToast()) -- this Render also mounts inside the admin
+  // canvas, which sits under a different layout tree without the public ToastProvider.
+  const toast = useContext(ToastContext);
 
   useEffect(() => {
-    if (state.success) formRef.current?.reset();
-  }, [state.success]);
+    if (state.success) {
+      formRef.current?.reset();
+      toast?.push({ title: t.thanks, tone: "default" });
+    } else if (state.error) {
+      toast?.push({ title: state.error, tone: "error" });
+    }
+    // Depend on the whole `state` object, not `state.success`/`state.error` -- submitBlockLeadAction
+    // returns a fresh object literal on every call, so a second submission that resolves to the
+    // same boolean value (e.g. success -> success) still changes object identity and re-fires this
+    // effect. Depending on the destructured booleans instead would only fire on the false->true
+    // transition, silently dropping the confirmation on a second submit in the same page session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- toast identity is stable from context.
+  }, [state]);
 
   const submittedInquiryType = data.showTypeSelector ? selectedType : data.inquiryType;
 
@@ -124,11 +141,14 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
           </div>
         ) : null}
         <div className="sm:col-span-2">
-          <button type="submit" disabled={pending || !interactive} className={buttonClasses("primary", "lg", "w-full sm:w-auto")}>
+          <button
+            type="submit"
+            disabled={pending || !interactive}
+            className={cn(buttonClasses("primary", "lg", "w-full sm:w-auto"), "inline-flex items-center justify-center gap-2")}
+          >
+            {pending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : null}
             {pending ? t.sending : data.submitLabel || t.send}
           </button>
-          {state.success ? <p className="mt-2 text-sm text-emerald-600">{t.thanks}</p> : null}
-          {state.error ? <p className="mt-2 text-sm text-red-600">{state.error}</p> : null}
         </div>
       </form>
     </div>

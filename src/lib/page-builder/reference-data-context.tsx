@@ -11,9 +11,11 @@ export interface ReferenceData {
   categories: ReferenceOption[];
   brands: ReferenceOption[];
   blogCategories: ReferenceOption[];
+  /** Real catalog products, for Hero's Product Composition mode (Primary/Secondary/Supporting picks reference an id here, never duplicate product data). */
+  products: ReferenceOption[];
 }
 
-const ReferenceDataContext = createContext<ReferenceData>({ categories: [], brands: [], blogCategories: [] });
+const ReferenceDataContext = createContext<ReferenceData>({ categories: [], brands: [], blogCategories: [], products: [] });
 
 export function ReferenceDataProvider({ value, children }: { value: ReferenceData; children: React.ReactNode }) {
   return <ReferenceDataContext.Provider value={value}>{children}</ReferenceDataContext.Provider>;

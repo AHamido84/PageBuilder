@@ -7,6 +7,8 @@ import { Section } from "@/components/ui/section";
 import { Container } from "@/components/ui/container";
 import { buttonClasses } from "@/components/ui/button";
 import { IconFeatureGrid } from "@/components/site/icon-feature-grid";
+import { RouteLine } from "@/components/site/graphics/route-line";
+import { KineticText } from "@/lib/motion/primitives";
 import { SOLUTIONS_SEGMENTS } from "@/lib/solutions-segments";
 import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
 import { breadcrumbSchema } from "@/lib/seo/structured-data";
@@ -63,11 +65,14 @@ export default async function SolutionsSegmentPage({ params }: { params: Promise
     <div>
       <JsonLd data={breadcrumb} />
       <Section tone="paper" className="border-t-0 pb-10 pt-14 sm:pt-20">
-        <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-[var(--radius-md)] bg-wheat-soft">
-          <Icon size={26} strokeWidth={1.75} className="text-harbor" aria-hidden="true" />
-        </span>
-        <p className="manifest-strip mb-3 text-harbor">{t(`${segment.key}.name`)}</p>
-        <h1 className="font-display text-hero measure-ar max-w-2xl">{t(`${segment.key}.summary`)}</h1>
+        <div className="flex items-center gap-4">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-wheat-soft">
+            <Icon size={26} strokeWidth={1.75} className="text-harbor" aria-hidden="true" />
+          </span>
+          <RouteLine d={segment.accentPath} viewBox="0 0 80 36" strokeWidth={1.5} className="h-6 w-20 text-harbor/40" />
+        </div>
+        <p className="manifest-strip mb-3 mt-5 text-harbor">{t(`${segment.key}.name`)}</p>
+        <KineticText as="h1" text={t(`${segment.key}.summary`)} className="font-display text-hero measure-ar max-w-2xl" />
         <p className="measure-ar mt-6 max-w-2xl text-base leading-relaxed text-ink/70 sm:text-lg">{t(`${segment.key}.body`)}</p>
         <Link href={`/${locale}/contact`} className={`${buttonClasses("primary", "lg")} mt-8 inline-flex`}>
           {tHome("ctaButton")}

@@ -46,6 +46,12 @@ export async function saveDraftAction(pageId: string, sections: unknown[]): Prom
   const parsed = z.array(sectionInputSchema).safeParse(sections);
   if (!parsed.success) return { success: false, error: "Invalid section payload." };
 
+  // Persist the *parsed* (enResult.data/arResult.data), not the raw client payload -- Zod strips
+  // any key a block's schema doesn't declare, which matters because a block's Render may receive
+  // extra runtime-only fields (e.g. Hero's resolveData attaches desktopMediaUrl/desktopMediaKind
+  // alongside the persisted desktopMediaId). Re-using the raw payload here would let those ride
+  // along into storage and go stale the moment the referenced Media row's URL changes.
+  const validated: typeof parsed.data = [];
   for (const s of parsed.data) {
     const block = getBlock(s.type);
     if (!block) return { success: false, error: `Unknown block type "${s.type}".` };
@@ -54,9 +60,10 @@ export async function saveDraftAction(pageId: string, sections: unknown[]): Prom
     if (!enResult.success || !arResult.success) {
       return { success: false, error: `Invalid content in a "${block.label}" section.` };
     }
+    validated.push({ ...s, dataEn: enResult.data, dataAr: arResult.data });
   }
 
-  const sanitized = parsed.data.map((s) => ({
+  const sanitized = validated.map((s) => ({
     ...s,
     dataEn: sanitizeSectionData(s.type, s.dataEn),
     dataAr: sanitizeSectionData(s.type, s.dataAr),
@@ -180,10 +187,13 @@ export async function restoreRevisionAction(pageId: string, revisionId: string):
     });
 
     await tx.pageSection.deleteMany({ where: { pageId } });
-    for (let i = 0; i < snapshot.sections.length; i++) {
-      const s = snapshot.sections[i];
-      await tx.pageSection.create({
-        data: {
+    // A page with enough sections (e.g. the homepage's 12) doing N sequential creates in one
+    // interactive transaction can exceed Prisma's 5s default timeout (P2028) against Neon's
+    // per-query latency -- the exact bug already fixed in saveDraftAction above, reproduced here
+    // live during this session's own Restore testing. Same fix: one createMany round trip.
+    if (snapshot.sections.length) {
+      await tx.pageSection.createMany({
+        data: snapshot.sections.map((s, i) => ({
           id: crypto.randomUUID(),
           pageId,
           type: s.type,
@@ -192,10 +202,10 @@ export async function restoreRevisionAction(pageId: string, revisionId: string):
           dataAr: s.dataAr as Prisma.InputJsonValue,
           settings: s.settings as unknown as Prisma.InputJsonValue,
           isVisible: s.isVisible,
-        },
+        })),
       });
     }
-  });
+  }, { timeout: 20000 });
 
   await logActivity({ userId: currentUser.id, action: "page.restoreRevision", entityType: "Page", entityId: pageId });
   revalidatePath(`/admin/pages/${pageId}/builder`);

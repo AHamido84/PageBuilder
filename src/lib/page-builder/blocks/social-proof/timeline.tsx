@@ -1,8 +1,9 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { TextField, TextareaField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, SelectField } from "@/components/admin/ui/field";
 import { IconButton } from "@/components/admin/ui/icon-button";
+import { ColdChainJourney } from "@/components/site/cold-chain-journey";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { TimelineData } from "../social-proof-blocks";
 
@@ -15,6 +16,15 @@ export function TimelineEdit({ data, onChange, locale }: BlockEditProps<Timeline
   return (
     <div className="space-y-3">
       <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
+      <SelectField
+        label="Layout"
+        value={data.layout}
+        onChange={(layout) => onChange({ ...data, layout })}
+        options={[
+          { value: "list", label: "List" },
+          { value: "journey", label: "Journey (scroll-drawn route)" },
+        ]}
+      />
       {items.map((item, i) => (
         <div key={i} className="space-y-2 rounded-md border border-neutral-800 p-3">
           <div className="flex items-center justify-between">
@@ -38,6 +48,9 @@ export function TimelineEdit({ data, onChange, locale }: BlockEditProps<Timeline
 }
 
 export function TimelineRender({ data }: BlockRenderProps<TimelineData>) {
+  if (data.layout === "journey") {
+    return <ColdChainJourney heading={data.heading} steps={data.items} />;
+  }
   return (
     <div>
       {data.heading ? <h2 className="mb-8 font-display text-3xl">{data.heading}</h2> : null}

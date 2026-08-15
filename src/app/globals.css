@@ -169,6 +169,42 @@ html[dir="rtl"] .flip-rtl {
   transform: scaleX(-1);
 }
 
+/* Premium background textures — apply to a decorative layer (an absolutely-positioned
+   div behind content), never to a container that also holds text, since both bake their
+   own opacity into the whole element rather than just the pattern. */
+.texture-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.035;
+}
+.bg-grid-fine {
+  background-image:
+    linear-gradient(to right, currentColor 1px, transparent 1px),
+    linear-gradient(to bottom, currentColor 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.06;
+}
+
+/* Marquee: pure CSS (no JS animation loop) so it's cheap and automatically frozen by the
+   prefers-reduced-motion kill-switch above. Direction reverses under RTL so the scroll still
+   reads as moving "forward." Pause on hover so a user can actually read/click an item. */
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee-scroll 28s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+html[dir="rtl"] .animate-marquee {
+  animation-direction: reverse;
+}
+
 ::selection {
   background: var(--color-wheat);
   color: var(--color-ink);

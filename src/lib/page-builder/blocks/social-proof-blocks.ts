@@ -18,7 +18,14 @@ const statisticsSchema = z.object({ heading: z.string().max(200).optional().defa
 export type StatisticsData = z.infer<typeof statisticsSchema>;
 
 const timelineItemSchema = z.object({ date: z.string().max(60).optional().default(""), title: z.string().max(150), body: z.string().max(500) });
-const timelineSchema = z.object({ heading: z.string().max(200).optional().default(""), items: z.array(timelineItemSchema).default([]) });
+const timelineSchema = z.object({
+  heading: z.string().max(200).optional().default(""),
+  items: z.array(timelineItemSchema).default([]),
+  // "journey" is the signature scroll-driven cold-chain-style presentation (a drawn route line,
+  // checkpoints that activate as they enter view); "list" is the original plain vertical list.
+  // Additive + defaulted, so every existing seeded TIMELINE section keeps rendering as "list".
+  layout: z.enum(["list", "journey"]).optional().default("list"),
+});
 export type TimelineData = z.infer<typeof timelineSchema>;
 
 const featureCardItemSchema = z.object({ title: z.string().max(150), body: z.string().max(500) });
@@ -70,7 +77,7 @@ export const socialProofBlocks: BlockDefinition<any>[] = [
     category: "social-proof",
     icon: Milestone,
     dataSchema: timelineSchema,
-    defaultData: { en: { heading: "", items: [] }, ar: { heading: "", items: [] } },
+    defaultData: { en: { heading: "", items: [], layout: "list" }, ar: { heading: "", items: [], layout: "list" } },
     defaultSettings: defaultSectionSettings(),
     Edit: TimelineEdit,
     Render: TimelineRender,

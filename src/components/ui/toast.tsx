@@ -14,7 +14,10 @@ interface ToastContextValue {
   push: (toast: Omit<Toast, "id">) => void;
 }
 
-const ToastContext = createContext<ToastContextValue | null>(null);
+// Exported so callers that may render outside a ToastProvider (e.g. a Page Builder block's Render,
+// which also mounts inside the admin canvas under a different layout tree) can read it directly via
+// useContext and treat "no provider" as null instead of hitting useToast()'s throw.
+export const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);

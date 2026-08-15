@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { Loader2 } from "lucide-react";
 import { subscribeNewsletterAction, type NewsletterState } from "@/app/[locale]/newsletter-actions";
 import { buttonClasses } from "@/components/ui/button";
 
@@ -29,10 +30,11 @@ export function NewsletterForm() {
         dir="ltr"
         required
         placeholder={t("newsletterPlaceholder")}
-        className="w-full min-w-0 rounded-[var(--radius-sm)] border border-paper/25 bg-transparent px-3 py-2 text-end text-sm text-paper placeholder:text-paper/40"
+        className="w-full min-w-0 rounded-[var(--radius-sm)] border border-paper/25 bg-transparent px-3 py-2 text-end text-sm text-paper placeholder:text-paper/40 transition-[border-color,box-shadow] duration-200 focus:border-wheat focus:shadow-[var(--shadow-focus)] focus:outline-none"
       />
-      <button type="submit" disabled={pending} className={buttonClasses("ghost-light", "sm", "shrink-0")}>
-        {pending ? "…" : t("newsletterSubmit")}
+      <button type="submit" disabled={pending} className={`${buttonClasses("ghost-light", "sm", "shrink-0")} inline-flex items-center gap-1.5`}>
+        {pending ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : null}
+        {t("newsletterSubmit")}
       </button>
       {state.error ? <p className="text-xs text-signal">{state.error}</p> : null}
     </form>

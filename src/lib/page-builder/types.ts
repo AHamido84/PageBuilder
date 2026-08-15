@@ -11,8 +11,8 @@ export type AlignToken = "left" | "center" | "right";
 export type ColumnsToken = "1" | "2" | "3" | "4";
 export type HeadingSizeToken = "sm" | "md" | "lg" | "xl" | "2xl";
 export type BodySizeToken = "sm" | "md" | "lg";
-export type BackgroundToken = "none" | "paper" | "frost" | "ink" | "harbor";
-export type AnimationToken = "none" | "fade-up" | "fade-in" | "zoom-in";
+export type BackgroundToken = "none" | "paper" | "frost" | "ink" | "harbor" | "wheat-soft";
+export type AnimationToken = "none" | "fade-up" | "fade-down" | "fade-in" | "zoom-in" | "scale" | "slide-start" | "slide-end" | "parallax";
 
 /** Style properties that can vary per breakpoint. */
 export interface StyleTokens {
@@ -78,6 +78,22 @@ export interface BlockDefinition<TData = unknown> {
    * for true WYSIWYG.
    */
   canvasPreview?: ComponentType<{ data: TData }>;
+  /**
+   * Optional server-side hydration step for blocks whose `Render` is a plain
+   * sync/client component but whose data references `Media`/`Product`/etc. by
+   * id (e.g. Hero's `desktopMediaId`, or Product Composition's
+   * `primaryProductId`) and needs the real resolved data attached before
+   * `Render` ever runs. Both the public `SectionRenderer` and the admin
+   * builder's initial page-load call this (with a fresh Prisma query) so the
+   * correct data shows on first paint, not just mid-edit-session client state.
+   * `locale` is the section's own locale ("en"/"ar") -- needed because a
+   * referenced row's translation (e.g. a Product's name) is locale-specific,
+   * while `dataEn`/`dataAr` are resolved as two separate calls. Blocks that
+   * already do their own live Prisma query inside an async `Render` (Category
+   * Grid, Brand Grid, Marquee, …) don't need this — they resolve their own
+   * data already.
+   */
+  resolveData?: (data: TData, locale: string) => Promise<TData>;
 }
 
 export function defaultStyleTokens(overrides?: Partial<StyleTokens>): StyleTokens {

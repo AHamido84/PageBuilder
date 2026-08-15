@@ -4,7 +4,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { Section } from "@/components/ui/section";
 import { Container } from "@/components/ui/container";
 import { buttonClasses } from "@/components/ui/button";
-import { ProcessTimeline } from "@/components/site/process-timeline";
+import { ColdChainJourney } from "@/components/site/cold-chain-journey";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,6 @@ export default async function DistributionLogisticsPage() {
   const tHome = await getTranslations("home");
 
   const steps = [1, 2, 3, 4, 5, 6].map((n) => ({
-    number: `0${n}`,
     title: t(`step${n}Title`),
     body: t(`step${n}Body`),
   }));
@@ -35,7 +34,7 @@ export default async function DistributionLogisticsPage() {
       </Section>
 
       <Section tone="frost" eyebrow={t("flowEyebrow")} title={t("flowTitle")}>
-        <ProcessTimeline steps={steps} className="max-w-2xl" />
+        <ColdChainJourney steps={steps} />
       </Section>
 
       <Section tone="ink" className="text-center">

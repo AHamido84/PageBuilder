@@ -2,8 +2,12 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { NewsletterForm } from "./newsletter-form";
-import { ScrollReveal } from "@/lib/motion/primitives";
+import { ScrollReveal, KineticText } from "@/lib/motion/primitives";
+import { RouteLine } from "./graphics/route-line";
 import type { PublicMenuItem } from "@/lib/menus";
+
+/** The footer's closing accent — a route that resolves to a single point, echoing "journey's end." */
+const FOOTER_ACCENT_PATH = "M4 24 Q 30 4 56 16 T 76 6";
 
 interface CategoryNavItem {
   id: string;
@@ -44,7 +48,8 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
         <div className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 lg:px-12">
           <ScrollReveal variant="fade-up" className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-md">
-              <p className="font-display text-h3">{t("newsletterTitle")}</p>
+              <RouteLine d={FOOTER_ACCENT_PATH} viewBox="0 0 80 28" strokeWidth={1.5} className="mb-3 h-5 w-20 text-wheat/60" />
+              <KineticText as="p" text={t("newsletterTitle")} className="font-display text-h2" />
               <p className="mt-2 text-sm leading-relaxed text-paper/60">{t("newsletterBody")}</p>
             </div>
             <div className="lg:w-auto lg:shrink-0">

@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import Image from "next/image";
 import { Badge, TemperatureBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useTranslations } from "next-intl";
-import { DURATION, EASE_PREMIUM } from "@/lib/motion/motionTokens";
 
 export interface ProductCardData {
   id: string;
@@ -42,12 +41,12 @@ export function ProductCard({ product, locale }: { product: ProductCardData; loc
             </span>
           )}
           {product.imageUrl ? (
-            <motion.img
+            <Image
               src={product.imageUrl}
               alt=""
-              className="h-full w-full object-cover"
-              whileHover={{ scale: 1.05 }}
-              transition={{ duration: DURATION.standard, ease: EASE_PREMIUM }}
+              fill
+              sizes="(min-width: 1024px) 23vw, (min-width: 640px) 33vw, 50vw"
+              className="object-cover transition-transform duration-300 ease-[var(--ease-premium)] group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">

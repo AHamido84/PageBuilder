@@ -88,8 +88,13 @@ export function SettingsPanel({ section, device, locale: editorLocale, onLocaleC
                   options={[
                     { value: "none", label: "None" },
                     { value: "fade-up", label: "Fade up" },
+                    { value: "fade-down", label: "Fade down" },
                     { value: "fade-in", label: "Fade in" },
                     { value: "zoom-in", label: "Zoom in" },
+                    { value: "scale", label: "Scale" },
+                    { value: "slide-start", label: "Slide in (start)" },
+                    { value: "slide-end", label: "Slide in (end)" },
+                    { value: "parallax", label: "Parallax" },
                   ]}
                 />
               </div>
