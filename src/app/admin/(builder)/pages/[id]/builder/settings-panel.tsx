@@ -36,7 +36,21 @@ export function SettingsPanel({ section, device, locale: editorLocale, onLocaleC
   }
 
   return (
-    <div className="flex h-full flex-col border-s border-neutral-800 bg-neutral-950">
+    // This panel's own content (especially Hero's Content tab -- dozens of frame/typography/
+    // parallax fields) can be taller than the viewport. This div is a direct CSS Grid item (the
+    // grid row is shared with the Canvas and the component library, defined one level up in
+    // page-builder-shell.tsx) -- a grid item's default min-height is its content's natural height,
+    // not 0, so without `overflow-y-auto` *on this element itself* (not a nested child -- tried
+    // that first, confirmed live it does NOT prevent the row from inflating, since the automatic
+    // min-height:0 reduction only applies to the item the grid container directly sizes against)
+    // a tall panel silently stretches the shared row past the outer shell's `h-screen
+    // overflow-hidden` boundary. The Canvas's own `h-full` then resolves against that inflated row
+    // instead of the real viewport-bounded height, permanently trapping a chunk of canvas content
+    // that no scroll gesture (on the canvas OR this panel) can ever bring into view -- confirmed
+    // live: selecting Hero made the canvas silently stop scrolling partway through the page, unable
+    // to reach the Contact Form section. `overflow-y-auto` right here is the actual fix; it also
+    // makes this panel's own long forms independently scrollable instead of silently clipped.
+    <div className="flex h-full flex-col overflow-y-auto border-s border-neutral-800 bg-neutral-950">
       <Tabs
         items={[
           {

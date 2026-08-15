@@ -195,7 +195,7 @@ export function PageBuilderShell({ pageId, slug, initialStatus, initialSections,
           onOpenRevisions={() => setRevisionsOpen(true)}
         />
         <div className="grid flex-1 grid-cols-[240px_1fr_320px] overflow-hidden">
-          <ComponentPanel onAdd={addBlock} />
+          <ComponentPanel sections={sections} selectedId={selectedId} onAdd={addBlock} onSelect={setSelectedId} onToggleVisible={toggleVisible} />
           <Canvas
             sections={sections}
             selectedId={selectedId}

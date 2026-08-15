@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { LayoutTemplate } from "lucide-react";
@@ -23,6 +24,15 @@ const DEVICE_WIDTH: Record<Props["device"], string> = { mobile: "max-w-sm", tabl
 
 export function Canvas({ sections, selectedId, mode, locale, device, onSelect, onReorder, onDuplicate, onDelete, onToggleVisible }: Props) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  // Brings the selected section into view regardless of where it was selected from -- the layer
+  // list (which can select a section that's currently scrolled out of view entirely) or the canvas
+  // itself (already in view, so this is a harmless no-op there). `id={section.id}` on each section's
+  // root div (canvas-section-frame.tsx) is what this targets.
+  useEffect(() => {
+    if (!selectedId) return;
+    document.getElementById(selectedId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedId]);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;

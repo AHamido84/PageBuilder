@@ -41,7 +41,12 @@ export function CanvasSectionFrame({ section, selected, mode, locale, onSelect, 
   const isPreview = mode === "preview";
 
   return (
-    <div ref={setNodeRef} style={style} className={`group relative ${selected && !isPreview ? "outline outline-2 outline-offset-[-2px] outline-blue-500" : ""}`}>
+    <div
+      id={section.id}
+      ref={setNodeRef}
+      style={style}
+      className={`group relative ${selected && !isPreview ? "outline outline-2 outline-offset-[-2px] outline-blue-500" : ""}`}
+    >
       {!isPreview ? (
         <div
           role="button"
