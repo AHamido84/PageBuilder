@@ -54,6 +54,10 @@ export interface Settings {
   defaultOgImage: { url: string } | null;
   footerAboutEn: string | null;
   footerAboutAr: string | null;
+  newsletterTitleEn: string | null;
+  newsletterTitleAr: string | null;
+  newsletterBodyEn: string | null;
+  newsletterBodyAr: string | null;
 }
 
 export function GeneralForm({ settings }: { settings: Settings }) {
@@ -221,6 +225,25 @@ export function FooterForm({ settings }: { settings: Settings }) {
       <div dir="rtl">
         <label className="mb-1 block text-xs text-neutral-400">نص الفوتر (عربي)</label>
         <textarea name="footerAboutAr" defaultValue={settings.footerAboutAr ?? ""} rows={3} className={inputClass} />
+      </div>
+      <div className="col-span-full border-t border-neutral-800 pt-3">
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">Newsletter signup (blank uses the default)</p>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Newsletter heading (English)</label>
+        <input name="newsletterTitleEn" defaultValue={settings.newsletterTitleEn ?? ""} className={inputClass} />
+      </div>
+      <div dir="rtl">
+        <label className="mb-1 block text-xs text-neutral-400">عنوان الاشتراك (عربي)</label>
+        <input name="newsletterTitleAr" defaultValue={settings.newsletterTitleAr ?? ""} className={inputClass} />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Newsletter body (English)</label>
+        <textarea name="newsletterBodyEn" defaultValue={settings.newsletterBodyEn ?? ""} rows={2} className={inputClass} />
+      </div>
+      <div dir="rtl">
+        <label className="mb-1 block text-xs text-neutral-400">نص الاشتراك (عربي)</label>
+        <textarea name="newsletterBodyAr" defaultValue={settings.newsletterBodyAr ?? ""} rows={2} className={inputClass} />
       </div>
       <StatusLine state={state} />
       <div className="col-span-full">

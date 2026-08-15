@@ -40,6 +40,15 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
   const settings = await getSiteSettings();
   const social = (settings?.socialLinks as SocialLinks | null) ?? null;
   const hasSocial = Boolean(social && (social.facebook || social.linkedin || social.instagram || social.twitter));
+  const isAr = locale === "ar";
+  // Real admin-configured content (all set via /admin/settings' Footer tab) with the existing
+  // translation strings as a fallback -- so a site that's never touched these settings keeps
+  // rendering exactly what it always has, unmodified.
+  const aboutTitle = (isAr ? settings?.siteNameAr : settings?.siteNameEn) || t("aboutTitle");
+  const aboutBody = (isAr ? settings?.footerAboutAr : settings?.footerAboutEn) || t("aboutBody");
+  const newsletterTitle = (isAr ? settings?.newsletterTitleAr : settings?.newsletterTitleEn) || t("newsletterTitle");
+  const newsletterBody = (isAr ? settings?.newsletterBodyAr : settings?.newsletterBodyEn) || t("newsletterBody");
+  const contactLocation = settings?.address || tContact("location");
 
   return (
     <footer className="border-t border-paper/10 bg-ink text-paper">
@@ -49,8 +58,8 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
           <ScrollReveal variant="fade-up" className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-md">
               <RouteLine d={FOOTER_ACCENT_PATH} viewBox="0 0 80 28" strokeWidth={1.5} className="mb-3 h-5 w-20 text-wheat/60" />
-              <KineticText as="p" text={t("newsletterTitle")} className="font-display text-h2" />
-              <p className="mt-2 text-sm leading-relaxed text-paper/60">{t("newsletterBody")}</p>
+              <KineticText as="p" text={newsletterTitle} className="font-display text-h2" />
+              <p className="mt-2 text-sm leading-relaxed text-paper/60">{newsletterBody}</p>
             </div>
             <div className="lg:w-auto lg:shrink-0">
               <NewsletterForm />
@@ -63,8 +72,8 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
       <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20">
         <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:grid-cols-6">
           <div className="col-span-2 sm:col-span-3 lg:col-span-2">
-            <p className="font-display text-lg">{t("aboutTitle")}</p>
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-paper/60">{t("aboutBody")}</p>
+            <p className="font-display text-lg">{aboutTitle}</p>
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-paper/60">{aboutBody}</p>
           </div>
 
           {menuItems.map((item) => (
@@ -111,7 +120,7 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
           <div>
             <p className="manifest-strip mb-4 text-paper/40">{t("contactTitle")}</p>
             <ul className="space-y-2.5 text-sm text-paper/70">
-              <li>{tContact("location")}</li>
+              <li>{contactLocation}</li>
               {settings?.contactEmail ? (
                 <li>
                   <a href={`mailto:${settings.contactEmail}`} dir="ltr" className="inline-block transition-colors hover:text-paper">

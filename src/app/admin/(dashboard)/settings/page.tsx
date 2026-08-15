@@ -46,6 +46,10 @@ export default async function SettingsPage() {
     defaultOgImage: record.defaultOgImage,
     footerAboutEn: record.footerAboutEn,
     footerAboutAr: record.footerAboutAr,
+    newsletterTitleEn: record.newsletterTitleEn,
+    newsletterTitleAr: record.newsletterTitleAr,
+    newsletterBodyEn: record.newsletterBodyEn,
+    newsletterBodyAr: record.newsletterBodyAr,
   };
 
   return (

@@ -190,6 +190,10 @@ export async function updateSeoSettingsAction(_prev: FormActionState, formData: 
 const footerSchema = z.object({
   footerAboutEn: z.string().max(600).optional().or(z.literal("")),
   footerAboutAr: z.string().max(600).optional().or(z.literal("")),
+  newsletterTitleEn: z.string().max(200).optional().or(z.literal("")),
+  newsletterTitleAr: z.string().max(200).optional().or(z.literal("")),
+  newsletterBodyEn: z.string().max(400).optional().or(z.literal("")),
+  newsletterBodyAr: z.string().max(400).optional().or(z.literal("")),
 });
 
 export async function updateFooterSettingsAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
@@ -199,6 +203,14 @@ export async function updateFooterSettingsAction(_prev: FormActionState, formDat
   const parsed = footerSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   const data = parsed.data;
+  const values = {
+    footerAboutEn: data.footerAboutEn || null,
+    footerAboutAr: data.footerAboutAr || null,
+    newsletterTitleEn: data.newsletterTitleEn || null,
+    newsletterTitleAr: data.newsletterTitleAr || null,
+    newsletterBodyEn: data.newsletterBodyEn || null,
+    newsletterBodyAr: data.newsletterBodyAr || null,
+  };
 
   await prisma.siteSetting.upsert({
     where: { id: "singleton" },
@@ -206,10 +218,9 @@ export async function updateFooterSettingsAction(_prev: FormActionState, formDat
       id: "singleton",
       siteNameEn: "Seven Eleven Trading",
       siteNameAr: "سفن إليفن للتجارة",
-      footerAboutEn: data.footerAboutEn || null,
-      footerAboutAr: data.footerAboutAr || null,
+      ...values,
     },
-    update: { footerAboutEn: data.footerAboutEn || null, footerAboutAr: data.footerAboutAr || null },
+    update: values,
   });
 
   await logSettingsUpdate(currentUser.id, "footer");
