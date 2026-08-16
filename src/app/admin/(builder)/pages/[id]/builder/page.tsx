@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { getBlock } from "@/lib/page-builder/registry";
 import type { BuilderSection } from "@/lib/page-builder/types";
+import { normalizeLocaleSettings } from "@/lib/page-builder/types";
 import { PageBuilderShell } from "./page-builder-shell";
 import type { RevisionListItem } from "./revision-history-panel";
 
@@ -46,7 +47,7 @@ export default async function PageBuilderPage({ params }: { params: Promise<{ id
       order: s.order,
       dataEn: await resolveSectionData(s.type, s.dataEn, "en"),
       dataAr: await resolveSectionData(s.type, s.dataAr, "ar"),
-      settings: s.settings as unknown as BuilderSection["settings"],
+      settings: normalizeLocaleSettings(s.settings),
       isVisible: s.isVisible,
     }))
   );

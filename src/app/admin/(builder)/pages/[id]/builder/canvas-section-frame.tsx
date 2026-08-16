@@ -38,6 +38,7 @@ export function CanvasSectionFrame({ section, selected, mode, locale, onSelect, 
   }
 
   const data = (locale === "ar" ? section.dataAr : section.dataEn) as never;
+  const localeSettings = section.settings[locale];
   const isPreview = mode === "preview";
 
   return (
@@ -72,8 +73,8 @@ export function CanvasSectionFrame({ section, selected, mode, locale, onSelect, 
         </div>
       ) : null}
 
-      <SectionShell settings={section.settings}>
-        {block.canvasPreview ? <block.canvasPreview data={data} /> : <block.Render data={data} locale={locale} interactive={isPreview} settings={section.settings} />}
+      <SectionShell settings={localeSettings}>
+        {block.canvasPreview ? <block.canvasPreview data={data} /> : <block.Render data={data} locale={locale} interactive={isPreview} settings={localeSettings} />}
       </SectionShell>
     </div>
   );

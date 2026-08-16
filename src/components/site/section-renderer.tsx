@@ -1,6 +1,6 @@
 import { getBlock } from "@/lib/page-builder/registry";
 import { SectionShell } from "@/lib/page-builder/section-shell";
-import type { BuilderSection } from "@/lib/page-builder/types";
+import { normalizeLocaleSettings } from "@/lib/page-builder/types";
 
 export interface SectionRow {
   id: string;
@@ -36,7 +36,10 @@ export async function SectionRenderer({ sections, locale }: { sections: SectionR
         return null;
       }
       const data = block.resolveData ? await block.resolveData(parsed.data, locale) : parsed.data;
-      const settings = (section.settings ?? {}) as BuilderSection["settings"];
+      // Each locale renders its own independent style settings (alignment, padding, background,
+      // animation, ...) -- never the other locale's, and never a shared blob. See
+      // normalizeLocaleSettings in types.ts for why this also safely reads pre-fix rows.
+      const settings = normalizeLocaleSettings(section.settings)[locale === "ar" ? "ar" : "en"];
       // Rendered as JSX, not called as a function -- block.Render may be a
       // plain client component (most blocks) or an async Server Component
       // (the commerce blocks doing live Prisma queries); only JSX rendering

@@ -120,6 +120,62 @@ export function defaultSectionSettings(overrides?: Partial<SectionSettings>): Se
   };
 }
 
+/**
+ * A section's responsive style settings, kept fully independent per locale.
+ * Root-cause fix for the AR/EN alignment cross-contamination bug: pre-fix,
+ * `PageSection.settings` (and this type) was a single flat `SectionSettings`
+ * shared by both `dataEn` and `dataAr` -- changing alignment in one language
+ * silently changed it in the other because there was only ever one object.
+ * `dataEn`/`dataAr` themselves were never affected (always separate columns);
+ * only this section-level Style-panel token set (padding/margin/align/
+ * columns/headingSize/bodySize/visible/background/animation) was shared.
+ */
+export type LocaleSectionSettings = Record<EditorLocale, SectionSettings>;
+
+export function defaultLocaleSectionSettings(overrides?: Partial<SectionSettings>): LocaleSectionSettings {
+  return { en: defaultSectionSettings(overrides), ar: defaultSectionSettings(overrides) };
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function coerceSectionSettings(raw: unknown): SectionSettings {
+  if (!isPlainObject(raw)) return defaultSectionSettings();
+  const desktop = isPlainObject(raw.desktop) ? { ...defaultStyleTokens(), ...(raw.desktop as Partial<StyleTokens>) } : defaultStyleTokens();
+  return {
+    desktop,
+    tablet: isPlainObject(raw.tablet) ? (raw.tablet as Partial<StyleTokens>) : {},
+    mobile: isPlainObject(raw.mobile) ? (raw.mobile as Partial<StyleTokens>) : {},
+    background: (raw.background as BackgroundToken) ?? "none",
+    animation: (raw.animation as AnimationToken) ?? "none",
+  };
+}
+
+/**
+ * Reads a `PageSection.settings` JSON value (from the DB, a revision
+ * snapshot, or client state) into the locale-isolated shape, tolerating two
+ * legacy/edge inputs so no existing page ever breaks or loses data:
+ *  - Pre-fix rows store one flat `SectionSettings` shared by both locales.
+ *    Treated as the initial shared fallback for BOTH `en` and `ar` (matches
+ *    the documented no-data-loss migration: identical until an admin
+ *    actually edits one locale's style, at which point only that locale's
+ *    branch changes on the next save).
+ *  - Anything missing/malformed falls back to defaults for both locales.
+ * Post-fix rows already store `{ en, ar }` and pass through (each side
+ * defensively re-merged with defaults in case of partial/older data).
+ */
+export function normalizeLocaleSettings(raw: unknown): LocaleSectionSettings {
+  if (isPlainObject(raw) && isPlainObject(raw.en) && isPlainObject(raw.ar)) {
+    return { en: coerceSectionSettings(raw.en), ar: coerceSectionSettings(raw.ar) };
+  }
+  if (isPlainObject(raw) && ("desktop" in raw || "background" in raw || "animation" in raw)) {
+    const shared = coerceSectionSettings(raw);
+    return { en: structuredClone(shared), ar: structuredClone(shared) };
+  }
+  return defaultLocaleSectionSettings();
+}
+
 /** A section row as edited in the builder canvas (client-side working copy). */
 export interface BuilderSection {
   id: string;
@@ -127,6 +183,6 @@ export interface BuilderSection {
   order: number;
   dataEn: unknown;
   dataAr: unknown;
-  settings: SectionSettings;
+  settings: LocaleSectionSettings;
   isVisible: boolean;
 }

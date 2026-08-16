@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { getBlock } from "@/lib/page-builder/registry";
 import { ReferenceDataProvider, type ReferenceData } from "@/lib/page-builder/reference-data-context";
-import type { BuilderSection, Breakpoint, EditorLocale } from "@/lib/page-builder/types";
+import type { BuilderSection, Breakpoint, EditorLocale, SectionSettings } from "@/lib/page-builder/types";
 import { useAdminToast } from "@/components/admin/ui/toast";
 import type { SaveStatus } from "@/components/admin/ui/status-label";
 import { Toolbar } from "./toolbar";
@@ -116,7 +116,10 @@ export function PageBuilderShell({ pageId, slug, initialStatus, initialSections,
       order: sections.length,
       dataEn: structuredClone(block.defaultData.en),
       dataAr: structuredClone(block.defaultData.ar),
-      settings: structuredClone(block.defaultSettings),
+      // Each locale starts from the same default style settings but is stored as its own
+      // independent copy from the moment a section is created -- see the LocaleSectionSettings
+      // migration/fallback note in types.ts.
+      settings: { en: structuredClone(block.defaultSettings), ar: structuredClone(block.defaultSettings) },
       isVisible: true,
     };
     commit((prev) => [...prev, newSection]);
@@ -152,9 +155,13 @@ export function PageBuilderShell({ pageId, slug, initialStatus, initialSections,
     commit((prev) => prev.map((s) => (s.id === selectedId ? { ...s, [locale === "ar" ? "dataAr" : "dataEn"]: data } : s)), { debounce: true });
   }
 
-  function updateSettings(next: BuilderSection["settings"]) {
+  /** Updates ONLY the given locale's style settings -- never the other locale's. */
+  function updateSettings(locale: EditorLocale, next: SectionSettings) {
     if (!selectedId) return;
-    commit((prev) => prev.map((s) => (s.id === selectedId ? { ...s, settings: next } : s)), { debounce: true });
+    commit(
+      (prev) => prev.map((s) => (s.id === selectedId ? { ...s, settings: { ...s.settings, [locale]: next } } : s)),
+      { debounce: true }
+    );
   }
 
   function handlePublish() {
