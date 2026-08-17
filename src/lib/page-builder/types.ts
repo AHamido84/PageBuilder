@@ -94,6 +94,16 @@ export interface BlockDefinition<TData = unknown> {
    * data already.
    */
   resolveData?: (data: TData, locale: string) => Promise<TData>;
+  /**
+   * Optional per-instance override: when true for a given `data`, SectionShell skips its shared
+   * max-width/padding/background/top-border chrome and viewport-triggered Reveal wrapper, letting
+   * the block's own Render fully own an edge-to-edge, full-viewport-height composition (e.g. a
+   * cinematic full-bleed Hero background). Most blocks omit this and always get the standard
+   * chrome. A per-instance function (not a static flag) because the same block type can have
+   * multiple layout modes (e.g. Hero's "split" vs "full-bleed") where only one actually wants to
+   * bleed off the section's normal container.
+   */
+  bleedsWhen?: (data: TData) => boolean;
 }
 
 export function defaultStyleTokens(overrides?: Partial<StyleTokens>): StyleTokens {

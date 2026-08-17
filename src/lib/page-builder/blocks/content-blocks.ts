@@ -14,13 +14,40 @@ const heroButtonStyleSchema = z.enum(["primary", "secondary", "ghost"]);
 export type HeroButtonStyle = z.infer<typeof heroButtonStyleSchema>;
 
 // "scale"/"morph"/"float" added for the premium frame system (morph only visually applies to the
-// three organic/blob frame styles; float/scale apply to any frame). Same field, still just "the
-// media/frame's entrance-and-ambient treatment" -- not a second parallel animation field.
-const heroAnimationSchema = z.enum(["none", "fade", "slow-zoom", "parallax", "reveal", "cinematic", "scale", "morph", "float"]);
+// three organic/blob frame styles; float/scale apply to any frame). "cinematic-loop" added for the
+// full-bleed cinematic Hero background: unlike every other value here (which plays once on mount
+// and stops), it's a genuinely infinite alternating breathing zoom -- see HeroMediaMotion in
+// hero-shared.tsx. Same field, still just "the media/frame's entrance-and-ambient treatment" --
+// not a second parallel animation field.
+const heroAnimationSchema = z.enum(["none", "fade", "slow-zoom", "parallax", "reveal", "cinematic", "scale", "morph", "float", "cinematic-loop"]);
 export type HeroAnimation = z.infer<typeof heroAnimationSchema>;
 
 const heroImagePositionSchema = z.enum(["center", "top", "bottom", "left", "right", "custom"]);
 export type HeroImagePosition = z.infer<typeof heroImagePositionSchema>;
+
+const heroHeightSchema = z.enum(["compact", "standard", "tall", "viewport"]);
+export type HeroHeight = z.infer<typeof heroHeightSchema>;
+
+const heroContentPositionSchema = z.enum(["start", "center", "end"]);
+export type HeroContentPosition = z.infer<typeof heroContentPositionSchema>;
+
+const heroVerticalAlignSchema = z.enum(["top", "center", "bottom"]);
+export type HeroVerticalAlign = z.infer<typeof heroVerticalAlignSchema>;
+
+const heroContentMaxWidthSchema = z.enum(["sm", "md", "lg", "xl"]);
+export type HeroContentMaxWidth = z.infer<typeof heroContentMaxWidthSchema>;
+
+const heroTextColorModeSchema = z.enum(["auto", "light", "dark"]);
+export type HeroTextColorMode = z.infer<typeof heroTextColorModeSchema>;
+
+const heroAccentColorSchema = z.enum(["wheat", "paper"]);
+export type HeroAccentColor = z.infer<typeof heroAccentColorSchema>;
+
+// "auto" derives the gradient direction from contentPosition (mirrored for RTL, see
+// resolveOverlayGradient in hero-shared.tsx) -- the sane default for "strong behind the text,
+// fading toward the product". The explicit values let an admin override that for creative reasons.
+const heroOverlayDirectionSchema = z.enum(["auto", "start", "end", "center", "top", "bottom", "none"]);
+export type HeroOverlayDirection = z.infer<typeof heroOverlayDirectionSchema>;
 
 const heroFrameStyleSchema = z.enum(FRAME_STYLES);
 export type HeroFrameStyle = z.infer<typeof heroFrameStyleSchema>;
@@ -129,6 +156,22 @@ const heroSchema = z.object({
 
   parallaxEnabled: z.boolean().default(true),
 
+  // Full-bleed cinematic composition (§1-16 of the "premium full-bleed dynamic hero" brief).
+  // Only meaningful when layout === "full-bleed" -- split mode's own frame/positioning fields
+  // above are untouched by these. All additive/defaulted so every pre-existing Hero (split or
+  // full-bleed) renders exactly as before until an admin deliberately touches one of these.
+  heroHeight: heroHeightSchema.default("tall"),
+  contentPosition: heroContentPositionSchema.default("start"),
+  verticalAlign: heroVerticalAlignSchema.default("center"),
+  contentMaxWidth: heroContentMaxWidthSchema.default("lg"),
+  textColorMode: heroTextColorModeSchema.default("auto"),
+  accentColor: heroAccentColorSchema.default("wheat"),
+  overlayDirection: heroOverlayDirectionSchema.default("auto"),
+  // Percent scale increase for the "cinematic-loop" animation (e.g. 4 => 1.00 -> 1.04 -> 1.00).
+  zoomAmount: z.number().min(0).max(20).default(4),
+  // Full cycle duration in seconds (out and back) for "cinematic-loop".
+  animationSpeedSec: z.number().min(8).max(40).default(20),
+
   // Product Composition mode (§4-11 of the brief) -- stores real Product ids by role, never
   // duplicates product data (name/image/etc.) into Hero's own JSON. "" = that role isn't shown;
   // every role is optional and independently settable, matching the rest of this schema's
@@ -214,6 +257,8 @@ export const contentBlocks: BlockDefinition<any>[] = [
         frameBorderStyle: "none", frameBorderWidth: 2, frameBorderOpacity: 60, frameBorderColor: "wheat",
         frameGlow: "none", decorativeText: "", decorativeOpacity: 8, decorativePosition: "behind",
         decorativeRotation: 0, parallaxEnabled: true,
+        heroHeight: "tall", contentPosition: "start", verticalAlign: "center", contentMaxWidth: "lg",
+        textColorMode: "auto", accentColor: "wheat", overlayDirection: "auto", zoomAmount: 4, animationSpeedSec: 20,
         primaryProductId: "", secondaryProductId: "", supportingProductId: "",
         productsClickable: true, showProductBadges: true, slides: [],
       },
@@ -229,6 +274,8 @@ export const contentBlocks: BlockDefinition<any>[] = [
         frameBorderStyle: "none", frameBorderWidth: 2, frameBorderOpacity: 60, frameBorderColor: "wheat",
         frameGlow: "none", decorativeText: "", decorativeOpacity: 8, decorativePosition: "behind",
         decorativeRotation: 0, parallaxEnabled: true,
+        heroHeight: "tall", contentPosition: "start", verticalAlign: "center", contentMaxWidth: "lg",
+        textColorMode: "auto", accentColor: "wheat", overlayDirection: "auto", zoomAmount: 4, animationSpeedSec: 20,
         primaryProductId: "", secondaryProductId: "", supportingProductId: "",
         productsClickable: true, showProductBadges: true, slides: [],
       },
@@ -237,6 +284,9 @@ export const contentBlocks: BlockDefinition<any>[] = [
     Edit: HeroEdit,
     Render: HeroRender,
     resolveData: resolveHeroData,
+    // Only full-bleed layout actually wants to bleed off the section's normal container -- split
+    // mode keeps its own framed column inside the standard chrome, unchanged.
+    bleedsWhen: (data: HeroData) => data.layout === "full-bleed",
   } as BlockDefinition<HeroData>,
   {
     type: "HEADING",

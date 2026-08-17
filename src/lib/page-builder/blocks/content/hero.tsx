@@ -12,7 +12,7 @@ import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
 import { useReferenceData } from "../../reference-data-context";
 import type { HeroData, HeroRenderData, HeroResolvedMedia, HeroButtonStyle, HeroImagePosition, HeroFramePosition } from "../content-blocks";
-import { HeroFrame, HeroMediaMotion, HeroVideoLayer } from "./hero-shared";
+import { HeroFrame, HeroMediaMotion, HeroVideoLayer, type HeroFullBleedOptions } from "./hero-shared";
 import { HeroFrameShape } from "./hero-frame-shape";
 import { HeroDecorativeTypography } from "./hero-decorative-typography";
 import { HeroProductComposition } from "./hero-product-composition-render";
@@ -103,10 +103,21 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
         <SelectField
           label="Layout"
           value={data.layout}
-          onChange={(layout) => onChange({ ...data, layout })}
+          onChange={(layout) =>
+            onChange({
+              ...data,
+              layout,
+              // Full-bleed wants an ambient, always-alive background by default; split's framed
+              // image wants a one-shot entrance instead. Only switch the animation automatically
+              // when it's still at the schema default for the mode being left, so a deliberate
+              // custom choice is never silently overridden.
+              ...(layout === "full-bleed" && data.animation === "slow-zoom" ? { animation: "cinematic-loop" } : {}),
+              ...(layout === "split" && data.animation === "cinematic-loop" ? { animation: "slow-zoom" } : {}),
+            })
+          }
           options={[
             { value: "split", label: "Split — media in its own column" },
-            { value: "full-bleed", label: "Full-bleed — media behind the text" },
+            { value: "full-bleed", label: "Full-bleed — cinematic edge-to-edge background" },
           ]}
         />
 
@@ -150,6 +161,97 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
           </>
         ) : null}
       </div>
+
+      {data.layout === "full-bleed" ? (
+        <div className="space-y-3 rounded-md border border-neutral-800 p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Full-bleed Layout &amp; Style</p>
+          <SelectField
+            label="Hero height"
+            value={data.heroHeight}
+            onChange={(heroHeight) => onChange({ ...data, heroHeight })}
+            options={[
+              { value: "compact", label: "Compact (~620px)" },
+              { value: "standard", label: "Standard (~780px)" },
+              { value: "tall", label: "Tall — 85–100vh, 780px minimum" },
+              { value: "viewport", label: "Full viewport height" },
+            ]}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <SelectField
+              label="Content position"
+              value={data.contentPosition}
+              onChange={(contentPosition) => onChange({ ...data, contentPosition })}
+              options={[
+                { value: "start", label: "Start (left in EN / right in AR)" },
+                { value: "center", label: "Center" },
+                { value: "end", label: "End (right in EN / left in AR)" },
+              ]}
+            />
+            <SelectField
+              label="Vertical alignment"
+              value={data.verticalAlign}
+              onChange={(verticalAlign) => onChange({ ...data, verticalAlign })}
+              options={[
+                { value: "top", label: "Top" },
+                { value: "center", label: "Center" },
+                { value: "bottom", label: "Bottom" },
+              ]}
+            />
+          </div>
+          <SelectField
+            label="Content max width"
+            value={data.contentMaxWidth}
+            onChange={(contentMaxWidth) => onChange({ ...data, contentMaxWidth })}
+            options={[
+              { value: "sm", label: "Narrow" },
+              { value: "md", label: "Medium" },
+              { value: "lg", label: "Wide (default)" },
+              { value: "xl", label: "Extra wide" },
+            ]}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <SelectField
+              label="Text color"
+              value={data.textColorMode}
+              onChange={(textColorMode) => onChange({ ...data, textColorMode })}
+              options={[
+                { value: "auto", label: "Auto (light, for a dark scrim)" },
+                { value: "light", label: "Light" },
+                { value: "dark", label: "Dark" },
+              ]}
+            />
+            <SelectField
+              label="Accent color"
+              value={data.accentColor}
+              onChange={(accentColor) => onChange({ ...data, accentColor })}
+              options={[
+                { value: "wheat", label: "Gold (brand default)" },
+                { value: "paper", label: "Off-white" },
+              ]}
+            />
+          </div>
+          <SelectField
+            label="Overlay gradient direction"
+            value={data.overlayDirection}
+            onChange={(overlayDirection) => onChange({ ...data, overlayDirection })}
+            options={[
+              { value: "auto", label: "Auto — matches content position" },
+              { value: "start", label: "Start edge" },
+              { value: "end", label: "End edge" },
+              { value: "center", label: "Center (vertical wash)" },
+              { value: "top", label: "Top" },
+              { value: "bottom", label: "Bottom" },
+              { value: "none", label: "None — flat, no gradient" },
+            ]}
+          />
+          {data.animation === "cinematic-loop" ? (
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField label="Zoom amount (%)" value={data.zoomAmount} min={0} max={20} onChange={(zoomAmount) => onChange({ ...data, zoomAmount })} />
+              <NumberField label="Animation speed (sec)" value={data.animationSpeedSec} min={8} max={40} onChange={(animationSpeedSec) => onChange({ ...data, animationSpeedSec })} />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {data.mediaType === "image" && data.layout === "split" ? (
         <div className="space-y-3 rounded-md border border-neutral-800 p-3">
@@ -314,6 +416,7 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
               { value: "none", label: "None" },
               { value: "fade", label: "Fade" },
               { value: "slow-zoom", label: "Slow Zoom" },
+              { value: "cinematic-loop", label: "Cinematic Loop — infinite breathing zoom (full-bleed)" },
               { value: "parallax", label: "Parallax" },
               { value: "reveal", label: "Reveal" },
               { value: "cinematic", label: "Cinematic" },
@@ -423,8 +526,13 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
     <Stagger>
       {data.eyebrow ? (
         <StaggerItem>
-          <p className="manifest-strip mb-2 opacity-60">{data.eyebrow}</p>
-          <RouteLine d={HERO_ACCENT_PATH} viewBox="0 0 120 16" strokeWidth={1.5} className="mb-4 h-4 w-24 text-wheat flip-rtl" />
+          <p className={`manifest-strip mb-2 opacity-60 ${data.accentColor === "paper" ? "text-paper" : "text-wheat"}`}>{data.eyebrow}</p>
+          <RouteLine
+            d={HERO_ACCENT_PATH}
+            viewBox="0 0 120 16"
+            strokeWidth={1.5}
+            className={`mb-4 h-4 w-24 flip-rtl ${data.accentColor === "paper" ? "text-paper" : "text-wheat"}`}
+          />
         </StaggerItem>
       ) : null}
       <StaggerItem>
@@ -525,49 +633,78 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
       </div>
     );
   } else if (desktopImageUrl) {
+    // Only "full-bleed" layout ever reaches this branch for image mode (split+image always has a
+    // frame, however plain -- see isFramedImage above), so a background pointer-parallax offset is
+    // always the cinematic-background one here, never a competing effect with split's own frame parallax.
+    const bgParallax = data.layout === "full-bleed" && parallaxActive ? pointerParallaxStyle(parallaxX, parallaxY, 12) : undefined;
     media = (
-      <HeroMediaMotion animation={data.animation} className="absolute inset-0">
-        {/* Desktop and mobile render as two elements toggled by CSS (matching the same
-            art-direction pattern already used by the cold-chain journey's route line) rather
-            than one <img> the browser just crops — "mobile" can be a genuinely different photo,
-            not a squeeze of the desktop one (brief §9). */}
-        <Image src={desktopImageUrl} alt="" fill priority sizes="(min-width: 1024px) 50vw, 100vw" className="hidden object-cover lg:block" style={imagePositionStyle} />
-        {mobileImageUrl ? (
-          <Image src={mobileImageUrl} alt="" fill priority sizes="100vw" className="object-cover lg:hidden" style={imagePositionStyle} />
-        ) : null}
-      </HeroMediaMotion>
+      <div className="absolute inset-0" style={bgParallax}>
+        <HeroMediaMotion animation={data.animation} zoomAmount={data.zoomAmount} speedSec={data.animationSpeedSec} className="absolute inset-0">
+          {/* Desktop and mobile render as two elements toggled by CSS (matching the same
+              art-direction pattern already used by the cold-chain journey's route line) rather
+              than one <img> the browser just crops — "mobile" can be a genuinely different photo,
+              not a squeeze of the desktop one (brief §9). */}
+          <Image src={desktopImageUrl} alt="" fill priority sizes="(min-width: 1024px) 50vw, 100vw" className="hidden object-cover lg:block" style={imagePositionStyle} />
+          {mobileImageUrl ? (
+            <Image src={mobileImageUrl} alt="" fill priority sizes="100vw" className="object-cover lg:hidden" style={imagePositionStyle} />
+          ) : null}
+        </HeroMediaMotion>
+      </div>
     );
   } else if (desktopVideoUrl) {
+    // Video mode has no split-only frame variant (isFramedImage requires mediaType === "image"), so
+    // this branch covers both split+video (parallax stays off, matching split's own pre-existing
+    // behavior for video) and full-bleed+video (background parallax active, matching image mode above).
+    const bgParallax = data.layout === "full-bleed" && parallaxActive ? pointerParallaxStyle(parallaxX, parallaxY, 12) : undefined;
     media = (
-      <HeroMediaMotion animation={data.animation} className="absolute inset-0">
-        {/* Same desktop/mobile split as image mode — a mobile video can be a genuinely different clip, not a squeeze of the desktop one. */}
-        <HeroVideoLayer
-          src={desktopVideoUrl}
-          poster={data.posterUrl}
-          autoPlay={data.videoAutoplay}
-          muted={data.videoMuted}
-          loop={data.videoLoop}
-          className="hidden h-full w-full object-cover lg:block"
-          style={imagePositionStyle}
-        />
-        {mobileVideoUrl ? (
+      <div className="absolute inset-0" style={bgParallax}>
+        <HeroMediaMotion animation={data.animation} zoomAmount={data.zoomAmount} speedSec={data.animationSpeedSec} className="absolute inset-0">
+          {/* Same desktop/mobile split as image mode — a mobile video can be a genuinely different clip, not a squeeze of the desktop one. */}
           <HeroVideoLayer
-            src={mobileVideoUrl}
+            src={desktopVideoUrl}
             poster={data.posterUrl}
             autoPlay={data.videoAutoplay}
             muted={data.videoMuted}
             loop={data.videoLoop}
-            className="h-full w-full object-cover lg:hidden"
+            className="hidden h-full w-full object-cover lg:block"
             style={imagePositionStyle}
           />
-        ) : null}
-      </HeroMediaMotion>
+          {mobileVideoUrl ? (
+            <HeroVideoLayer
+              src={mobileVideoUrl}
+              poster={data.posterUrl}
+              autoPlay={data.videoAutoplay}
+              muted={data.videoMuted}
+              loop={data.videoLoop}
+              className="h-full w-full object-cover lg:hidden"
+              style={imagePositionStyle}
+            />
+          ) : null}
+        </HeroMediaMotion>
+      </div>
     );
   } else if (data.mediaType === "product-composition") {
     media = <HeroProductComposition data={data} locale={locale} />;
   }
 
   const isProductComposition = data.mediaType === "product-composition";
+  // A smaller, independent depth from the background's own parallax above (brief §7's "foreground
+  // overlay elements: slightly different movement speed") -- same shared pointer position, just a
+  // shallower per-layer travel distance, composed via HeroFrame's fullBleed.contentParallaxStyle.
+  const contentParallaxStyle = data.layout === "full-bleed" && parallaxActive ? pointerParallaxStyle(parallaxX, parallaxY, 5) : undefined;
+  const fullBleedOptions: HeroFullBleedOptions | undefined =
+    data.layout === "full-bleed"
+      ? {
+          height: data.heroHeight,
+          contentPosition: data.contentPosition,
+          verticalAlign: data.verticalAlign,
+          contentMaxWidth: data.contentMaxWidth,
+          textColorMode: data.textColorMode,
+          overlayDirection: data.overlayDirection,
+          isRtl: locale === "ar",
+          contentParallaxStyle,
+        }
+      : undefined;
 
   return (
     <div ref={heroRef} className="relative">
@@ -586,6 +723,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
         content={content}
         allowOverflow={isFramedImage && data.frameOverflow}
         hideOverlay={isFramedImage || isProductComposition}
+        fullBleed={fullBleedOptions}
       />
       {/* Extremely subtle cold-chain accent (brief §39-40) -- conceptually tied to the frame
           (the product/scene it's presenting), not a decorative graphic dropped in arbitrarily.

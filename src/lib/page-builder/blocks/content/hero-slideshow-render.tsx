@@ -111,7 +111,25 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <HeroFrame layout={data.layout} overlayOpacity={data.overlayOpacity} media={mediaNode} content={content} />
+      <HeroFrame
+        layout={data.layout}
+        overlayOpacity={data.overlayOpacity}
+        media={mediaNode}
+        content={content}
+        fullBleed={
+          data.layout === "full-bleed"
+            ? {
+                height: data.heroHeight,
+                contentPosition: data.contentPosition,
+                verticalAlign: data.verticalAlign,
+                contentMaxWidth: data.contentMaxWidth,
+                textColorMode: data.textColorMode,
+                overlayDirection: data.overlayDirection,
+                isRtl: locale === "ar",
+              }
+            : undefined
+        }
+      />
       {slides.length > 1 ? (
         <div className="relative z-10 mt-4 flex justify-center gap-2 lg:absolute lg:inset-x-0 lg:bottom-4 lg:mt-0">
           {slides.map((s, i) => (

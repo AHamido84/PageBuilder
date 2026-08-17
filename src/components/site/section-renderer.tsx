@@ -46,7 +46,7 @@ export async function SectionRenderer({ sections, locale }: { sections: SectionR
       // respects that boundary correctly for both.
       const Render = block.Render;
       return (
-        <SectionShell key={section.id} settings={settings}>
+        <SectionShell key={section.id} settings={settings} bleed={block.bleedsWhen?.(data) ?? false}>
           <Render data={data} locale={locale} interactive settings={settings} />
         </SectionShell>
       );
