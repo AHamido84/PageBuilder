@@ -12,6 +12,7 @@ import { RouteLine } from "@/components/site/graphics/route-line";
 import { EASE_PREMIUM, DURATION } from "@/lib/motion/motionTokens";
 import { cn } from "@/lib/cn";
 import type { PublicMenuItem } from "@/lib/menus";
+import { resolveLogoObjectPosition, type HeaderLogoLocaleSettings } from "@/lib/site-settings/header-logo";
 
 /** Matches the accent used on CATEGORY_GRID's no-image card fallback — same graphic language, different scale. */
 const PROMO_ACCENT_PATH = "M4 32 Q 36 4 68 32";
@@ -35,11 +36,9 @@ interface HeaderProps {
   categories: CategoryNavItem[];
   featuredProducts?: FeaturedProductNav[];
   logoUrl?: string | null;
-  /** Admin-configurable logo box size/alignment (Settings > General) -- null/undefined falls back
-   * to the built-in defaults below, so sites that haven't touched these fields render unchanged. */
-  logoHeightDesktop?: number | null;
-  logoHeightMobile?: number | null;
-  logoAlign?: "start" | "center" | "end" | null;
+  /** Admin-configurable logo box size/alignment/behavior (Settings > General), already resolved to
+   * this page's locale by the caller -- see src/lib/site-settings/header-logo.ts. */
+  logoSettings: HeaderLogoLocaleSettings;
   /** Real admin-managed nav items (from /admin/menus, HEADER location) rendered after "Products". */
   menuItems?: PublicMenuItem[];
   locale: string;
@@ -47,17 +46,11 @@ interface HeaderProps {
 
 type MegaKey = string | null;
 
-const LOGO_HEIGHT_DESKTOP_DEFAULT = 56;
-const LOGO_HEIGHT_MOBILE_DEFAULT = 44;
-const LOGO_OBJECT_POSITION: Record<"start" | "center" | "end", string> = { start: "left center", center: "center", end: "right center" };
-
 export function SiteHeader({
   categories,
   featuredProducts = [],
   logoUrl,
-  logoHeightDesktop,
-  logoHeightMobile,
-  logoAlign,
+  logoSettings,
   menuItems = [],
   locale,
 }: HeaderProps) {
@@ -109,50 +102,61 @@ export function SiteHeader({
   const promoCategory = categories.find((c) => c.imageUrl) ?? null;
   const activeMega = openMega ?? hoverMega;
 
-  const logoDesktopHeight = logoHeightDesktop ?? LOGO_HEIGHT_DESKTOP_DEFAULT;
-  const logoMobileHeight = logoHeightMobile ?? LOGO_HEIGHT_MOBILE_DEFAULT;
-  const logoObjectPosition = LOGO_OBJECT_POSITION[logoAlign ?? "start"];
+  // Root-cause RTL fix: "start"/"end" are logical -- they must resolve against the page's actual
+  // `dir`, not a hardcoded physical value, or Arabic silently gets the English-flavored side. See
+  // src/lib/site-settings/header-logo.ts for why this used to be wrong.
+  const dir: "ltr" | "rtl" = locale === "ar" ? "rtl" : "ltr";
+  const logoObjectPosition = resolveLogoObjectPosition(logoSettings.align, dir);
+  const logoWidthDesktop = logoSettings.widthDesktop ?? Math.round(logoSettings.heightDesktop * 3.2);
+  const logoWidthMobile = logoSettings.widthMobile ?? Math.round(logoSettings.heightMobile * 3.2);
+  const showLogo = Boolean(logoUrl) && !logoSettings.hidden;
 
   return (
     <header
       ref={headerRef}
       className={cn(
-        "sticky top-0 z-50 border-b transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ease-[var(--ease-premium)]",
+        "top-0 z-50 border-b transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ease-[var(--ease-premium)]",
+        logoSettings.sticky && "sticky",
         scrolled
           ? "border-ink/10 bg-paper/97 shadow-[var(--shadow-card)] backdrop-blur-md"
           : "border-transparent bg-paper/92 backdrop-blur-sm"
       )}
     >
       <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-4 px-5 sm:px-8 lg:h-20 lg:px-12">
-        <Link href={`/${locale}`} className="flex shrink-0 items-center gap-2.5">
-          {logoUrl ? (
+        <Link
+          href={`/${locale}`}
+          className="flex shrink-0 items-center gap-2.5"
+          style={{ marginInlineEnd: `${logoSettings.spacing}px` }}
+        >
+          {showLogo ? (
             // Fixed-box + fill + object-contain: renders at a genuinely large, sharp size (was
             // capped at h-8/h-9 -- a barely-visible thumbnail) while never distorting or cropping
             // whatever aspect ratio the admin's uploaded logo actually has. next/image (not a plain
             // <img>) gives it the optimization pipeline (responsive srcset, priority preload since
             // this is above-the-fold/LCP-adjacent) the rest of the site's imagery already gets.
-            // Height comes from admin-configurable SiteSetting fields (Settings > General), via CSS
-            // custom properties -- Tailwind arbitrary-value classes (`h-[var(--x)]`) still scan as
-            // literal source text, so this doesn't hit the runtime-concatenation JIT pitfall
-            // documented in style-tokens.ts, while still letting the *value* be fully dynamic per
-            // breakpoint. Width is a generous fixed multiple of the taller configured height --
-            // object-contain only ever uses as much of it as the real image's aspect ratio needs, so
-            // a wide box never stretches or crops anything, it just reserves enough room.
+            // Height/width come from admin-configurable, per-locale SiteSetting fields (Settings >
+            // General), via CSS custom properties -- Tailwind arbitrary-value classes (`h-[var(--x)]`)
+            // still scan as literal source text, so this doesn't hit the runtime-concatenation JIT
+            // pitfall documented in style-tokens.ts, while still letting the *value* be fully dynamic
+            // per breakpoint. object-contain never stretches or crops the image regardless of how the
+            // configured box's aspect ratio compares to the logo's own.
             <span
-              className="relative block h-[var(--logo-h-mobile)] w-[var(--logo-w)] shrink-0 lg:h-[var(--logo-h-desktop)]"
+              className="relative block h-[var(--logo-h-mobile)] w-[var(--logo-w-mobile)] shrink-0 lg:h-[var(--logo-h-desktop)] lg:w-[var(--logo-w-desktop)]"
               style={
                 {
-                  "--logo-h-mobile": `${logoMobileHeight}px`,
-                  "--logo-h-desktop": `${logoDesktopHeight}px`,
-                  "--logo-w": `${Math.round(Math.max(logoMobileHeight, logoDesktopHeight) * 3.2)}px`,
+                  "--logo-h-mobile": `${logoSettings.heightMobile}px`,
+                  "--logo-h-desktop": `${logoSettings.heightDesktop}px`,
+                  "--logo-w-mobile": `${logoWidthMobile}px`,
+                  "--logo-w-desktop": `${logoWidthDesktop}px`,
+                  maxWidth: logoSettings.maxWidth ? `${logoSettings.maxWidth}px` : undefined,
                 } as React.CSSProperties
               }
             >
               <CmsFillImage
-                src={logoUrl}
+                src={logoUrl!}
                 alt="Seven Eleven Trading"
                 priority
-                sizes="(min-width: 1024px) 192px, (min-width: 640px) 160px, 144px"
+                sizes="(min-width: 1024px) 320px, (min-width: 640px) 240px, 200px"
                 className="object-contain"
                 style={{ objectPosition: logoObjectPosition }}
                 context={{ component: "SiteHeader logo", locale }}

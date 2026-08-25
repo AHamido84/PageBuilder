@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp, Copy, Plus, Trash2 } from "lucide-react";
 import { TextField, TextareaField, SelectField, NumberField, CheckboxField } from "@/components/admin/ui/field";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
+import { MultiMediaPickerButton, type MediaListItem } from "@/components/admin/ui/media-library-modal";
 import { IconButton } from "@/components/admin/ui/icon-button";
 import type { BlockEditProps } from "../../types";
 import type { HeroData, HeroResolvedMedia, HeroSlide } from "../content-blocks";
@@ -51,6 +52,19 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
     [next[i], next[j]] = [next[j], next[i]];
     setSlides(next);
   }
+  // Lets an admin pick several images in one open/close cycle instead of opening the single-select
+  // picker once per slide -- each picked image becomes its own new slide (desktop image only; mobile
+  // image, content, and CTAs are left for the admin to fill in per-slide afterward, same as "Add
+  // slide"). Silently caps at the 12-slide limit rather than erroring if a bulk pick would exceed it.
+  function bulkAddSlides(items: MediaListItem[]) {
+    const room = 12 - slides.length;
+    const toAdd = items.slice(0, Math.max(0, room));
+    if (toAdd.length === 0) return;
+    const created = toAdd.map((item) => ({ slide: { ...newSlide(), desktopMediaId: item.id }, url: item.url }));
+    const nextSlideMedia = { ...(slideMedia ?? {}) };
+    for (const { slide, url } of created) nextSlideMedia[slide.id] = { desktopUrl: url };
+    onChange({ ...data, slides: [...slides, ...created.map((c) => c.slide)], slideMedia: nextSlideMedia });
+  }
   // Picking a media id also stores its URL locally (mirroring the top-level Hero picker's own
   // pattern) so the picker's thumbnail updates immediately, without waiting on the next server
   // round trip through resolveHeroData to repopulate `slideMedia`.
@@ -73,6 +87,16 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
         <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Slides</p>
         <p className="text-xs text-neutral-600">{slides.length} / 12</p>
       </div>
+
+      <SelectField
+        label="Transition between slides"
+        value={data.slideTransition}
+        onChange={(slideTransition) => onChange({ ...data, slideTransition })}
+        options={[
+          { value: "crossfade", label: "Crossfade" },
+          { value: "cut", label: "Instant cut" },
+        ]}
+      />
 
       {slides.map((slide, i) => {
         const media = slideMedia?.[slide.id];
@@ -178,13 +202,16 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
       })}
 
       {slides.length < 12 ? (
-        <button
-          type="button"
-          onClick={() => setSlides([...slides, newSlide()])}
-          className="flex items-center gap-1.5 rounded-md border border-dashed border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-200"
-        >
-          <Plus size={14} /> Add slide
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setSlides([...slides, newSlide()])}
+            className="flex items-center gap-1.5 rounded-md border border-dashed border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-200"
+          >
+            <Plus size={14} /> Add slide
+          </button>
+          <MultiMediaPickerButton label="Bulk add images as slides..." accept="IMAGE" onConfirm={bulkAddSlides} />
+        </div>
       ) : null}
     </div>
   );

@@ -64,20 +64,28 @@ const MARGIN_Y_LG: Record<MarginToken, string> = {
   lg: "lg:my-20",
 };
 
+// Root-cause fix for "half-flipped" alignment in Arabic: `AlignToken`'s stored values ("left"/
+// "right") are kept as-is to avoid a data migration for every already-saved PageSection, but they
+// now resolve to Tailwind's LOGICAL alignment utilities (text-start/text-end), not the physical
+// text-left/text-right. `text-align: start` natively means "left in LTR, right in RTL" -- the
+// browser resolves it from the element's `dir`, so no locale check is needed here. `items-start`/
+// `items-end` (align-items: flex-start/flex-end) were already logical/direction-aware and are
+// unchanged. Editor-facing labels for this token are "Start"/"Center"/"End" (see settings-panel.tsx)
+// so nobody reads "left" here and assumes it means physical left in Arabic.
 const ALIGN_BASE: Record<AlignToken, string> = {
-  left: "text-left items-start",
+  left: "text-start items-start",
   center: "text-center items-center",
-  right: "text-right items-end",
+  right: "text-end items-end",
 };
 const ALIGN_MD: Record<AlignToken, string> = {
-  left: "md:text-left md:items-start",
+  left: "md:text-start md:items-start",
   center: "md:text-center md:items-center",
-  right: "md:text-right md:items-end",
+  right: "md:text-end md:items-end",
 };
 const ALIGN_LG: Record<AlignToken, string> = {
-  left: "lg:text-left lg:items-start",
+  left: "lg:text-start lg:items-start",
   center: "lg:text-center lg:items-center",
-  right: "lg:text-right lg:items-end",
+  right: "lg:text-end lg:items-end",
 };
 
 const COLUMNS_BASE: Record<ColumnsToken, string> = {

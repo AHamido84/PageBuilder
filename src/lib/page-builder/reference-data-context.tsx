@@ -7,9 +7,17 @@ export interface ReferenceOption {
   label: string;
 }
 
+/** Extra flags surfaced only for the Brand Grid checklist, so an editor can see -- before publishing --
+ * that a selection has no logo or is currently inactive, instead of discovering it as a silent gap
+ * on the live site. */
+export interface BrandOption extends ReferenceOption {
+  hasLogo: boolean;
+  isActive: boolean;
+}
+
 export interface ReferenceData {
   categories: ReferenceOption[];
-  brands: ReferenceOption[];
+  brands: BrandOption[];
   blogCategories: ReferenceOption[];
   /** Real catalog products, for Hero's Product Composition mode (Primary/Secondary/Supporting picks reference an id here, never duplicate product data). */
   products: ReferenceOption[];

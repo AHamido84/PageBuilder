@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
 import { KineticText, Stagger, StaggerItem } from "@/lib/motion/primitives";
+import { DURATION, EASE_PREMIUM } from "@/lib/motion/motionTokens";
 import { HeroFrame, HeroMediaMotion, HeroVideoLayer } from "./hero-shared";
 import type { BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
@@ -32,6 +34,10 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
   const [paused, setPaused] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartX = useRef<number | null>(null);
+  // Accessibility fix: a slideshow that keeps auto-advancing regardless of prefers-reduced-motion
+  // is exactly the kind of auto-updating content that setting is meant to stop (WCAG 2.2.2). Manual
+  // navigation (arrows, dots, swipe, keyboard) stays fully available either way.
+  const reduceMotion = useReducedMotion();
 
   // JS's `%` can return a negative result for a negative dividend (e.g. -1 % 5 === -1, not 4) --
   // matters once Prev can decrement `index` below 0, which the original forward-only autoplay
@@ -43,12 +49,12 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
   const goPrev = () => setIndex((i) => i - 1);
 
   useEffect(() => {
-    if (slides.length < 2 || paused || !slide) return;
+    if (slides.length < 2 || paused || !slide || reduceMotion) return;
     timeoutRef.current = setTimeout(goNext, slide.durationMs);
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [activeIndex, paused, slides.length, slide]);
+  }, [activeIndex, paused, slides.length, slide, reduceMotion]);
 
   if (!slide) return null;
 
@@ -120,22 +126,40 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
     </Stagger>
   );
 
+  // Crossfade is a separate opacity animation on its own motion.div wrapping HeroMediaMotion, not a
+  // change to HeroMediaMotion itself -- that component is shared with Hero's non-slideshow modes,
+  // where nothing ever unmounts, so it has no `exit` animations for AnimatePresence to run. This
+  // wrapper is the thing AnimatePresence actually watches; the per-slide entrance animation
+  // (Ken Burns/fade/etc.) still plays independently inside it. `mode="sync"` keeps the outgoing
+  // slide mounted for the fade's duration instead of an instant unmount -- the old hard-cut.
+  const crossfade = data.slideTransition === "crossfade" && !reduceMotion;
   const mediaNode = !desktopUrl ? null : (
-    <HeroMediaMotion key={slide.id} animation={slide.animation} className="absolute inset-0">
-      {slide.mediaType === "video" ? (
-        <>
-          <HeroVideoLayer src={desktopUrl} poster={media?.posterUrl} autoPlay muted loop className="hidden h-full w-full object-cover lg:block" style={imagePositionStyle} />
-          {mobileUrl ? (
-            <HeroVideoLayer src={mobileUrl} poster={media?.posterUrl} autoPlay muted loop className="h-full w-full object-cover lg:hidden" style={imagePositionStyle} />
-          ) : null}
-        </>
-      ) : (
-        <>
-          <Image src={desktopUrl} alt="" fill sizes="(min-width: 1024px) 50vw, 100vw" className="hidden object-cover lg:block" style={imagePositionStyle} />
-          {mobileUrl ? <Image src={mobileUrl} alt="" fill sizes="100vw" className="object-cover lg:hidden" style={imagePositionStyle} /> : null}
-        </>
-      )}
-    </HeroMediaMotion>
+    <AnimatePresence mode="sync" initial={false}>
+      <motion.div
+        key={slide.id}
+        className="absolute inset-0"
+        initial={crossfade ? { opacity: 0 } : false}
+        animate={{ opacity: 1 }}
+        exit={crossfade ? { opacity: 0 } : undefined}
+        transition={{ duration: crossfade ? DURATION.large : 0, ease: EASE_PREMIUM }}
+      >
+        <HeroMediaMotion animation={slide.animation} className="absolute inset-0">
+          {slide.mediaType === "video" ? (
+            <>
+              <HeroVideoLayer src={desktopUrl} poster={media?.posterUrl} autoPlay muted loop className="hidden h-full w-full object-cover lg:block" style={imagePositionStyle} />
+              {mobileUrl ? (
+                <HeroVideoLayer src={mobileUrl} poster={media?.posterUrl} autoPlay muted loop className="h-full w-full object-cover lg:hidden" style={imagePositionStyle} />
+              ) : null}
+            </>
+          ) : (
+            <>
+              <Image src={desktopUrl} alt="" fill sizes="(min-width: 1024px) 50vw, 100vw" className="hidden object-cover lg:block" style={imagePositionStyle} />
+              {mobileUrl ? <Image src={mobileUrl} alt="" fill sizes="100vw" className="object-cover lg:hidden" style={imagePositionStyle} /> : null}
+            </>
+          )}
+        </HeroMediaMotion>
+      </motion.div>
+    </AnimatePresence>
   );
 
   return (

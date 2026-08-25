@@ -2,9 +2,11 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { logActivity } from "@/lib/activity-log";
+import { HEADER_LOGO_DEFAULTS, type HeaderLogoLocaleSettings, type HeaderLogoSettings } from "@/lib/site-settings/header-logo";
 
 export interface FormActionState {
   error?: string;
@@ -20,12 +22,49 @@ const generalSchema = z.object({
   siteNameAr: z.string().min(1).max(200),
   logoId: z.string().optional().or(z.literal("")),
   faviconId: z.string().optional().or(z.literal("")),
-  // Kept as validated raw strings (not z.coerce.number()) so an empty field reliably means "unset"
-  // -- z.coerce.number() turns "" into 0, which would incorrectly persist as a real 0px height.
-  logoHeightDesktop: z.string().regex(/^\d*$/, "Must be a whole number of pixels.").optional().or(z.literal("")),
-  logoHeightMobile: z.string().regex(/^\d*$/, "Must be a whole number of pixels.").optional().or(z.literal("")),
-  logoAlign: z.enum(["start", "center", "end"]).optional().or(z.literal("")),
 });
+
+const numberField = z.string().regex(/^\d*$/, "Must be a whole number of pixels.").optional().or(z.literal(""));
+const headerLogoLocaleSchema = z.object({
+  heightDesktop: numberField,
+  heightMobile: numberField,
+  widthDesktop: numberField,
+  widthMobile: numberField,
+  maxWidth: numberField,
+  spacing: numberField,
+  align: z.enum(["start", "center", "end"]).optional().or(z.literal("")),
+  sticky: z.string().optional().or(z.literal("")),
+  hidden: z.string().optional().or(z.literal("")),
+});
+
+/** Reassembles one locale's flattened `headerLogo.<locale>.<field>` form fields (see
+ * LogoLocaleFields in settings-forms.tsx) back into a HeaderLogoLocaleSettings, independent of the
+ * other locale's fields -- each language's box size/alignment/sticky/hide is validated and stored
+ * on its own branch, so an admin can never accidentally cross-apply one language's settings to the
+ * other purely by submitting this form. */
+function parseHeaderLogoLocale(formData: FormData, locale: "en" | "ar"): HeaderLogoLocaleSettings | { error: string } {
+  const raw = Object.fromEntries(
+    ["heightDesktop", "heightMobile", "widthDesktop", "widthMobile", "maxWidth", "spacing", "align", "sticky", "hidden"].map((field) => [
+      field,
+      formData.get(`headerLogo.${locale}.${field}`) ?? "",
+    ])
+  );
+  const parsed = headerLogoLocaleSchema.safeParse(raw);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? `Invalid ${locale.toUpperCase()} logo settings.` };
+  const d = parsed.data;
+  const defaults = HEADER_LOGO_DEFAULTS;
+  return {
+    heightDesktop: d.heightDesktop ? Number(d.heightDesktop) : defaults.heightDesktop,
+    heightMobile: d.heightMobile ? Number(d.heightMobile) : defaults.heightMobile,
+    widthDesktop: d.widthDesktop ? Number(d.widthDesktop) : null,
+    widthMobile: d.widthMobile ? Number(d.widthMobile) : null,
+    maxWidth: d.maxWidth ? Number(d.maxWidth) : null,
+    spacing: d.spacing ? Number(d.spacing) : defaults.spacing,
+    align: d.align || defaults.align,
+    sticky: d.sticky === "true",
+    hidden: d.hidden === "true",
+  };
+}
 
 export async function updateGeneralSettingsAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
   const currentUser = await getCurrentUser();
@@ -34,14 +73,19 @@ export async function updateGeneralSettingsAction(_prev: FormActionState, formDa
   const parsed = generalSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   const data = parsed.data;
+
+  const en = parseHeaderLogoLocale(formData, "en");
+  if ("error" in en) return { error: en.error };
+  const ar = parseHeaderLogoLocale(formData, "ar");
+  if ("error" in ar) return { error: ar.error };
+  const headerLogo: HeaderLogoSettings = { en, ar };
+
   const values = {
     siteNameEn: data.siteNameEn,
     siteNameAr: data.siteNameAr,
     logoId: data.logoId || null,
     faviconId: data.faviconId || null,
-    logoHeightDesktop: data.logoHeightDesktop ? Number(data.logoHeightDesktop) : null,
-    logoHeightMobile: data.logoHeightMobile ? Number(data.logoHeightMobile) : null,
-    logoAlign: data.logoAlign || null,
+    headerLogo: headerLogo as unknown as Prisma.InputJsonValue,
   };
 
   await prisma.siteSetting.upsert({

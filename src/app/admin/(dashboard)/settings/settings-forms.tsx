@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { MediaPickerField } from "@/components/admin/ui/media-picker-field";
+import type { HeaderLogoSettings, HeaderLogoLocaleSettings } from "@/lib/site-settings/header-logo";
 import {
   updateGeneralSettingsAction,
   updateContactSettingsAction,
@@ -34,9 +35,7 @@ export interface Settings {
   siteNameAr: string;
   logoId: string | null;
   logo: { url: string } | null;
-  logoHeightDesktop: number | null;
-  logoHeightMobile: number | null;
-  logoAlign: "start" | "center" | "end" | null;
+  headerLogo: HeaderLogoSettings;
   faviconId: string | null;
   favicon: { url: string } | null;
   contactEmail: string | null;
@@ -63,8 +62,67 @@ export interface Settings {
   newsletterBodyAr: string | null;
 }
 
+/** One language's independent set of logo controls -- see src/lib/site-settings/header-logo.ts.
+ * Field names are flattened as `headerLogo.<locale>.<field>` and reassembled server-side in
+ * updateGeneralSettingsAction, since each language's box size/alignment/sticky/hide must be able to
+ * diverge without touching the other (the exact bug class LocaleSectionSettings was already
+ * introduced to fix for Page Builder sections). */
+function LogoLocaleFields({ locale, value, dir }: { locale: "en" | "ar"; value: HeaderLogoLocaleSettings; dir: "ltr" | "rtl" }) {
+  const n = (field: string) => `headerLogo.${locale}.${field}`;
+  return (
+    <div dir={dir} className="col-span-full grid grid-cols-1 gap-3 rounded-md border border-neutral-800 p-3 sm:grid-cols-2">
+      <p className="col-span-full text-xs font-medium uppercase tracking-wide text-neutral-500">
+        {locale === "en" ? "Logo — English" : "الشعار — عربي"}
+      </p>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Height — desktop (px)</label>
+        <input type="number" name={n("heightDesktop")} min={16} max={200} defaultValue={value.heightDesktop} className={inputClass} />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Height — mobile (px)</label>
+        <input type="number" name={n("heightMobile")} min={16} max={200} defaultValue={value.heightMobile} className={inputClass} />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Width — desktop (px, blank = auto)</label>
+        <input type="number" name={n("widthDesktop")} min={16} max={600} defaultValue={value.widthDesktop ?? ""} placeholder="Auto" className={inputClass} />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Width — mobile (px, blank = auto)</label>
+        <input type="number" name={n("widthMobile")} min={16} max={600} defaultValue={value.widthMobile ?? ""} placeholder="Auto" className={inputClass} />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Maximum width (px, blank = no cap)</label>
+        <input type="number" name={n("maxWidth")} min={16} max={600} defaultValue={value.maxWidth ?? ""} placeholder="None" className={inputClass} />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Header spacing after logo (px)</label>
+        <input type="number" name={n("spacing")} min={0} max={80} defaultValue={value.spacing} className={inputClass} />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Alignment within its box</label>
+        <select name={n("align")} defaultValue={value.align} className={inputClass}>
+          <option value="start">Start ({locale === "en" ? "left" : "right"})</option>
+          <option value="center">Center</option>
+          <option value="end">End ({locale === "en" ? "right" : "left"})</option>
+        </select>
+      </div>
+      <div className="flex items-center gap-4 pt-5">
+        <label className="flex items-center gap-1.5 text-xs text-neutral-300">
+          <input type="checkbox" name={n("sticky")} value="true" defaultChecked={value.sticky} />
+          Sticky header
+        </label>
+        <label className="flex items-center gap-1.5 text-xs text-neutral-300">
+          <input type="checkbox" name={n("hidden")} value="true" defaultChecked={value.hidden} />
+          Hide logo
+        </label>
+      </div>
+    </div>
+  );
+}
+
 export function GeneralForm({ settings }: { settings: Settings }) {
   const [state, formAction, pending] = useActionState(updateGeneralSettingsAction, initialState);
+  const [headerLogo] = useState(settings.headerLogo);
   return (
     <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div>
@@ -77,38 +135,8 @@ export function GeneralForm({ settings }: { settings: Settings }) {
       </div>
       <MediaPickerField name="logoId" label="Logo" accept="IMAGE" defaultMediaId={settings.logoId} defaultUrl={settings.logo?.url} />
       <MediaPickerField name="faviconId" label="Favicon" accept="IMAGE" defaultMediaId={settings.faviconId} defaultUrl={settings.favicon?.url} />
-      <div>
-        <label className="mb-1 block text-xs text-neutral-400">Logo height — desktop (px, default 56)</label>
-        <input
-          type="number"
-          name="logoHeightDesktop"
-          min={16}
-          max={200}
-          defaultValue={settings.logoHeightDesktop ?? ""}
-          placeholder="56"
-          className={inputClass}
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-xs text-neutral-400">Logo height — mobile (px, default 44)</label>
-        <input
-          type="number"
-          name="logoHeightMobile"
-          min={16}
-          max={200}
-          defaultValue={settings.logoHeightMobile ?? ""}
-          placeholder="44"
-          className={inputClass}
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-xs text-neutral-400">Logo alignment within its box</label>
-        <select name="logoAlign" defaultValue={settings.logoAlign ?? "start"} className={inputClass}>
-          <option value="start">Start (left in EN / right in AR)</option>
-          <option value="center">Center</option>
-          <option value="end">End (right in EN / left in AR)</option>
-        </select>
-      </div>
+      <LogoLocaleFields locale="en" value={headerLogo.en} dir="ltr" />
+      <LogoLocaleFields locale="ar" value={headerLogo.ar} dir="rtl" />
       <StatusLine state={state} />
       <div className="col-span-full">
         <SaveButton pending={pending} />

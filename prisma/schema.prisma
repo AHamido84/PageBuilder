@@ -605,12 +605,16 @@ model SiteSetting {
   metaPixelId             String?
   updatedAt               DateTime @updatedAt
 
-  /** Header logo box height in px, per breakpoint -- null falls back to the built-in default
-   * (56px desktop / 44px mobile) so existing sites are unaffected until an admin sets these. */
+  /** Deprecated -- superseded by `headerLogo` below (per-locale). Kept, unused, so no data is lost;
+   * safe to drop in a future cleanup migration once `headerLogo` has been confirmed in use. */
   logoHeightDesktop Int?
   logoHeightMobile  Int?
-  /** object-position within the logo's box: "start" | "center" | "end". Null = "start" (default). */
   logoAlign         String?
+
+  /** Per-locale header logo box sizing/alignment/behavior ({ en: {...}, ar: {...} }), see
+   * src/lib/site-settings/header-logo.ts for the shape. Null/malformed rows fall back to defaults
+   * via `normalizeHeaderLogoSettings`, so no migration of existing data is required. */
+  headerLogo Json?
 
   logoId String?
   logo   Media?  @relation("SiteSettingLogo", fields: [logoId], references: [id], onDelete: SetNull)

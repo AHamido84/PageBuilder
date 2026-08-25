@@ -10,6 +10,7 @@ import { logActivity } from "@/lib/activity-log";
 import { getBlock } from "@/lib/page-builder/registry";
 import type { BuilderSection } from "@/lib/page-builder/types";
 import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
+import { brandGridSchema } from "@/lib/page-builder/blocks/commerce-blocks";
 
 const sectionInputSchema = z.object({
   id: z.string().min(1),
@@ -123,6 +124,30 @@ export async function saveDraftAction(pageId: string, sections: unknown[]): Prom
   return { success: true, savedAt: new Date().toISOString() };
 }
 
+/** Freezes a BRAND_GRID section's selected brands' name/logo/product-count into `resolvedBrands`,
+ * once, at the moment of publish -- root-cause fix for brand logos silently disappearing from an
+ * already-published page when a brand is later deactivated or its logo Media row is deleted. See
+ * the `resolvedBrands` doc comment in commerce-blocks.ts. Any other block type, or data that
+ * doesn't parse as BRAND_GRID data, passes through untouched. */
+async function freezeBrandGridSection(rawData: unknown, locale: "en" | "ar"): Promise<unknown> {
+  const parsed = brandGridSchema.safeParse(rawData);
+  if (!parsed.success) return rawData;
+  const brandIds = parsed.data.brandIds;
+  const brands = await prisma.brand.findMany({
+    where: brandIds.length ? { id: { in: brandIds } } : { isActive: true },
+    include: { translations: true, logo: { select: { url: true } }, _count: { select: { products: true } } },
+  });
+  const resolvedBrands = brands.map((b) => ({
+    id: b.id,
+    name: b.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? b.slug,
+    slug: b.slug,
+    logoUrl: b.logo?.url ?? null,
+    logoId: b.logoId,
+    productCount: b._count.products,
+  }));
+  return { ...parsed.data, resolvedBrands };
+}
+
 /** Snapshots the current working draft into a new published PageRevision and flips Page.status. */
 export async function publishPageAction(pageId: string): Promise<{ success: boolean; error?: string }> {
   const currentUser = await getCurrentUser();
@@ -131,15 +156,17 @@ export async function publishPageAction(pageId: string): Promise<{ success: bool
   const page = await prisma.page.findUnique({ where: { id: pageId }, include: { sections: { orderBy: { order: "asc" } } } });
   if (!page) return { success: false, error: "Page not found." };
 
-  const snapshotSections: BuilderSection[] = page.sections.map((s) => ({
-    id: s.id,
-    type: s.type,
-    order: s.order,
-    dataEn: s.dataEn,
-    dataAr: s.dataAr,
-    settings: s.settings as unknown as BuilderSection["settings"],
-    isVisible: s.isVisible,
-  }));
+  const snapshotSections: BuilderSection[] = await Promise.all(
+    page.sections.map(async (s) => ({
+      id: s.id,
+      type: s.type,
+      order: s.order,
+      dataEn: s.type === "BRAND_GRID" ? await freezeBrandGridSection(s.dataEn, "en") : s.dataEn,
+      dataAr: s.type === "BRAND_GRID" ? await freezeBrandGridSection(s.dataAr, "ar") : s.dataAr,
+      settings: s.settings as unknown as BuilderSection["settings"],
+      isVisible: s.isVisible,
+    }))
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.pageRevision.updateMany({ where: { pageId, isPublished: true }, data: { isPublished: false } });

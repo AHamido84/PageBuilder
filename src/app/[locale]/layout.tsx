@@ -14,6 +14,7 @@ import { organizationSchema } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
 import { AnalyticsScripts } from "@/components/site/analytics-scripts";
 import { WhatsAppCta } from "@/components/site/whatsapp-cta";
+import { normalizeHeaderLogoSettings } from "@/lib/site-settings/header-logo";
 import "../globals.css";
 
 const archivo = Archivo({
@@ -135,9 +136,7 @@ export default async function LocaleLayout({
                 categories={categories}
                 featuredProducts={featuredProducts}
                 logoUrl={settings?.logo?.url}
-                logoHeightDesktop={settings?.logoHeightDesktop}
-                logoHeightMobile={settings?.logoHeightMobile}
-                logoAlign={settings?.logoAlign as "start" | "center" | "end" | null | undefined}
+                logoSettings={normalizeHeaderLogoSettings(settings?.headerLogo)[locale === "ar" ? "ar" : "en"]}
                 menuItems={headerMenu}
                 locale={locale}
               />

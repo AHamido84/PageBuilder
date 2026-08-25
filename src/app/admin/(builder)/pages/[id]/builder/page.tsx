@@ -62,7 +62,12 @@ export default async function PageBuilderPage({ params }: { params: Promise<{ id
 
   const referenceData = {
     categories: categories.map((c) => ({ id: c.id, label: c.translations.find((t) => t.locale === "EN")?.name ?? c.slug })),
-    brands: brands.map((b) => ({ id: b.id, label: b.translations.find((t) => t.locale === "EN")?.name ?? b.slug })),
+    brands: brands.map((b) => ({
+      id: b.id,
+      label: b.translations.find((t) => t.locale === "EN")?.name ?? b.slug,
+      hasLogo: Boolean(b.logoId),
+      isActive: b.isActive,
+    })),
     blogCategories: blogCategories.map((c) => ({ id: c.id, label: c.nameEn })),
     products: products.map((p) => ({ id: p.id, label: `${p.translations[0]?.name ?? p.sku} (${p.sku})` })),
   };

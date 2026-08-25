@@ -35,6 +35,7 @@ export function CmsImage({
   src,
   alt,
   className,
+  style,
   /** Extra classes applied ONLY to the failure placeholder, e.g. a min-height -- needed because
    * many callers rely on the real `<img>`'s intrinsic aspect ratio for sizing (no explicit height
    * in `className`), which a heightless empty `<div>` fallback can't reproduce; without this the
@@ -45,13 +46,19 @@ export function CmsImage({
   src: string;
   alt: string;
   className?: string;
+  style?: React.CSSProperties;
   fallbackClassName?: string;
   context?: MediaErrorContext;
 }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
-      <div className={cn("flex min-h-24 items-center justify-center bg-frost text-ink/25", className, fallbackClassName)} role="img" aria-label={alt || "Image unavailable"}>
+      <div
+        className={cn("flex min-h-24 items-center justify-center bg-frost text-ink/25", className, fallbackClassName)}
+        style={style}
+        role="img"
+        aria-label={alt || "Image unavailable"}
+      >
         <ImageOff size={20} aria-hidden />
       </div>
     );
@@ -62,6 +69,7 @@ export function CmsImage({
       src={src}
       alt={alt}
       className={className}
+      style={style}
       onError={() => {
         logMediaError(src, context);
         setFailed(true);

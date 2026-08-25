@@ -47,20 +47,26 @@ export function BrandGridEdit({ data, onChange, locale }: BlockEditProps<BrandGr
   return (
     <div className="space-y-3">
       <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={locale === "ar" ? "rtl" : "ltr"} />
-      <p className="text-xs text-neutral-500">Leave all unchecked to show every brand.</p>
+      <p className="text-xs text-neutral-500">Leave all unchecked to show every active brand.</p>
       <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-neutral-800 p-2">
         {brands.map((b) => (
-          <CheckboxField
-            key={b.id}
-            label={b.label}
-            checked={selected.has(b.id)}
-            onChange={(checked) => {
-              const next = new Set(selected);
-              if (checked) next.add(b.id);
-              else next.delete(b.id);
-              onChange({ ...data, brandIds: Array.from(next) });
-            }}
-          />
+          <div key={b.id} className="flex items-center justify-between gap-2">
+            <CheckboxField
+              label={b.label}
+              checked={selected.has(b.id)}
+              onChange={(checked) => {
+                const next = new Set(selected);
+                if (checked) next.add(b.id);
+                else next.delete(b.id);
+                onChange({ ...data, brandIds: Array.from(next) });
+              }}
+            />
+            {!b.hasLogo ? (
+              <span className="shrink-0 rounded-full bg-amber-950 px-2 py-0.5 text-[10px] font-medium text-amber-400">No logo</span>
+            ) : !b.isActive ? (
+              <span className="shrink-0 rounded-full bg-neutral-800 px-2 py-0.5 text-[10px] font-medium text-neutral-400">Inactive</span>
+            ) : null}
+          </div>
         ))}
       </div>
     </div>

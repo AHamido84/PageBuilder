@@ -71,20 +71,43 @@ export async function CategoryGridRender({ data, locale }: BlockRenderProps<Cate
   );
 }
 
-export async function BrandGridRender({ data, locale }: BlockRenderProps<BrandGridData>) {
+interface DisplayBrand {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  logoId: string | null;
+  count: number;
+}
+
+/** Live query path (draft/admin canvas, or a pre-fix published revision with no frozen `resolvedBrands`).
+ * Explicitly-selected brands are shown regardless of `isActive` -- an editor who hand-picked a brand
+ * shouldn't have it silently vanish because someone deactivated it elsewhere; the `isActive` filter
+ * only applies to the "show all brands" (nothing checked) mode. */
+async function loadLiveBrands(brandIds: string[], locale: string): Promise<DisplayBrand[]> {
   const brands = await prisma.brand.findMany({
-    where: { isActive: true, ...(data.brandIds?.length ? { id: { in: data.brandIds } } : {}) },
+    where: brandIds.length ? { id: { in: brandIds } } : { isActive: true },
     include: { translations: true, logo: { select: { url: true } }, _count: { select: { products: true } } },
   });
+  return brands.map((brand) => ({
+    id: brand.id,
+    name: brand.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? brand.slug,
+    logoUrl: brand.logo?.url ?? null,
+    logoId: brand.logoId,
+    count: brand._count.products,
+  }));
+}
+
+export async function BrandGridRender({ data, locale }: BlockRenderProps<BrandGridData>) {
+  const brands: DisplayBrand[] = data.resolvedBrands
+    ? data.resolvedBrands.map((b) => ({ id: b.id, name: b.name, logoUrl: b.logoUrl, logoId: b.logoId, count: b.productCount }))
+    : await loadLiveBrands(data.brandIds ?? [], locale);
 
   return (
     <div>
       {data.heading ? <h2 className="mb-8 font-display text-3xl">{data.heading}</h2> : null}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {brands.map((brand) => {
-          const name = brand.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? brand.slug;
-          const count = brand._count.products;
-          const hasLogo = Boolean(brand.logo?.url);
+          const hasLogo = Boolean(brand.logoUrl);
           return (
             <div
               key={brand.id}
@@ -92,18 +115,18 @@ export async function BrandGridRender({ data, locale }: BlockRenderProps<BrandGr
             >
               {hasLogo ? (
                 <CmsFillImage
-                  src={brand.logo!.url}
-                  alt={name}
+                  src={brand.logoUrl!}
+                  alt={brand.name}
                   sizes="(min-width: 1024px) 16vw, (min-width: 640px) 25vw, 33vw"
                   className="object-contain p-6 transition-transform duration-300 group-hover:scale-105"
                   context={{ mediaId: brand.logoId ?? undefined, component: "BRAND_GRID", locale }}
                 />
               ) : (
-                <p className="font-display text-base leading-tight transition-opacity duration-300 sm:text-lg">{name}</p>
+                <p className="font-display text-base leading-tight transition-opacity duration-300 sm:text-lg">{brand.name}</p>
               )}
-              {count > 0 ? (
+              {brand.count > 0 ? (
                 <p className="font-mono-data absolute bottom-3 text-[11px] uppercase tracking-[0.1em] opacity-0 transition-opacity duration-300 group-hover:opacity-50">
-                  {(locale === "ar" ? PRODUCT_COUNT_LABEL.ar : PRODUCT_COUNT_LABEL.en)(count)}
+                  {(locale === "ar" ? PRODUCT_COUNT_LABEL.ar : PRODUCT_COUNT_LABEL.en)(brand.count)}
                 </p>
               ) : null}
             </div>

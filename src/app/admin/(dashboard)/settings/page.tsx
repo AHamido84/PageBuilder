@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { Tabs } from "@/components/admin/ui/tabs";
+import { normalizeHeaderLogoSettings } from "@/lib/site-settings/header-logo";
 import { GeneralForm, ContactForm, SocialForm, HoursForm, SeoForm, FooterForm, type Settings } from "./settings-forms";
 
 export const dynamic = "force-dynamic";
@@ -26,9 +27,7 @@ export default async function SettingsPage() {
     siteNameAr: record.siteNameAr,
     logoId: record.logoId,
     logo: record.logo,
-    logoHeightDesktop: record.logoHeightDesktop,
-    logoHeightMobile: record.logoHeightMobile,
-    logoAlign: record.logoAlign as Settings["logoAlign"],
+    headerLogo: normalizeHeaderLogoSettings(record.headerLogo),
     faviconId: record.faviconId,
     favicon: record.favicon,
     contactEmail: record.contactEmail,

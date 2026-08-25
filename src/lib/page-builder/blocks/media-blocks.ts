@@ -30,10 +30,33 @@ const gallerySchema = z.object({
 });
 export type GalleryData = z.infer<typeof gallerySchema>;
 
+const logoCloudItemSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  alt: z.string().max(200).optional().default(""),
+  link: z.string().max(500).optional().default(""),
+  openInNewTab: z.boolean().optional().default(false),
+});
+
 const logoCloudSchema = z.object({
   heading: z.string().max(200).optional().default(""),
-  logos: z.array(mediaRefSchema).max(20).default([]),
+  logos: z.array(logoCloudItemSchema).max(20).default([]),
+  // Root-cause fix for "brand logos look disabled/faded": these used to be hardcoded
+  // (opacity-60 grayscale, full color only on hover) with no admin control and no touch-device
+  // fallback. Defaults now match the spec's "opacity 1 / filter none unless intentionally
+  // configured" rule -- existing saved sections (pre-fix data has none of these fields) pick up
+  // full-visibility defaults automatically via Zod's per-field .default(), no migration needed.
+  width: z.number().min(0).max(400).optional().default(0), // 0 = auto, derived from height
+  height: z.number().min(16).max(200).optional().default(40),
+  objectFit: z.enum(["contain", "cover"]).optional().default("contain"),
+  borderRadius: z.number().min(0).max(48).optional().default(0),
+  hoverAnimation: z.enum(["none", "scale", "lift", "grayscale-to-color"]).optional().default("scale"),
+  hoverScale: z.number().min(1).max(1.3).optional().default(1.06),
+  opacity: z.number().min(0).max(100).optional().default(100),
+  background: z.enum(["none", "paper", "frost"]).optional().default("none"),
+  padding: z.number().min(0).max(48).optional().default(0),
 });
+export type LogoCloudItem = z.infer<typeof logoCloudItemSchema>;
 export type LogoCloudData = z.infer<typeof logoCloudSchema>;
 
 // `any` is required here, not a shortcut: this array holds BlockDefinition<T> for many different T (each
@@ -82,7 +105,10 @@ export const mediaBlocks: BlockDefinition<any>[] = [
     category: "media",
     icon: Rows3,
     dataSchema: logoCloudSchema,
-    defaultData: { en: { heading: "", logos: [] }, ar: { heading: "", logos: [] } },
+    defaultData: {
+      en: { heading: "", logos: [], width: 0, height: 40, objectFit: "contain", borderRadius: 0, hoverAnimation: "scale", hoverScale: 1.06, opacity: 100, background: "none", padding: 0 },
+      ar: { heading: "", logos: [], width: 0, height: 40, objectFit: "contain", borderRadius: 0, hoverAnimation: "scale", hoverScale: 1.06, opacity: 100, background: "none", padding: 0 },
+    },
     defaultSettings: defaultSectionSettings({ desktop: { paddingY: "md", marginY: "none", align: "center", columns: "4", headingSize: "md", bodySize: "md", visible: true } }),
     Edit: LogoCloudEdit,
     Render: LogoCloudRender,

@@ -1,7 +1,7 @@
 "use client";
 
 import { getBlock } from "@/lib/page-builder/registry";
-import type { BuilderSection, Breakpoint, EditorLocale, SectionSettings, StyleTokens } from "@/lib/page-builder/types";
+import type { AlignToken, BuilderSection, Breakpoint, EditorLocale, SectionSettings, StyleTokens } from "@/lib/page-builder/types";
 import { defaultStyleTokens, defaultBackgroundImageSettings } from "@/lib/page-builder/types";
 import {
   ALIGN_OPTIONS,
@@ -20,6 +20,17 @@ import { SelectField, CheckboxField, NumberField, TextField } from "@/components
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { SegmentedControl } from "@/components/admin/ui/segmented-control";
 import { Tabs } from "@/components/admin/ui/tabs";
+
+/** `AlignToken`'s stored values ("left"/"right") resolve to LOGICAL CSS (text-start/text-end, see
+ * style-tokens.ts) so the same value renders on opposite physical sides in EN vs AR. The dropdown
+ * label says so explicitly -- an editor picking "Start" for Arabic content should never have to
+ * guess that it renders on the right, not the left, the way a plain "Left" label would wrongly imply. */
+function alignOptionLabel(token: AlignToken, editorLocale: EditorLocale): string {
+  if (token === "center") return "Center";
+  const isStart = token === "left";
+  const physicalSide = editorLocale === "ar" ? (isStart ? "right" : "left") : isStart ? "left" : "right";
+  return `${isStart ? "Start" : "End"} (${physicalSide})`;
+}
 
 interface Props {
   section: BuilderSection;
@@ -109,7 +120,12 @@ export function SettingsPanel({ section, device, locale: editorLocale, onLocaleC
                 </p>
                 <SelectField label="Padding" value={resolved.paddingY} onChange={(v) => updateToken("paddingY", v)} options={PADDING_OPTIONS.map((o) => ({ value: o, label: o }))} />
                 <SelectField label="Margin" value={resolved.marginY} onChange={(v) => updateToken("marginY", v)} options={MARGIN_OPTIONS.map((o) => ({ value: o, label: o }))} />
-                <SelectField label="Alignment" value={resolved.align} onChange={(v) => updateToken("align", v)} options={ALIGN_OPTIONS.map((o) => ({ value: o, label: o }))} />
+                <SelectField
+                  label="Alignment"
+                  value={resolved.align}
+                  onChange={(v) => updateToken("align", v)}
+                  options={ALIGN_OPTIONS.map((o) => ({ value: o, label: alignOptionLabel(o, editorLocale) }))}
+                />
                 {block.supportsColumns ? (
                   <SelectField label="Columns" value={resolved.columns} onChange={(v) => updateToken("columns", v)} options={COLUMNS_OPTIONS.map((o) => ({ value: o, label: o }))} />
                 ) : null}

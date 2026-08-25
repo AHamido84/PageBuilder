@@ -22,11 +22,34 @@ const categoryGridSchema = z.object({
 });
 export type CategoryGridData = z.infer<typeof categoryGridSchema>;
 
+const resolvedBrandSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  logoUrl: z.string().nullable(),
+  logoId: z.string().nullable(),
+  productCount: z.number().int().default(0),
+});
+
 const brandGridSchema = z.object({
   heading: z.string().max(200).optional().default(""),
   brandIds: z.array(z.string()).default([]),
+  /**
+   * Root-cause fix for "brand logo sometimes disappears after publish": BrandGridRender otherwise
+   * always queries `Brand.logo` live, so a later brand deactivation or Media deletion silently
+   * changes what an already-published page shows. `publishPageAction` populates this by resolving
+   * `brandIds` once, at the moment of publish, and freezing the result into the PageRevision
+   * snapshot -- BrandGridRender then prefers this over a live query whenever it's present. The
+   * live draft/admin-canvas path (reading PageSection directly, not a revision snapshot) never has
+   * this set, so editors still see the current catalog while working, only the published output is
+   * frozen until the next publish. Undefined on any pre-existing revision from before this fix --
+   * those keep behaving exactly as before (live) until republished.
+   */
+  resolvedBrands: z.array(resolvedBrandSchema).optional(),
 });
 export type BrandGridData = z.infer<typeof brandGridSchema>;
+export type ResolvedBrand = z.infer<typeof resolvedBrandSchema>;
+export { brandGridSchema };
 
 const newsGridSchema = z.object({
   heading: z.string().max(200).optional().default(""),

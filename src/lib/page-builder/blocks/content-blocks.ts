@@ -183,6 +183,11 @@ const heroSchema = z.object({
   showProductBadges: z.boolean().default(true),
 
   slides: z.array(heroSlideSchema).max(12).default([]),
+  // "crossfade" keeps the outgoing slide mounted during a brief opacity cross-dissolve instead of
+  // an instant swap (see HeroSlideshow's AnimatePresence usage) -- "cut" preserves the original
+  // hard-swap behavior for admins who prefer it. Defaults to "crossfade" for the more premium feel
+  // the brief asks for; existing sections with no stored value pick this up automatically.
+  slideTransition: z.enum(["cut", "crossfade"]).default("crossfade"),
 });
 export type HeroData = z.infer<typeof heroSchema>;
 
@@ -260,7 +265,7 @@ export const contentBlocks: BlockDefinition<any>[] = [
         heroHeight: "tall", contentPosition: "start", verticalAlign: "center", contentMaxWidth: "lg",
         textColorMode: "auto", accentColor: "wheat", overlayDirection: "auto", zoomAmount: 4, animationSpeedSec: 20,
         primaryProductId: "", secondaryProductId: "", supportingProductId: "",
-        productsClickable: true, showProductBadges: true, slides: [],
+        productsClickable: true, showProductBadges: true, slides: [], slideTransition: "crossfade",
       },
       ar: {
         eyebrow: "", headline: "العنوان الرئيسي هنا", subheading: "",
@@ -277,7 +282,7 @@ export const contentBlocks: BlockDefinition<any>[] = [
         heroHeight: "tall", contentPosition: "start", verticalAlign: "center", contentMaxWidth: "lg",
         textColorMode: "auto", accentColor: "wheat", overlayDirection: "auto", zoomAmount: 4, animationSpeedSec: 20,
         primaryProductId: "", secondaryProductId: "", supportingProductId: "",
-        productsClickable: true, showProductBadges: true, slides: [],
+        productsClickable: true, showProductBadges: true, slides: [], slideTransition: "crossfade",
       },
     },
     defaultSettings: defaultSectionSettings({ background: "ink", desktop: { paddingY: "xl", marginY: "none", align: "center", columns: "1", headingSize: "2xl", bodySize: "md", visible: true } }),

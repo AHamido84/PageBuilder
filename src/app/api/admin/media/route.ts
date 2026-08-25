@@ -34,6 +34,8 @@ export async function GET(request: Request) {
       type: true,
       mimeType: true,
       sizeBytes: true,
+      width: true,
+      height: true,
       altTextEn: true,
       altTextAr: true,
       createdAt: true,

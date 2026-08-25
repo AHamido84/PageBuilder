@@ -84,7 +84,7 @@ export function AccordionListRender({ data, interactive }: BlockRenderProps<Acco
                 type="button"
                 data-pb-interactive="true"
                 onClick={() => interactive && setOpenIndex(open ? null : i)}
-                className="flex w-full items-center justify-between gap-4 py-4 text-left font-medium"
+                className="flex w-full items-center justify-between gap-4 py-4 text-start font-medium"
               >
                 <span>{item.title}</span>
                 <ChevronDown size={18} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
