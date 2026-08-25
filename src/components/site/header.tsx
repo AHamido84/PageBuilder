@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CmsFillImage } from "@/components/media/cms-image";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "framer-motion";
 import { buttonClasses } from "@/components/ui/button";
@@ -34,6 +35,11 @@ interface HeaderProps {
   categories: CategoryNavItem[];
   featuredProducts?: FeaturedProductNav[];
   logoUrl?: string | null;
+  /** Admin-configurable logo box size/alignment (Settings > General) -- null/undefined falls back
+   * to the built-in defaults below, so sites that haven't touched these fields render unchanged. */
+  logoHeightDesktop?: number | null;
+  logoHeightMobile?: number | null;
+  logoAlign?: "start" | "center" | "end" | null;
   /** Real admin-managed nav items (from /admin/menus, HEADER location) rendered after "Products". */
   menuItems?: PublicMenuItem[];
   locale: string;
@@ -41,7 +47,20 @@ interface HeaderProps {
 
 type MegaKey = string | null;
 
-export function SiteHeader({ categories, featuredProducts = [], logoUrl, menuItems = [], locale }: HeaderProps) {
+const LOGO_HEIGHT_DESKTOP_DEFAULT = 56;
+const LOGO_HEIGHT_MOBILE_DEFAULT = 44;
+const LOGO_OBJECT_POSITION: Record<"start" | "center" | "end", string> = { start: "left center", center: "center", end: "right center" };
+
+export function SiteHeader({
+  categories,
+  featuredProducts = [],
+  logoUrl,
+  logoHeightDesktop,
+  logoHeightMobile,
+  logoAlign,
+  menuItems = [],
+  locale,
+}: HeaderProps) {
   const t = useTranslations("nav");
   const tCommon = useTranslations("common");
   const pathname = usePathname();
@@ -90,6 +109,10 @@ export function SiteHeader({ categories, featuredProducts = [], logoUrl, menuIte
   const promoCategory = categories.find((c) => c.imageUrl) ?? null;
   const activeMega = openMega ?? hoverMega;
 
+  const logoDesktopHeight = logoHeightDesktop ?? LOGO_HEIGHT_DESKTOP_DEFAULT;
+  const logoMobileHeight = logoHeightMobile ?? LOGO_HEIGHT_MOBILE_DEFAULT;
+  const logoObjectPosition = LOGO_OBJECT_POSITION[logoAlign ?? "start"];
+
   return (
     <header
       ref={headerRef}
@@ -103,8 +126,38 @@ export function SiteHeader({ categories, featuredProducts = [], logoUrl, menuIte
       <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-4 px-5 sm:px-8 lg:h-20 lg:px-12">
         <Link href={`/${locale}`} className="flex shrink-0 items-center gap-2.5">
           {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt="Seven Eleven Trading" className="h-8 w-auto lg:h-9" />
+            // Fixed-box + fill + object-contain: renders at a genuinely large, sharp size (was
+            // capped at h-8/h-9 -- a barely-visible thumbnail) while never distorting or cropping
+            // whatever aspect ratio the admin's uploaded logo actually has. next/image (not a plain
+            // <img>) gives it the optimization pipeline (responsive srcset, priority preload since
+            // this is above-the-fold/LCP-adjacent) the rest of the site's imagery already gets.
+            // Height comes from admin-configurable SiteSetting fields (Settings > General), via CSS
+            // custom properties -- Tailwind arbitrary-value classes (`h-[var(--x)]`) still scan as
+            // literal source text, so this doesn't hit the runtime-concatenation JIT pitfall
+            // documented in style-tokens.ts, while still letting the *value* be fully dynamic per
+            // breakpoint. Width is a generous fixed multiple of the taller configured height --
+            // object-contain only ever uses as much of it as the real image's aspect ratio needs, so
+            // a wide box never stretches or crops anything, it just reserves enough room.
+            <span
+              className="relative block h-[var(--logo-h-mobile)] w-[var(--logo-w)] shrink-0 lg:h-[var(--logo-h-desktop)]"
+              style={
+                {
+                  "--logo-h-mobile": `${logoMobileHeight}px`,
+                  "--logo-h-desktop": `${logoDesktopHeight}px`,
+                  "--logo-w": `${Math.round(Math.max(logoMobileHeight, logoDesktopHeight) * 3.2)}px`,
+                } as React.CSSProperties
+              }
+            >
+              <CmsFillImage
+                src={logoUrl}
+                alt="Seven Eleven Trading"
+                priority
+                sizes="(min-width: 1024px) 192px, (min-width: 640px) 160px, 144px"
+                className="object-contain"
+                style={{ objectPosition: logoObjectPosition }}
+                context={{ component: "SiteHeader logo", locale }}
+              />
+            </span>
           ) : (
             <span className="font-display text-lg leading-none lg:text-xl">Seven Eleven Trading</span>
           )}

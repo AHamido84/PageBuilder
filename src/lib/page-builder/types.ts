@@ -14,6 +14,60 @@ export type BodySizeToken = "sm" | "md" | "lg";
 export type BackgroundToken = "none" | "paper" | "frost" | "ink" | "harbor" | "wheat-soft";
 export type AnimationToken = "none" | "fade-up" | "fade-down" | "fade-in" | "zoom-in" | "scale" | "slide-start" | "slide-end" | "parallax";
 
+export type BackgroundSizeToken = "cover" | "contain" | "custom";
+export type BackgroundRepeatToken = "no-repeat" | "repeat" | "repeat-x" | "repeat-y";
+export type BackgroundAttachmentToken = "scroll" | "fixed";
+export type OverlayToken = "none" | "light" | "dark" | "gradient" | "custom";
+
+export interface MediaRef {
+  id: string;
+  url: string;
+}
+
+/**
+ * A section's optional background image/overlay layer, independent of the plain color `background`
+ * token above -- a section can have a color token AND an image (the color shows while the image
+ * loads / behind transparent PNGs). `image` unset means no image layer renders at all, regardless
+ * of any other field here (so a section with leftover image settings from a prior edit but a
+ * cleared `image` cleanly falls back to just its color token, never a broken/blank image box).
+ */
+export interface BackgroundImageSettings {
+  image: MediaRef | null;
+  /** Falls back to `image` when unset -- see FIX §21/§13 (mobile background). */
+  mobileImage: MediaRef | null;
+  size: BackgroundSizeToken;
+  /** Raw CSS background-size value, used only when size === "custom" (e.g. "400px auto"). */
+  customSize: string;
+  /** 0-100, percentage-based background-position (x% y%). */
+  positionX: number;
+  positionY: number;
+  repeat: BackgroundRepeatToken;
+  /** "fixed" gives a parallax-like effect; caller should use sparingly (perf). */
+  attachment: BackgroundAttachmentToken;
+  overlay: OverlayToken;
+  /** Hex color, used only when overlay === "custom". */
+  overlayColor: string;
+  /** 0-100. */
+  overlayOpacity: number;
+}
+
+export function defaultBackgroundImageSettings(overrides?: Partial<BackgroundImageSettings>): BackgroundImageSettings {
+  return {
+    image: null,
+    mobileImage: null,
+    size: "cover",
+    customSize: "auto",
+    positionX: 50,
+    positionY: 50,
+    repeat: "no-repeat",
+    attachment: "scroll",
+    overlay: "none",
+    overlayColor: "#0B1C2C",
+    overlayOpacity: 40,
+    ...overrides,
+  };
+}
+
 /** Style properties that can vary per breakpoint. */
 export interface StyleTokens {
   paddingY: PaddingToken;
@@ -31,6 +85,8 @@ export interface SectionSettings {
   tablet: Partial<StyleTokens>;
   mobile: Partial<StyleTokens>;
   background: BackgroundToken;
+  /** Optional image/video-style background layer, additive to `background` above -- see FIX §16-21. */
+  backgroundImage: BackgroundImageSettings;
   animation: AnimationToken;
 }
 
@@ -125,6 +181,7 @@ export function defaultSectionSettings(overrides?: Partial<SectionSettings>): Se
     tablet: {},
     mobile: {},
     background: "none",
+    backgroundImage: defaultBackgroundImageSettings(),
     animation: "none",
     ...overrides,
   };
@@ -150,6 +207,21 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isMediaRef(value: unknown): value is MediaRef {
+  return isPlainObject(value) && typeof value.id === "string" && typeof value.url === "string" && value.url.length > 0;
+}
+
+function coerceBackgroundImageSettings(raw: unknown): BackgroundImageSettings {
+  const defaults = defaultBackgroundImageSettings();
+  if (!isPlainObject(raw)) return defaults;
+  return {
+    ...defaults,
+    ...raw,
+    image: isMediaRef(raw.image) ? raw.image : null,
+    mobileImage: isMediaRef(raw.mobileImage) ? raw.mobileImage : null,
+  };
+}
+
 function coerceSectionSettings(raw: unknown): SectionSettings {
   if (!isPlainObject(raw)) return defaultSectionSettings();
   const desktop = isPlainObject(raw.desktop) ? { ...defaultStyleTokens(), ...(raw.desktop as Partial<StyleTokens>) } : defaultStyleTokens();
@@ -158,6 +230,7 @@ function coerceSectionSettings(raw: unknown): SectionSettings {
     tablet: isPlainObject(raw.tablet) ? (raw.tablet as Partial<StyleTokens>) : {},
     mobile: isPlainObject(raw.mobile) ? (raw.mobile as Partial<StyleTokens>) : {},
     background: (raw.background as BackgroundToken) ?? "none",
+    backgroundImage: coerceBackgroundImageSettings(raw.backgroundImage),
     animation: (raw.animation as AnimationToken) ?? "none",
   };
 }

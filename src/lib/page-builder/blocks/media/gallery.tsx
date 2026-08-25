@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { TextField } from "@/components/admin/ui/field";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { IconButton } from "@/components/admin/ui/icon-button";
+import { CmsImage } from "@/components/media/cms-image";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveColumnsClasses } from "../../style-tokens";
 import type { GalleryData } from "../media-blocks";
@@ -42,15 +43,20 @@ export function GalleryEdit({ data, onChange, locale }: BlockEditProps<GalleryDa
   );
 }
 
-export function GalleryRender({ data, settings }: BlockRenderProps<GalleryData>) {
+export function GalleryRender({ data, settings, locale }: BlockRenderProps<GalleryData>) {
   const images = data.images.filter((img) => img.url);
   return (
     <div>
       {data.heading ? <h2 className="mb-6 font-display text-3xl">{data.heading}</h2> : null}
       <div className={`grid gap-4 ${resolveColumnsClasses(settings)}`}>
         {images.map((img) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={img.id} src={img.url} alt="" className="aspect-square w-full rounded-[var(--radius-md)] object-cover" />
+          <CmsImage
+            key={img.id}
+            src={img.url}
+            alt=""
+            className="aspect-square w-full rounded-[var(--radius-md)] object-cover"
+            context={{ mediaId: img.id, component: "GALLERY", locale }}
+          />
         ))}
       </div>
     </div>

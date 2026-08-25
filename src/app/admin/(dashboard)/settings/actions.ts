@@ -20,6 +20,11 @@ const generalSchema = z.object({
   siteNameAr: z.string().min(1).max(200),
   logoId: z.string().optional().or(z.literal("")),
   faviconId: z.string().optional().or(z.literal("")),
+  // Kept as validated raw strings (not z.coerce.number()) so an empty field reliably means "unset"
+  // -- z.coerce.number() turns "" into 0, which would incorrectly persist as a real 0px height.
+  logoHeightDesktop: z.string().regex(/^\d*$/, "Must be a whole number of pixels.").optional().or(z.literal("")),
+  logoHeightMobile: z.string().regex(/^\d*$/, "Must be a whole number of pixels.").optional().or(z.literal("")),
+  logoAlign: z.enum(["start", "center", "end"]).optional().or(z.literal("")),
 });
 
 export async function updateGeneralSettingsAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
@@ -29,11 +34,20 @@ export async function updateGeneralSettingsAction(_prev: FormActionState, formDa
   const parsed = generalSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   const data = parsed.data;
+  const values = {
+    siteNameEn: data.siteNameEn,
+    siteNameAr: data.siteNameAr,
+    logoId: data.logoId || null,
+    faviconId: data.faviconId || null,
+    logoHeightDesktop: data.logoHeightDesktop ? Number(data.logoHeightDesktop) : null,
+    logoHeightMobile: data.logoHeightMobile ? Number(data.logoHeightMobile) : null,
+    logoAlign: data.logoAlign || null,
+  };
 
   await prisma.siteSetting.upsert({
     where: { id: "singleton" },
-    create: { id: "singleton", siteNameEn: data.siteNameEn, siteNameAr: data.siteNameAr, logoId: data.logoId || null, faviconId: data.faviconId || null },
-    update: { siteNameEn: data.siteNameEn, siteNameAr: data.siteNameAr, logoId: data.logoId || null, faviconId: data.faviconId || null },
+    create: { id: "singleton", ...values },
+    update: values,
   });
 
   await logSettingsUpdate(currentUser.id, "general");

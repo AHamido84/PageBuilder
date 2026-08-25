@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Arrow } from "@/components/ui/arrow";
 import { RouteLine } from "@/components/site/graphics/route-line";
+import { CmsFillImage } from "@/components/media/cms-image";
 import type { BlockRenderProps } from "../../types";
 import type { CategoryGridData, BrandGridData } from "../commerce-blocks";
 
@@ -37,12 +37,12 @@ export async function CategoryGridRender({ data, locale }: BlockRenderProps<Cate
             >
               {hasImage ? (
                 <>
-                  <Image
+                  <CmsFillImage
                     src={category.image!.url}
                     alt=""
-                    fill
                     sizes="(min-width: 640px) 25vw, 50vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    context={{ mediaId: category.imageId ?? undefined, component: "CATEGORY_GRID", locale }}
                   />
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent" />
                 </>
@@ -74,7 +74,7 @@ export async function CategoryGridRender({ data, locale }: BlockRenderProps<Cate
 export async function BrandGridRender({ data, locale }: BlockRenderProps<BrandGridData>) {
   const brands = await prisma.brand.findMany({
     where: { isActive: true, ...(data.brandIds?.length ? { id: { in: data.brandIds } } : {}) },
-    include: { translations: true, _count: { select: { products: true } } },
+    include: { translations: true, logo: { select: { url: true } }, _count: { select: { products: true } } },
   });
 
   return (
@@ -84,12 +84,23 @@ export async function BrandGridRender({ data, locale }: BlockRenderProps<BrandGr
         {brands.map((brand) => {
           const name = brand.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? brand.slug;
           const count = brand._count.products;
+          const hasLogo = Boolean(brand.logo?.url);
           return (
             <div
               key={brand.id}
               className="group bg-grid-fine relative flex aspect-square flex-col items-center justify-center gap-1 overflow-hidden rounded-[var(--radius-md)] border border-current/10 bg-paper p-4 text-center transition-colors duration-300 hover:border-current/25"
             >
-              <p className="font-display text-base leading-tight transition-opacity duration-300 sm:text-lg">{name}</p>
+              {hasLogo ? (
+                <CmsFillImage
+                  src={brand.logo!.url}
+                  alt={name}
+                  sizes="(min-width: 1024px) 16vw, (min-width: 640px) 25vw, 33vw"
+                  className="object-contain p-6 transition-transform duration-300 group-hover:scale-105"
+                  context={{ mediaId: brand.logoId ?? undefined, component: "BRAND_GRID", locale }}
+                />
+              ) : (
+                <p className="font-display text-base leading-tight transition-opacity duration-300 sm:text-lg">{name}</p>
+              )}
               {count > 0 ? (
                 <p className="font-mono-data absolute bottom-3 text-[11px] uppercase tracking-[0.1em] opacity-0 transition-opacity duration-300 group-hover:opacity-50">
                   {(locale === "ar" ? PRODUCT_COUNT_LABEL.ar : PRODUCT_COUNT_LABEL.en)(count)}

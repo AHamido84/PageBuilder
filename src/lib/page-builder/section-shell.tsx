@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 import type { SectionSettings } from "./types";
-import { resolveSectionClasses } from "./style-tokens";
+import { resolveBackgroundImageStyle, resolveOverlayStyle, resolveSectionClasses } from "./style-tokens";
 import { Reveal } from "./reveal";
 
 /**
@@ -26,9 +26,35 @@ export function SectionShell({
   children: React.ReactNode;
 }) {
   if (bleed) return <div className={className}>{children}</div>;
+
+  // Optional background-image/overlay layer (FIX §16-21). Stacking is explicit, not relied on
+  // DOM-order/z-index:auto defaults: background z-0, overlay z-[1], content z-[2] -- all three
+  // only get position/z-index applied when an image is actually configured, so sections with no
+  // background image are completely unaffected (no new stacking context, no overflow clipping).
+  const bg = settings.backgroundImage;
+  const hasDesktopImage = Boolean(bg?.image?.url);
+  const hasDistinctMobileImage = Boolean(bg?.mobileImage?.url);
+  const desktopBgStyle = bg ? resolveBackgroundImageStyle(bg, "desktop") : null;
+  const mobileBgStyle = bg ? resolveBackgroundImageStyle(bg, "mobile") : null;
+  const overlayStyle = bg ? resolveOverlayStyle(bg) : null;
+  const hasBackgroundImage = Boolean(desktopBgStyle || mobileBgStyle);
+
   return (
-    <div className={cn("border-t border-ink/10", resolveSectionClasses(settings), className)}>
-      <div className="mx-auto w-full max-w-[1400px] px-5 sm:px-8 lg:px-12">
+    <div className={cn("border-t border-ink/10", resolveSectionClasses(settings), hasBackgroundImage && "relative overflow-hidden", className)}>
+      {hasBackgroundImage ? (
+        <>
+          {hasDistinctMobileImage && hasDesktopImage ? (
+            <>
+              <div aria-hidden className="pointer-events-none absolute inset-0 z-0 hidden md:block" style={desktopBgStyle ?? undefined} />
+              <div aria-hidden className="pointer-events-none absolute inset-0 z-0 md:hidden" style={mobileBgStyle ?? undefined} />
+            </>
+          ) : (
+            <div aria-hidden className="pointer-events-none absolute inset-0 z-0" style={(desktopBgStyle ?? mobileBgStyle) ?? undefined} />
+          )}
+          {overlayStyle ? <div aria-hidden className="pointer-events-none absolute inset-0 z-[1]" style={overlayStyle} /> : null}
+        </>
+      ) : null}
+      <div className={cn("mx-auto w-full max-w-[1400px] px-5 sm:px-8 lg:px-12", hasBackgroundImage && "relative z-[2]")}>
         <Reveal animation={settings.animation}>{children}</Reveal>
       </div>
     </div>

@@ -3,12 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
 import { KineticText, Stagger, StaggerItem } from "@/lib/motion/primitives";
 import { HeroFrame, HeroMediaMotion, HeroVideoLayer } from "./hero-shared";
 import type { BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
 import type { HeroRenderData } from "../content-blocks";
+
+/** Minimum horizontal drag distance (px) before a touch gesture counts as a swipe, not a tap. */
+const SWIPE_THRESHOLD = 40;
 
 /**
  * Hero's slideshow mode: auto-advances through the enabled slides, pausing on hover (same
@@ -27,19 +31,50 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartX = useRef<number | null>(null);
 
-  const activeIndex = slides.length > 0 ? index % slides.length : 0;
+  // JS's `%` can return a negative result for a negative dividend (e.g. -1 % 5 === -1, not 4) --
+  // matters once Prev can decrement `index` below 0, which the original forward-only autoplay
+  // never did. This normalizes into a proper [0, length) wrap in both directions.
+  const activeIndex = slides.length > 0 ? ((index % slides.length) + slides.length) % slides.length : 0;
   const slide = slides[activeIndex];
+
+  const goNext = () => setIndex((i) => i + 1);
+  const goPrev = () => setIndex((i) => i - 1);
 
   useEffect(() => {
     if (slides.length < 2 || paused || !slide) return;
-    timeoutRef.current = setTimeout(() => setIndex((i) => i + 1), slide.durationMs);
+    timeoutRef.current = setTimeout(goNext, slide.durationMs);
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [activeIndex, paused, slides.length, slide]);
 
   if (!slide) return null;
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (slides.length < 2) return;
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      goPrev();
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      goNext();
+    }
+  }
+
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0]?.clientX ?? null;
+  }
+
+  function onTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null || slides.length < 2) return;
+    const delta = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(delta) < SWIPE_THRESHOLD) return;
+    if (delta < 0) goNext();
+    else goPrev();
+  }
 
   const media = data.slideMedia?.[slide.id];
   const desktopUrl = media?.desktopUrl;
@@ -108,9 +143,36 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
       className="relative"
       role="group"
       aria-label="Hero slideshow"
+      aria-roledescription="carousel"
+      tabIndex={0}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+      onKeyDown={onKeyDown}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
     >
+      {slides.length > 1 ? (
+        <>
+          <button
+            type="button"
+            aria-label="Previous slide"
+            onClick={goPrev}
+            className="absolute start-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-ink/40 p-2 text-paper backdrop-blur-sm transition hover:bg-ink/60 lg:flex"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            type="button"
+            aria-label="Next slide"
+            onClick={goNext}
+            className="absolute end-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-ink/40 p-2 text-paper backdrop-blur-sm transition hover:bg-ink/60 lg:flex"
+          >
+            <ChevronRight size={20} />
+          </button>
+        </>
+      ) : null}
       <HeroFrame
         layout={data.layout}
         overlayOpacity={data.overlayOpacity}

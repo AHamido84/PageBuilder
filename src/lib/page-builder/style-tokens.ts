@@ -1,11 +1,14 @@
+import type { CSSProperties } from "react";
 import type {
   AlignToken,
+  BackgroundImageSettings,
   BackgroundToken,
   BodySizeToken,
   Breakpoint,
   ColumnsToken,
   HeadingSizeToken,
   MarginToken,
+  OverlayToken,
   PaddingToken,
   SectionSettings,
   StyleTokens,
@@ -200,6 +203,55 @@ export function resolveBodyClasses(settings: SectionSettings): string {
   const { mobile, tablet, desktop } = resolveBreakpointTokens(settings);
   return [BODY_SIZE_BASE[mobile.bodySize], BODY_SIZE_MD[tablet.bodySize], BODY_SIZE_LG[desktop.bodySize]].join(" ");
 }
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
+  if (!match) return null;
+  return { r: parseInt(match[1], 16), g: parseInt(match[2], 16), b: parseInt(match[3], 16) };
+}
+
+/**
+ * CSS for the section's optional background-image layer (desktop or mobile variant -- mobile
+ * falls back to the desktop image when no dedicated mobile image is set, per FIX §13/§21). Returns
+ * null when no image is configured for that variant, so the caller can skip rendering the layer
+ * entirely rather than leaving an empty positioned div in the DOM.
+ */
+export function resolveBackgroundImageStyle(bg: BackgroundImageSettings, variant: "desktop" | "mobile"): CSSProperties | null {
+  const image = variant === "mobile" ? (bg.mobileImage ?? bg.image) : bg.image;
+  if (!image?.url) return null;
+  return {
+    backgroundImage: `url(${image.url})`,
+    backgroundSize: bg.size === "custom" ? bg.customSize || "auto" : bg.size,
+    backgroundPosition: `${bg.positionX}% ${bg.positionY}%`,
+    backgroundRepeat: bg.repeat,
+    backgroundAttachment: bg.attachment,
+  };
+}
+
+/** CSS for the overlay layer that sits above the background image and below content (FIX §19-20). */
+export function resolveOverlayStyle(bg: BackgroundImageSettings): CSSProperties | null {
+  if (bg.overlay === "none" || !bg.image?.url) return null;
+  const opacity = Math.min(100, Math.max(0, bg.overlayOpacity)) / 100;
+  switch (bg.overlay) {
+    case "light":
+      return { backgroundColor: `rgba(255,255,255,${opacity})` };
+    case "dark":
+      return { backgroundColor: `rgba(11,28,44,${opacity})` };
+    case "gradient":
+      return { backgroundImage: `linear-gradient(to top, rgba(11,28,44,${opacity}), rgba(11,28,44,0))` };
+    case "custom": {
+      const rgb = hexToRgb(bg.overlayColor) ?? { r: 11, g: 28, b: 44 };
+      return { backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},${opacity})` };
+    }
+    default:
+      return null;
+  }
+}
+
+export const OVERLAY_OPTIONS: OverlayToken[] = ["none", "light", "dark", "gradient", "custom"];
+export const BACKGROUND_SIZE_OPTIONS = ["cover", "contain", "custom"] as const;
+export const BACKGROUND_REPEAT_OPTIONS = ["no-repeat", "repeat", "repeat-x", "repeat-y"] as const;
+export const BACKGROUND_ATTACHMENT_OPTIONS = ["scroll", "fixed"] as const;
 
 export const PADDING_OPTIONS: PaddingToken[] = ["none", "sm", "md", "lg", "xl"];
 export const MARGIN_OPTIONS: MarginToken[] = ["none", "sm", "md", "lg"];

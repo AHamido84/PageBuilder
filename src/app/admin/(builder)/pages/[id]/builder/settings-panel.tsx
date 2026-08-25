@@ -2,11 +2,22 @@
 
 import { getBlock } from "@/lib/page-builder/registry";
 import type { BuilderSection, Breakpoint, EditorLocale, SectionSettings, StyleTokens } from "@/lib/page-builder/types";
-import { defaultStyleTokens } from "@/lib/page-builder/types";
+import { defaultStyleTokens, defaultBackgroundImageSettings } from "@/lib/page-builder/types";
 import {
-  ALIGN_OPTIONS, BACKGROUND_OPTIONS, BODY_SIZE_OPTIONS, COLUMNS_OPTIONS, HEADING_SIZE_OPTIONS, MARGIN_OPTIONS, PADDING_OPTIONS,
+  ALIGN_OPTIONS,
+  BACKGROUND_ATTACHMENT_OPTIONS,
+  BACKGROUND_OPTIONS,
+  BACKGROUND_REPEAT_OPTIONS,
+  BACKGROUND_SIZE_OPTIONS,
+  BODY_SIZE_OPTIONS,
+  COLUMNS_OPTIONS,
+  HEADING_SIZE_OPTIONS,
+  MARGIN_OPTIONS,
+  OVERLAY_OPTIONS,
+  PADDING_OPTIONS,
 } from "@/lib/page-builder/style-tokens";
-import { SelectField, CheckboxField } from "@/components/admin/ui/field";
+import { SelectField, CheckboxField, NumberField, TextField } from "@/components/admin/ui/field";
+import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { SegmentedControl } from "@/components/admin/ui/segmented-control";
 import { Tabs } from "@/components/admin/ui/tabs";
 
@@ -39,6 +50,15 @@ export function SettingsPanel({ section, device, locale: editorLocale, onLocaleC
     } else {
       onUpdateSettings(editorLocale, { ...localeSettings, [device]: { ...localeSettings[device], [key]: value } });
     }
+  }
+
+  // Background image is not per-breakpoint (unlike padding/margin/etc. above) -- it has its own
+  // explicit desktop/mobile image pair instead, so it's read/written straight off localeSettings
+  // regardless of the `device` preview toggle. Defends against pre-fix rows saved before this field
+  // existed (defaultBackgroundImageSettings() fallback), same pattern as `resolved` above.
+  const bg = localeSettings.backgroundImage ?? defaultBackgroundImageSettings();
+  function updateBg<K extends keyof typeof bg>(key: K, value: (typeof bg)[K]) {
+    onUpdateSettings(editorLocale, { ...localeSettings, backgroundImage: { ...bg, [key]: value } });
   }
 
   return (
@@ -98,11 +118,75 @@ export function SettingsPanel({ section, device, locale: editorLocale, onLocaleC
                 <CheckboxField label={`Visible on ${device}`} checked={resolved.visible} onChange={(v) => updateToken("visible", v)} />
                 <div className="mt-4 border-t border-neutral-800 pt-3">
                   <SelectField
-                    label="Background"
+                    label="Background color"
                     value={localeSettings.background}
                     onChange={(background) => onUpdateSettings(editorLocale, { ...localeSettings, background })}
                     options={BACKGROUND_OPTIONS.map((o) => ({ value: o, label: o }))}
                   />
+                </div>
+                <div className="space-y-3 border-t border-neutral-800 pt-3">
+                  <p className="text-xs font-medium text-neutral-300">Background image</p>
+                  <MediaPickerControlled
+                    label="Desktop image"
+                    mediaId={bg.image?.id ?? ""}
+                    previewUrl={bg.image?.url}
+                    onChange={(id, url) => updateBg("image", id ? { id, url } : null)}
+                  />
+                  {bg.image ? (
+                    <>
+                      <MediaPickerControlled
+                        label="Mobile image (optional — falls back to desktop)"
+                        mediaId={bg.mobileImage?.id ?? ""}
+                        previewUrl={bg.mobileImage?.url}
+                        onChange={(id, url) => updateBg("mobileImage", id ? { id, url } : null)}
+                      />
+                      <SelectField
+                        label="Size"
+                        value={bg.size}
+                        onChange={(size) => updateBg("size", size)}
+                        options={BACKGROUND_SIZE_OPTIONS.map((o) => ({ value: o, label: o }))}
+                      />
+                      {bg.size === "custom" ? (
+                        <TextField label="Custom size (CSS)" value={bg.customSize} onChange={(customSize) => updateBg("customSize", customSize)} placeholder="e.g. 400px auto" />
+                      ) : null}
+                      <div className="grid grid-cols-2 gap-2">
+                        <NumberField label="Position X (%)" value={bg.positionX} min={0} max={100} onChange={(positionX) => updateBg("positionX", positionX)} />
+                        <NumberField label="Position Y (%)" value={bg.positionY} min={0} max={100} onChange={(positionY) => updateBg("positionY", positionY)} />
+                      </div>
+                      <SelectField
+                        label="Repeat"
+                        value={bg.repeat}
+                        onChange={(repeat) => updateBg("repeat", repeat)}
+                        options={BACKGROUND_REPEAT_OPTIONS.map((o) => ({ value: o, label: o }))}
+                      />
+                      <SelectField
+                        label="Attachment"
+                        value={bg.attachment}
+                        onChange={(attachment) => updateBg("attachment", attachment)}
+                        options={BACKGROUND_ATTACHMENT_OPTIONS.map((o) => ({ value: o, label: o === "fixed" ? "Fixed (parallax)" : "Scroll" }))}
+                      />
+                      <SelectField
+                        label="Overlay"
+                        value={bg.overlay}
+                        onChange={(overlay) => updateBg("overlay", overlay)}
+                        options={OVERLAY_OPTIONS.map((o) => ({ value: o, label: o }))}
+                      />
+                      {bg.overlay !== "none" ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          {bg.overlay === "custom" ? (
+                            <TextField label="Overlay color" value={bg.overlayColor} onChange={(overlayColor) => updateBg("overlayColor", overlayColor)} placeholder="#0B1C2C" />
+                          ) : null}
+                          <NumberField
+                            label="Overlay opacity (%)"
+                            value={bg.overlayOpacity}
+                            min={0}
+                            max={100}
+                            onChange={(overlayOpacity) => updateBg("overlayOpacity", overlayOpacity)}
+                          />
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
                 </div>
                 <SelectField
                   label="Entrance animation"

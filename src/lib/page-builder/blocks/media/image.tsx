@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { TextField } from "@/components/admin/ui/field";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
+import { CmsImage } from "@/components/media/cms-image";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
 import type { ImageData } from "../media-blocks";
@@ -30,8 +31,14 @@ export function ImageEdit({ data, onChange, locale }: BlockEditProps<ImageData>)
 export function ImageRender({ data, locale }: BlockRenderProps<ImageData>) {
   if (!data.image) return null;
   const alt = locale === "ar" ? data.altAr : data.altEn;
-  // eslint-disable-next-line @next/next/no-img-element
-  const img = <img src={data.image.url} alt={alt ?? ""} className="w-full rounded-[var(--radius-md)] object-cover" />;
+  const img = (
+    <CmsImage
+      src={data.image.url}
+      alt={alt ?? ""}
+      className="w-full rounded-[var(--radius-md)] object-cover"
+      context={{ mediaId: data.image.id, component: "IMAGE", locale }}
+    />
+  );
   if (data.linkUrl) {
     return (
       <Link href={resolveHref(data.linkUrl, locale)} className="block">

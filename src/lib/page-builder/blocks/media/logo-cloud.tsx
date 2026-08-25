@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { TextField } from "@/components/admin/ui/field";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { IconButton } from "@/components/admin/ui/icon-button";
+import { CmsImage } from "@/components/media/cms-image";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveColumnsClasses } from "../../style-tokens";
 import type { LogoCloudData } from "../media-blocks";
@@ -42,15 +43,21 @@ export function LogoCloudEdit({ data, onChange, locale }: BlockEditProps<LogoClo
   );
 }
 
-export function LogoCloudRender({ data, settings }: BlockRenderProps<LogoCloudData>) {
+export function LogoCloudRender({ data, settings, locale }: BlockRenderProps<LogoCloudData>) {
   const logos = data.logos.filter((l) => l.url);
   return (
     <div>
       {data.heading ? <h2 className="mb-6 text-center font-display text-2xl">{data.heading}</h2> : null}
       <div className={`grid items-center gap-8 ${resolveColumnsClasses(settings)}`}>
         {logos.map((logo) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={logo.id} src={logo.url} alt="" className="mx-auto h-10 w-auto object-contain opacity-60 grayscale transition hover:opacity-100 hover:grayscale-0" />
+          <CmsImage
+            key={logo.id}
+            src={logo.url}
+            alt=""
+            className="mx-auto h-10 w-auto object-contain opacity-60 grayscale transition hover:opacity-100 hover:grayscale-0"
+            fallbackClassName="min-h-10"
+            context={{ mediaId: logo.id, component: "LOGO_CLOUD", locale }}
+          />
         ))}
       </div>
     </div>

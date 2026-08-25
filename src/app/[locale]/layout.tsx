@@ -131,7 +131,16 @@ export default async function LocaleLayout({
         <MotionConfig reducedMotion="user">
           <NextIntlClientProvider>
             <ToastProvider>
-              <SiteHeader categories={categories} featuredProducts={featuredProducts} logoUrl={settings?.logo?.url} menuItems={headerMenu} locale={locale} />
+              <SiteHeader
+                categories={categories}
+                featuredProducts={featuredProducts}
+                logoUrl={settings?.logo?.url}
+                logoHeightDesktop={settings?.logoHeightDesktop}
+                logoHeightMobile={settings?.logoHeightMobile}
+                logoAlign={settings?.logoAlign as "start" | "center" | "end" | null | undefined}
+                menuItems={headerMenu}
+                locale={locale}
+              />
               <main className="flex-1">{children}</main>
               <SiteFooter categories={categories} menuItems={footerMenu} locale={locale} />
             </ToastProvider>

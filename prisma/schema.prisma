@@ -605,6 +605,13 @@ model SiteSetting {
   metaPixelId             String?
   updatedAt               DateTime @updatedAt
 
+  /** Header logo box height in px, per breakpoint -- null falls back to the built-in default
+   * (56px desktop / 44px mobile) so existing sites are unaffected until an admin sets these. */
+  logoHeightDesktop Int?
+  logoHeightMobile  Int?
+  /** object-position within the logo's box: "start" | "center" | "end". Null = "start" (default). */
+  logoAlign         String?
+
   logoId String?
   logo   Media?  @relation("SiteSettingLogo", fields: [logoId], references: [id], onDelete: SetNull)
 

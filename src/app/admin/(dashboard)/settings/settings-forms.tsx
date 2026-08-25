@@ -34,6 +34,9 @@ export interface Settings {
   siteNameAr: string;
   logoId: string | null;
   logo: { url: string } | null;
+  logoHeightDesktop: number | null;
+  logoHeightMobile: number | null;
+  logoAlign: "start" | "center" | "end" | null;
   faviconId: string | null;
   favicon: { url: string } | null;
   contactEmail: string | null;
@@ -74,6 +77,38 @@ export function GeneralForm({ settings }: { settings: Settings }) {
       </div>
       <MediaPickerField name="logoId" label="Logo" accept="IMAGE" defaultMediaId={settings.logoId} defaultUrl={settings.logo?.url} />
       <MediaPickerField name="faviconId" label="Favicon" accept="IMAGE" defaultMediaId={settings.faviconId} defaultUrl={settings.favicon?.url} />
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Logo height — desktop (px, default 56)</label>
+        <input
+          type="number"
+          name="logoHeightDesktop"
+          min={16}
+          max={200}
+          defaultValue={settings.logoHeightDesktop ?? ""}
+          placeholder="56"
+          className={inputClass}
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Logo height — mobile (px, default 44)</label>
+        <input
+          type="number"
+          name="logoHeightMobile"
+          min={16}
+          max={200}
+          defaultValue={settings.logoHeightMobile ?? ""}
+          placeholder="44"
+          className={inputClass}
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Logo alignment within its box</label>
+        <select name="logoAlign" defaultValue={settings.logoAlign ?? "start"} className={inputClass}>
+          <option value="start">Start (left in EN / right in AR)</option>
+          <option value="center">Center</option>
+          <option value="end">End (right in EN / left in AR)</option>
+        </select>
+      </div>
       <StatusLine state={state} />
       <div className="col-span-full">
         <SaveButton pending={pending} />

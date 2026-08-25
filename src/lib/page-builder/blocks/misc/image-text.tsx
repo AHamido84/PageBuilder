@@ -4,6 +4,7 @@ import Link from "next/link";
 import { SegmentedControl } from "@/components/admin/ui/segmented-control";
 import { TextField, TextareaField } from "@/components/admin/ui/field";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
+import { CmsImage } from "@/components/media/cms-image";
 import { buttonClasses } from "@/components/ui/button";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
@@ -53,8 +54,12 @@ export function ImageTextRender({ data, locale }: BlockRenderProps<ImageTextData
   return (
     <div className={`grid items-center gap-10 sm:grid-cols-2 ${imageFirst ? "" : "sm:[direction:rtl]"}`}>
       <div className={imageFirst ? "" : "sm:[direction:ltr]"}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={data.image.url} alt="" className="aspect-[4/3] w-full rounded-[var(--radius-md)] object-cover" />
+        <CmsImage
+          src={data.image.url}
+          alt=""
+          className="aspect-[4/3] w-full rounded-[var(--radius-md)] object-cover"
+          context={{ mediaId: data.image.id, component: "IMAGE_TEXT", locale }}
+        />
       </div>
       {textColumn}
     </div>
