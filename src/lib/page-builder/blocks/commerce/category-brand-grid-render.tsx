@@ -111,8 +111,14 @@ export async function BrandGridRender({ data, locale }: BlockRenderProps<BrandGr
           return (
             <div
               key={brand.id}
-              className="group bg-grid-fine relative flex aspect-square flex-col items-center justify-center gap-1 overflow-hidden rounded-[var(--radius-md)] border border-current/10 bg-paper p-4 text-center transition-colors duration-300 hover:border-current/25"
+              className="group relative flex aspect-square flex-col items-center justify-center gap-1 overflow-hidden rounded-[var(--radius-md)] border border-current/10 bg-paper p-4 text-center transition-colors duration-300 hover:border-current/25"
             >
+              {/* `.bg-grid-fine` bakes its own low opacity into the whole element it's applied to
+                  (see globals.css) -- it must stay on its own decorative layer, never on the
+                  container that also holds the real logo/text, or the actual content gets washed
+                  out along with the background pattern. This was the root cause of brand logos
+                  rendering at ~6% opacity ("look disabled"). */}
+              <div aria-hidden className="bg-grid-fine pointer-events-none absolute inset-0" />
               {hasLogo ? (
                 <CmsFillImage
                   src={brand.logoUrl!}
@@ -122,7 +128,7 @@ export async function BrandGridRender({ data, locale }: BlockRenderProps<BrandGr
                   context={{ mediaId: brand.logoId ?? undefined, component: "BRAND_GRID", locale }}
                 />
               ) : (
-                <p className="font-display text-base leading-tight transition-opacity duration-300 sm:text-lg">{brand.name}</p>
+                <p className="relative font-display text-base leading-tight transition-opacity duration-300 sm:text-lg">{brand.name}</p>
               )}
               {brand.count > 0 ? (
                 <p className="font-mono-data absolute bottom-3 text-[11px] uppercase tracking-[0.1em] opacity-0 transition-opacity duration-300 group-hover:opacity-50">
