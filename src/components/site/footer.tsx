@@ -51,9 +51,9 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
   const contactLocation = settings?.address || tContact("location");
 
   return (
-    <footer className="border-t border-paper/10 bg-ink text-paper">
+    <footer className="border-t border-paper/10 bg-petrol text-paper">
       {/* Tier 1 — conversion: newsletter signup, the footer's one job besides navigation. */}
-      <div className="border-b border-paper/10 bg-ink-soft">
+      <div className="border-b border-paper/10 bg-petrol-elevated">
         <div className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 lg:px-12">
           <ScrollReveal variant="fade-up" className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-md">

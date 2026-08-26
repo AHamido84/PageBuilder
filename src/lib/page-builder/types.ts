@@ -35,6 +35,10 @@ export interface BackgroundImageSettings {
   image: MediaRef | null;
   /** Falls back to `image` when unset -- see FIX §21/§13 (mobile background). */
   mobileImage: MediaRef | null;
+  /** Optional background video -- `image` (or `mobileImage`) still renders underneath/as a poster,
+   * so a slow connection or autoplay-blocked browser never shows a blank section. Muted/looped/
+   * autoplaying, same convention as Hero's own video layer. */
+  video: MediaRef | null;
   size: BackgroundSizeToken;
   /** Raw CSS background-size value, used only when size === "custom" (e.g. "400px auto"). */
   customSize: string;
@@ -49,12 +53,19 @@ export interface BackgroundImageSettings {
   overlayColor: string;
   /** 0-100. */
   overlayOpacity: number;
+  /** 0-20 (px). 0 = no blur. */
+  blur: number;
+  /** 50-150 (%). 100 = unchanged. */
+  brightness: number;
+  /** 50-150 (%). 100 = unchanged. */
+  contrast: number;
 }
 
 export function defaultBackgroundImageSettings(overrides?: Partial<BackgroundImageSettings>): BackgroundImageSettings {
   return {
     image: null,
     mobileImage: null,
+    video: null,
     size: "cover",
     customSize: "auto",
     positionX: 50,
@@ -62,8 +73,11 @@ export function defaultBackgroundImageSettings(overrides?: Partial<BackgroundIma
     repeat: "no-repeat",
     attachment: "scroll",
     overlay: "none",
-    overlayColor: "#0B1C2C",
+    overlayColor: "#18302D",
     overlayOpacity: 40,
+    blur: 0,
+    brightness: 100,
+    contrast: 100,
     ...overrides,
   };
 }
@@ -219,6 +233,7 @@ function coerceBackgroundImageSettings(raw: unknown): BackgroundImageSettings {
     ...raw,
     image: isMediaRef(raw.image) ? raw.image : null,
     mobileImage: isMediaRef(raw.mobileImage) ? raw.mobileImage : null,
+    video: isMediaRef(raw.video) ? raw.video : null,
   };
 }
 

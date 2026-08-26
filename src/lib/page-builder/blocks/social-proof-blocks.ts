@@ -13,7 +13,9 @@ const testimonialItemSchema = z.object({ quote: z.string().max(600), authorName:
 const testimonialsSchema = z.object({ heading: z.string().max(200).optional().default(""), items: z.array(testimonialItemSchema).default([]) });
 export type TestimonialsData = z.infer<typeof testimonialsSchema>;
 
-const statItemSchema = z.object({ value: z.string().max(40), label: z.string().max(150) });
+const statIconSchema = z.enum(["none", "globe", "truck", "package", "shield-check", "snowflake", "users", "map-pin", "award", "clock", "leaf"]);
+export type StatIcon = z.infer<typeof statIconSchema>;
+const statItemSchema = z.object({ value: z.string().max(40), label: z.string().max(150), icon: statIconSchema.optional().default("none") });
 const statisticsSchema = z.object({ heading: z.string().max(200).optional().default(""), items: z.array(statItemSchema).default([]) });
 export type StatisticsData = z.infer<typeof statisticsSchema>;
 

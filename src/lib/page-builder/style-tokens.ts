@@ -227,13 +227,27 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
 export function resolveBackgroundImageStyle(bg: BackgroundImageSettings, variant: "desktop" | "mobile"): CSSProperties | null {
   const image = variant === "mobile" ? (bg.mobileImage ?? bg.image) : bg.image;
   if (!image?.url) return null;
+  const filter = resolveBackgroundFilter(bg);
   return {
     backgroundImage: `url(${image.url})`,
     backgroundSize: bg.size === "custom" ? bg.customSize || "auto" : bg.size,
     backgroundPosition: `${bg.positionX}% ${bg.positionY}%`,
     backgroundRepeat: bg.repeat,
     backgroundAttachment: bg.attachment,
+    filter: filter || undefined,
+    // A blurred element still renders its own sharp edges at the element boundary -- scaling up
+    // slightly pushes those hard edges outside the visible (overflow-hidden) section so only the
+    // blurred interior shows, the standard fix for "blurred background with a visible edge seam."
+    transform: bg.blur > 0 ? "scale(1.1)" : undefined,
   };
+}
+
+export function resolveBackgroundFilter(bg: BackgroundImageSettings): string {
+  const parts: string[] = [];
+  if (bg.blur > 0) parts.push(`blur(${bg.blur}px)`);
+  if (bg.brightness !== 100) parts.push(`brightness(${bg.brightness}%)`);
+  if (bg.contrast !== 100) parts.push(`contrast(${bg.contrast}%)`);
+  return parts.join(" ");
 }
 
 /** CSS for the overlay layer that sits above the background image and below content (FIX §19-20). */
@@ -244,11 +258,11 @@ export function resolveOverlayStyle(bg: BackgroundImageSettings): CSSProperties 
     case "light":
       return { backgroundColor: `rgba(255,255,255,${opacity})` };
     case "dark":
-      return { backgroundColor: `rgba(11,28,44,${opacity})` };
+      return { backgroundColor: `rgba(24,48,45,${opacity})` };
     case "gradient":
-      return { backgroundImage: `linear-gradient(to top, rgba(11,28,44,${opacity}), rgba(11,28,44,0))` };
+      return { backgroundImage: `linear-gradient(to top, rgba(24,48,45,${opacity}), rgba(24,48,45,0))` };
     case "custom": {
-      const rgb = hexToRgb(bg.overlayColor) ?? { r: 11, g: 28, b: 44 };
+      const rgb = hexToRgb(bg.overlayColor) ?? { r: 24, g: 48, b: 45 };
       return { backgroundColor: `rgba(${rgb.r},${rgb.g},${rgb.b},${opacity})` };
     }
     default:

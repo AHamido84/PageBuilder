@@ -14,6 +14,100 @@ const PRODUCT_COUNT_LABEL = {
   en: (count: number) => `${count} product${count === 1 ? "" : "s"}`,
   ar: (count: number) => `${count} ${count === 1 ? "منتج" : "منتجات"}`,
 };
+const FEATURED_CATEGORY_LABEL = { en: "Featured category", ar: "فئة مميزة" };
+const SHOP_CATEGORY_LABEL = { en: "Shop now", ar: "تسوق الآن" };
+
+type CategoryWithRelations = {
+  id: string;
+  slug: string;
+  imageId: string | null;
+  translations: { locale: string; name: string; description: string | null }[];
+  image: { url: string } | null;
+};
+
+/** The first category in the list, given the editorial full-width treatment (large image, name,
+ * description, explicit CTA) so the section reads as curated rather than a repeating grid --
+ * per the brief's "avoid repetitive grid-only layouts" direction. Everything after it stays in the
+ * plain grid below, which is still the right call for categories 2-N: an editorial treatment on
+ * every card would just be a slower-loading grid wearing a costume. */
+function FeaturedCategoryCard({ category, locale }: { category: CategoryWithRelations; locale: string }) {
+  const lang = locale === "ar" ? "ar" : "en";
+  const translation = category.translations.find((t) => t.locale === locale.toUpperCase());
+  const name = translation?.name ?? category.slug;
+  const description = translation?.description ?? "";
+  const hasImage = Boolean(category.image?.url);
+  return (
+    <Link
+      href={`/${locale}/products?category=${category.slug}`}
+      className="group relative mb-5 flex flex-col overflow-hidden rounded-[var(--radius-md)] border border-current/10 sm:flex-row"
+    >
+      <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden sm:aspect-auto sm:w-1/2">
+        {hasImage ? (
+          <CmsFillImage
+            src={category.image!.url}
+            alt=""
+            sizes="(min-width: 640px) 50vw, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            context={{ mediaId: category.imageId ?? undefined, component: "CATEGORY_GRID", locale }}
+          />
+        ) : (
+          <>
+            <div className="bg-grid-fine absolute inset-0 bg-frost" />
+            <RouteLine d={CARD_ACCENT_PATH} viewBox="0 0 72 36" strokeWidth={1.5} className="absolute start-6 top-6 h-10 w-20 text-harbor/50" />
+          </>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col justify-center gap-3 bg-paper p-8 sm:p-10 lg:p-12">
+        <span className="manifest-strip text-wheat-strong">{FEATURED_CATEGORY_LABEL[lang]}</span>
+        <p className="font-display text-h2 leading-tight text-ink">{name}</p>
+        {description ? <p className="measure-ar max-w-md text-sm leading-relaxed text-ink/60">{description}</p> : null}
+        <span className="mt-2 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-harbor transition-transform duration-300 group-hover:translate-x-1">
+          {SHOP_CATEGORY_LABEL[lang]} <Arrow />
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function CategoryCard({ category, locale }: { category: CategoryWithRelations; locale: string }) {
+  const name = category.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? category.slug;
+  const hasImage = Boolean(category.image?.url);
+  return (
+    <Link
+      href={`/${locale}/products?category=${category.slug}`}
+      className="group relative block aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] border border-current/10"
+    >
+      {hasImage ? (
+        <>
+          <CmsFillImage
+            src={category.image!.url}
+            alt=""
+            sizes="(min-width: 640px) 25vw, 50vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            context={{ mediaId: category.imageId ?? undefined, component: "CATEGORY_GRID", locale }}
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent" />
+        </>
+      ) : (
+        <div className="bg-grid-fine absolute inset-0 bg-frost" />
+      )}
+      {!hasImage ? (
+        <RouteLine
+          d={CARD_ACCENT_PATH}
+          viewBox="0 0 72 36"
+          strokeWidth={1.5}
+          className="absolute start-4 top-4 h-9 w-[4.5rem] text-harbor/50"
+        />
+      ) : null}
+      <div className={`absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-4 ${hasImage ? "text-paper" : "text-ink"}`}>
+        <p className="font-display text-lg leading-tight transition-transform duration-300 group-hover:-translate-y-0.5">{name}</p>
+        <span className="inline-block shrink-0 pb-0.5 opacity-70 transition-transform duration-300 group-hover:translate-x-1">
+          <Arrow />
+        </span>
+      </div>
+    </Link>
+  );
+}
 
 export async function CategoryGridRender({ data, locale }: BlockRenderProps<CategoryGridData>) {
   const categories = await prisma.category.findMany({
@@ -21,51 +115,16 @@ export async function CategoryGridRender({ data, locale }: BlockRenderProps<Cate
     include: { translations: true, image: { select: { url: true } } },
     orderBy: { order: "asc" },
   });
+  const [featured, ...rest] = categories;
 
   return (
     <div>
       {data.heading ? <h2 className="mb-8 font-display text-3xl">{data.heading}</h2> : null}
+      {featured ? <FeaturedCategoryCard category={featured} locale={locale} /> : null}
       <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-        {categories.map((category) => {
-          const name = category.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? category.slug;
-          const hasImage = Boolean(category.image?.url);
-          return (
-            <Link
-              key={category.id}
-              href={`/${locale}/products?category=${category.slug}`}
-              className="group relative block aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] border border-current/10"
-            >
-              {hasImage ? (
-                <>
-                  <CmsFillImage
-                    src={category.image!.url}
-                    alt=""
-                    sizes="(min-width: 640px) 25vw, 50vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    context={{ mediaId: category.imageId ?? undefined, component: "CATEGORY_GRID", locale }}
-                  />
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent" />
-                </>
-              ) : (
-                <div className="bg-grid-fine absolute inset-0 bg-frost" />
-              )}
-              {!hasImage ? (
-                <RouteLine
-                  d={CARD_ACCENT_PATH}
-                  viewBox="0 0 72 36"
-                  strokeWidth={1.5}
-                  className="absolute start-4 top-4 h-9 w-[4.5rem] text-harbor/50"
-                />
-              ) : null}
-              <div className={`absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-4 ${hasImage ? "text-paper" : "text-ink"}`}>
-                <p className="font-display text-lg leading-tight transition-transform duration-300 group-hover:-translate-y-0.5">{name}</p>
-                <span className="inline-block shrink-0 pb-0.5 opacity-70 transition-transform duration-300 group-hover:translate-x-1">
-                  <Arrow />
-                </span>
-              </div>
-            </Link>
-          );
-        })}
+        {rest.map((category) => (
+          <CategoryCard key={category.id} category={category} locale={locale} />
+        ))}
       </div>
     </div>
   );

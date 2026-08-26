@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 import type { SectionSettings } from "./types";
-import { resolveBackgroundImageStyle, resolveOverlayStyle, resolveSectionClasses } from "./style-tokens";
+import { resolveBackgroundFilter, resolveBackgroundImageStyle, resolveOverlayStyle, resolveSectionClasses } from "./style-tokens";
 import { Reveal } from "./reveal";
 
 /**
@@ -38,23 +38,40 @@ export function SectionShell({
   const mobileBgStyle = bg ? resolveBackgroundImageStyle(bg, "mobile") : null;
   const overlayStyle = bg ? resolveOverlayStyle(bg) : null;
   const hasBackgroundImage = Boolean(desktopBgStyle || mobileBgStyle);
+  // The video layer sits ABOVE the image layer (which still renders as its poster/fallback for
+  // the moment before the video has loaded, or if it fails/is blocked) -- never replaces it.
+  const hasVideo = Boolean(bg?.video?.url);
+  const hasBackgroundLayer = hasBackgroundImage || hasVideo;
 
   return (
-    <div className={cn("border-t border-ink/10", resolveSectionClasses(settings), hasBackgroundImage && "relative overflow-hidden", className)}>
-      {hasBackgroundImage ? (
+    <div className={cn("border-t border-ink/10", resolveSectionClasses(settings), hasBackgroundLayer && "relative overflow-hidden", className)}>
+      {hasBackgroundLayer ? (
         <>
           {hasDistinctMobileImage && hasDesktopImage ? (
             <>
               <div aria-hidden className="pointer-events-none absolute inset-0 z-0 hidden md:block" style={desktopBgStyle ?? undefined} />
               <div aria-hidden className="pointer-events-none absolute inset-0 z-0 md:hidden" style={mobileBgStyle ?? undefined} />
             </>
-          ) : (
+          ) : hasBackgroundImage ? (
             <div aria-hidden className="pointer-events-none absolute inset-0 z-0" style={(desktopBgStyle ?? mobileBgStyle) ?? undefined} />
-          )}
+          ) : null}
+          {hasVideo && bg ? (
+            <video
+              aria-hidden
+              autoPlay
+              muted
+              loop
+              playsInline
+              poster={bg.image?.url}
+              src={bg.video!.url}
+              className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover"
+              style={{ filter: resolveBackgroundFilter(bg) || undefined, objectPosition: `${bg.positionX}% ${bg.positionY}%` }}
+            />
+          ) : null}
           {overlayStyle ? <div aria-hidden className="pointer-events-none absolute inset-0 z-[1]" style={overlayStyle} /> : null}
         </>
       ) : null}
-      <div className={cn("mx-auto w-full max-w-[1400px] px-5 sm:px-8 lg:px-12", hasBackgroundImage && "relative z-[2]")}>
+      <div className={cn("mx-auto w-full max-w-[1400px] px-5 sm:px-8 lg:px-12", hasBackgroundLayer && "relative z-[2]")}>
         <Reveal animation={settings.animation}>{children}</Reveal>
       </div>
     </div>

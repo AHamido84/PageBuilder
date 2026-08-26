@@ -6,9 +6,11 @@ export type ButtonSize = "sm" | "md" | "lg";
 const base =
   "inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] font-medium tracking-[-0.01em] transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-[var(--ease-premium)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 focus-visible:shadow-[var(--shadow-focus)]";
 
+// Primary = Coral, Secondary = Petrol Green (spec's explicit CTA color assignment) -- kept as two
+// distinct solid fills, never diluting Coral into a general-purpose accent used elsewhere.
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-wheat text-ink shadow-[var(--shadow-flat)] hover:bg-ink hover:text-paper hover:shadow-[var(--shadow-card)]",
-  secondary: "border border-ink/70 text-ink hover:border-ink hover:bg-ink hover:text-paper",
+  primary: "bg-coral text-paper shadow-[var(--shadow-flat)] hover:bg-coral-strong hover:shadow-[var(--shadow-card)]",
+  secondary: "bg-petrol text-paper shadow-[var(--shadow-flat)] hover:bg-ink hover:shadow-[var(--shadow-card)]",
   "ghost-light": "border border-paper/40 text-paper hover:border-paper hover:bg-paper hover:text-ink",
   "ghost-dark": "text-ink hover:text-harbor",
 };

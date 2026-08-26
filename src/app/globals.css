@@ -1,24 +1,40 @@
 @import "tailwindcss";
 
 :root {
-  --color-ink: #0a1826;
-  --color-ink-soft: #172c3f;
-  --color-paper: #f7f5f0;
-  --color-paper-dim: #eeebe2;
-  --color-harbor: #1b4655;
-  --color-harbor-soft: #e6edee;
-  --color-wheat: #c69a48;
-  --color-wheat-strong: #b78638;
-  --color-wheat-soft: #f1e4c9;
-  --color-frost: #dce6e4;
+  /* Premium palette (session F redesign): every component already reads these colors through
+     semantic Tailwind classes (bg-ink, text-harbor, bg-wheat, ...) rather than hardcoded hex, so
+     redefining the values here is what actually reskins the whole site -- no component edits
+     needed for color alone. Charcoal/Petrol/Teal are all deliberately drawn from the same deep
+     green family (not a neutral gray + an unrelated accent) so the "dark" and "brand" ends of the
+     palette read as one coherent identity rather than two competing ones. */
+  --color-ink: #18302d; /* Dark Charcoal -- body text + neutral dark surfaces */
+  --color-ink-soft: #21403a;
+  --color-paper: #f7f8f5; /* Warm Off White */
+  --color-paper-dim: #eceee9;
+  --color-harbor: #0b806f; /* Primary Teal -- links, mid-weight accents */
+  --color-harbor-soft: #e2f1ee;
+  --color-wheat: #d5b45c; /* Soft Gold -- badges, focus rings, stat accents */
+  --color-wheat-strong: #bd9a45;
+  --color-wheat-soft: #f3e7c9;
+  --color-frost: #e6efec;
   --color-signal: #b23a2f;
   --color-signal-soft: #f4e0dd;
+  /* New for this palette: Petrol anchors deep brand-colored sections/footer/secondary CTAs
+     (distinct from the neutral --color-ink, even though both sit in the same dark-green family --
+     see section-rhythm and footer usage); Coral is reserved exclusively for primary CTAs so it
+     never gets diluted into a general-purpose accent. */
+  --color-petrol: #07564e;
+  --color-petrol-elevated: #0e6b5d; /* a step lighter than petrol, for elevated surfaces on a petrol footer/section (mirrors ink/ink-soft) */
+  --color-petrol-soft: #e1efec;
+  --color-coral: #ee665a;
+  --color-coral-strong: #d8503f;
+  --color-coral-soft: #fbe2de;
 
   /* Three-step elevation: flat (resting cards) -> card (default) -> lifted (hover/active). */
-  --shadow-flat: 0 1px 2px rgba(10, 24, 38, 0.05);
-  --shadow-card: 0 1px 2px rgba(10, 24, 38, 0.07), 0 10px 28px -14px rgba(10, 24, 38, 0.22);
-  --shadow-lifted: 0 6px 12px rgba(10, 24, 38, 0.1), 0 28px 56px -18px rgba(10, 24, 38, 0.32);
-  --shadow-focus: 0 0 0 3px rgba(198, 154, 72, 0.35);
+  --shadow-flat: 0 1px 2px rgba(24, 48, 45, 0.05);
+  --shadow-card: 0 1px 2px rgba(24, 48, 45, 0.07), 0 10px 28px -14px rgba(24, 48, 45, 0.22);
+  --shadow-lifted: 0 6px 12px rgba(24, 48, 45, 0.1), 0 28px 56px -18px rgba(24, 48, 45, 0.32);
+  --shadow-focus: 0 0 0 3px rgba(213, 180, 92, 0.35);
 
   --radius-sm: 2px;
   --radius-md: 4px;
@@ -51,6 +67,12 @@
   --color-frost: var(--color-frost);
   --color-signal: var(--color-signal);
   --color-signal-soft: var(--color-signal-soft);
+  --color-petrol: var(--color-petrol);
+  --color-petrol-elevated: var(--color-petrol-elevated);
+  --color-petrol-soft: var(--color-petrol-soft);
+  --color-coral: var(--color-coral);
+  --color-coral-strong: var(--color-coral-strong);
+  --color-coral-soft: var(--color-coral-soft);
 
   --font-display: var(--font-display);
   --font-body: var(--font-body);

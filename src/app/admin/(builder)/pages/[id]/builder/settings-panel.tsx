@@ -190,7 +190,7 @@ export function SettingsPanel({ section, device, locale: editorLocale, onLocaleC
                       {bg.overlay !== "none" ? (
                         <div className="grid grid-cols-2 gap-2">
                           {bg.overlay === "custom" ? (
-                            <TextField label="Overlay color" value={bg.overlayColor} onChange={(overlayColor) => updateBg("overlayColor", overlayColor)} placeholder="#0B1C2C" />
+                            <TextField label="Overlay color" value={bg.overlayColor} onChange={(overlayColor) => updateBg("overlayColor", overlayColor)} placeholder="#18302D" />
                           ) : null}
                           <NumberField
                             label="Overlay opacity (%)"
@@ -201,6 +201,20 @@ export function SettingsPanel({ section, device, locale: editorLocale, onLocaleC
                           />
                         </div>
                       ) : null}
+                      <div className="grid grid-cols-3 gap-2 border-t border-neutral-800 pt-3">
+                        <NumberField label="Blur (px)" value={bg.blur} min={0} max={20} onChange={(blur) => updateBg("blur", blur)} />
+                        <NumberField label="Brightness (%)" value={bg.brightness} min={50} max={150} onChange={(brightness) => updateBg("brightness", brightness)} />
+                        <NumberField label="Contrast (%)" value={bg.contrast} min={50} max={150} onChange={(contrast) => updateBg("contrast", contrast)} />
+                      </div>
+                      <div className="border-t border-neutral-800 pt-3">
+                        <MediaPickerControlled
+                          label="Background video (optional — plays over the image above, which stays as its poster/fallback)"
+                          accept="VIDEO"
+                          mediaId={bg.video?.id ?? ""}
+                          previewUrl={bg.video?.url}
+                          onChange={(id, url) => updateBg("video", id ? { id, url } : null)}
+                        />
+                      </div>
                     </>
                   ) : null}
                 </div>
