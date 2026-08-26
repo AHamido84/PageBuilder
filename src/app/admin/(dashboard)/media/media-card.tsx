@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Drawer } from "@/components/admin/ui/drawer";
 import { useConfirm } from "@/components/admin/ui/confirm-dialog";
 import { useAdminToast } from "@/components/admin/ui/toast";
+import { compressImageForUpload } from "@/lib/media/compress-image-client";
 
 export interface MediaItem {
   id: string;
@@ -65,15 +66,18 @@ export function MediaCard({ item }: { item: MediaItem }) {
     }
   }
 
-  async function handleReplace(file: File) {
+  async function handleReplace(rawFile: File) {
     setReplacing(true);
     try {
+      const file = await compressImageForUpload(rawFile);
       const body = new FormData();
       body.set("file", file);
       const res = await fetch(`/api/admin/media/${item.id}/replace`, { method: "POST", body });
-      const json = await res.json();
-      if (!res.ok) {
-        toast.push({ title: "Couldn't replace file", description: json.error, tone: "error" });
+      // A request Vercel's platform itself rejects for size (HTTP 413) comes back as plain text,
+      // not JSON -- res.json() would throw and hide the real reason.
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json) {
+        toast.push({ title: "Couldn't replace file", description: json?.error ?? `HTTP ${res.status}`, tone: "error" });
         return;
       }
       toast.push({ title: "File replaced", tone: "success" });
