@@ -13,17 +13,27 @@ export function UploadButton() {
   async function handleFiles(files: FileList) {
     setUploading(true);
     let successCount = 0;
-    let errorCount = 0;
+    const errors: string[] = [];
     for (const file of Array.from(files)) {
       const body = new FormData();
       body.set("file", file);
-      const res = await fetch("/api/admin/media", { method: "POST", body });
-      if (res.ok) successCount++;
-      else errorCount++;
+      try {
+        const res = await fetch("/api/admin/media", { method: "POST", body });
+        if (res.ok) {
+          successCount++;
+        } else {
+          const json = await res.json().catch(() => null);
+          errors.push(`${file.name}: ${json?.error ?? `HTTP ${res.status}`}`);
+        }
+      } catch {
+        errors.push(`${file.name}: network error`);
+      }
     }
     setUploading(false);
     if (successCount) toast.push({ title: `Uploaded ${successCount} file${successCount === 1 ? "" : "s"}`, tone: "success" });
-    if (errorCount) toast.push({ title: `${errorCount} file(s) failed`, tone: "error" });
+    // Surfacing the real reason (not just a count) -- a generic "N file(s) failed" gives whoever
+    // hits this nothing to act on, whether that's a real user or someone debugging the report.
+    for (const message of errors) toast.push({ title: message, tone: "error" });
     router.refresh();
   }
 
