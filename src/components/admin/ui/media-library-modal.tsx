@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Search, Check } from "lucide-react";
 import { Modal } from "./modal";
+import { compressImageForUpload } from "@/lib/media/compress-image-client";
 
 export interface MediaListItem {
   id: string;
@@ -87,16 +88,19 @@ export function MediaLibraryModal(props: MediaLibraryModalProps) {
     };
   }, [open, accept, query]);
 
-  async function handleUpload(file: File) {
+  async function handleUpload(rawFile: File) {
     setUploading(true);
     setError(null);
     try {
+      const file = await compressImageForUpload(rawFile);
       const body = new FormData();
       body.set("file", file);
       const res = await fetch("/api/admin/media", { method: "POST", body });
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json.error ?? "Upload failed.");
+      // A request Vercel's platform itself rejects for size (HTTP 413) comes back as plain text,
+      // not JSON -- res.json() would throw and leave the real reason unreported.
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json) {
+        setError(json?.error ?? `Upload failed (HTTP ${res.status}).`);
         return;
       }
       const uploaded: MediaListItem = { id: json.id, url: json.url, originalName: file.name, type: accept, width: null, height: null };

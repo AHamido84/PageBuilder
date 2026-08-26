@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAdminToast } from "@/components/admin/ui/toast";
+import { compressImageForUpload } from "@/lib/media/compress-image-client";
 
 export function UploadButton() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -14,7 +15,8 @@ export function UploadButton() {
     setUploading(true);
     let successCount = 0;
     const errors: string[] = [];
-    for (const file of Array.from(files)) {
+    for (const rawFile of Array.from(files)) {
+      const file = await compressImageForUpload(rawFile);
       const body = new FormData();
       body.set("file", file);
       try {
@@ -23,10 +25,10 @@ export function UploadButton() {
           successCount++;
         } else {
           const json = await res.json().catch(() => null);
-          errors.push(`${file.name}: ${json?.error ?? `HTTP ${res.status}`}`);
+          errors.push(`${rawFile.name}: ${json?.error ?? `HTTP ${res.status}`}`);
         }
       } catch {
-        errors.push(`${file.name}: network error`);
+        errors.push(`${rawFile.name}: network error`);
       }
     }
     setUploading(false);

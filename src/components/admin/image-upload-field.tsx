@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { compressImageForUpload } from "@/lib/media/compress-image-client";
 
 interface Props {
   name: string;
@@ -16,20 +17,23 @@ export function ImageUploadField({ name, label, defaultMediaId, defaultUrl }: Pr
   const [uploading, setUploading] = useState(false);
 
   async function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const rawFile = event.target.files?.[0];
+    if (!rawFile) return;
 
     setUploading(true);
     setError(null);
 
     try {
+      const file = await compressImageForUpload(rawFile);
       const body = new FormData();
       body.set("file", file);
       const res = await fetch("/api/admin/media", { method: "POST", body });
-      const json = await res.json();
+      // A request Vercel's platform itself rejects for size (HTTP 413) comes back as plain text,
+      // not JSON -- res.json() would throw and leave the real reason unreported.
+      const json = await res.json().catch(() => null);
 
-      if (!res.ok) {
-        setError(json.error ?? "Upload failed.");
+      if (!res.ok || !json) {
+        setError(json?.error ?? `Upload failed (HTTP ${res.status}).`);
         return;
       }
 
