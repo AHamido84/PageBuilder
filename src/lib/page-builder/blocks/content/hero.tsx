@@ -137,6 +137,14 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
               previewUrl={data.mobileMediaUrl}
               onChange={(mobileMediaId, mobileMediaUrl) => onChange({ ...data, mobileMediaId, mobileMediaUrl })}
             />
+          </>
+        ) : null}
+        {data.mediaType === "image" || data.mediaType === "slideshow" ? (
+          // Slideshow mode reuses this same focal point for every slide's crop (HeroSlideshow reads
+          // data.focalX/focalY, not a per-slide value) -- it needs this control just as much as plain
+          // image mode does, e.g. for a banner with baked-in text sitting off-center that gets cropped
+          // out on a narrower/taller viewport than the source photo's own aspect ratio.
+          <>
             <SelectField
               label="Image position"
               value={data.imagePosition}
