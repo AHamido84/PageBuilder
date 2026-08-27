@@ -13,6 +13,8 @@ interface Props {
     icon: string | null;
     order: number;
     isActive: boolean;
+    isFeatured: boolean;
+    featuredOrder: number | null;
     parentId: string | null;
     imageId: string | null;
     image: { url: string } | null;
@@ -71,9 +73,23 @@ export function EditCategoryForm({ category, categories }: Props) {
         <input name="order" type="number" defaultValue={category.order} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
       </div>
       <ImageUploadField name="imageId" label="Image" defaultMediaId={category.imageId} defaultUrl={category.image?.url} />
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Featured order (optional)</label>
+        <input
+          name="featuredOrder"
+          type="number"
+          defaultValue={category.featuredOrder ?? ""}
+          placeholder="Falls back to Order above"
+          className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm"
+        />
+      </div>
       <label className="col-span-full flex items-center gap-2 text-sm text-neutral-300">
         <input type="checkbox" name="isActive" value="true" defaultChecked={category.isActive} />
         Active
+      </label>
+      <label className="col-span-full flex items-center gap-2 text-sm text-neutral-300">
+        <input type="checkbox" name="isFeatured" value="true" defaultChecked={category.isFeatured} />
+        Featured category — show in the dynamic Featured Categories section
       </label>
       {state.error ? <p className="col-span-full text-sm text-red-400">{state.error}</p> : null}
       {state.success ? <p className="col-span-full text-sm text-emerald-400">Saved.</p> : null}

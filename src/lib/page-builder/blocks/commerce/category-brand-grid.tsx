@@ -6,37 +6,115 @@ import { useReferenceData } from "../../reference-data-context";
 import type { BlockEditProps } from "../../types";
 import type { CategoryGridData, BrandGridData } from "../commerce-blocks";
 
+function featuredCount(categories: { isFeatured: boolean }[]): number {
+  return categories.filter((c) => c.isFeatured).length;
+}
+
 export function CategoryGridEdit({ data, onChange, locale }: BlockEditProps<CategoryGridData>) {
   const { categories } = useReferenceData();
   const selected = new Set(data.categoryIds ?? []);
+  const mode = data.mode ?? "dynamic";
+  const featured = featuredCount(categories);
+
   return (
     <div className="space-y-3">
       <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={locale === "ar" ? "rtl" : "ltr"} />
-      <p className="text-xs text-neutral-500">Leave all unchecked to show every category.</p>
-      <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-neutral-800 p-2">
-        {categories.map((c) => (
-          <CheckboxField
-            key={c.id}
-            label={c.label}
-            checked={selected.has(c.id)}
-            onChange={(checked) => {
-              const next = new Set(selected);
-              if (checked) next.add(c.id);
-              else next.delete(c.id);
-              onChange({ ...data, categoryIds: Array.from(next) });
+
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Category source</label>
+        <div className="space-y-1.5">
+          <label className="flex items-start gap-2 text-sm text-neutral-300">
+            <input
+              type="radio"
+              name={`category-grid-mode-${locale}`}
+              checked={mode === "dynamic"}
+              onChange={() => onChange({ ...data, mode: "dynamic" })}
+              className="mt-0.5"
+            />
+            <span>
+              Dynamic — categories marked Featured
+              <span className="block text-xs text-neutral-500">Managed from Category Management. Updates automatically as Featured status/order change.</span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2 text-sm text-neutral-300">
+            <input
+              type="radio"
+              name={`category-grid-mode-${locale}`}
+              checked={mode === "manual"}
+              onChange={() => onChange({ ...data, mode: "manual" })}
+              className="mt-0.5"
+            />
+            <span>
+              Manual — hand-pick categories for this section
+              <span className="block text-xs text-neutral-500">Leave all unchecked to show every active category.</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      {mode === "dynamic" ? (
+        <div className="space-y-2">
+          <TextField
+            label="Limit (optional)"
+            value={data.limit != null ? String(data.limit) : ""}
+            onChange={(v) => {
+              const n = v.trim() === "" ? undefined : Math.max(1, Math.min(24, Number(v) || 1));
+              onChange({ ...data, limit: n });
             }}
           />
-        ))}
-      </div>
+          {featured === 0 ? (
+            <p className="rounded-md border border-amber-900/50 bg-amber-950/30 px-2 py-1.5 text-xs text-amber-400">
+              No categories are currently marked Featured yet — this section won&apos;t show anything on the live site until you mark some as Featured in Category
+              Management.
+            </p>
+          ) : (
+            <p className="text-xs text-neutral-500">
+              {featured} categor{featured === 1 ? "y" : "ies"} currently marked Featured{data.limit ? `, showing up to ${data.limit}` : ""}.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-neutral-800 p-2">
+          {categories.map((c) => (
+            <div key={c.id} className="flex items-center justify-between gap-2">
+              <CheckboxField
+                label={c.label}
+                checked={selected.has(c.id)}
+                onChange={(checked) => {
+                  const next = new Set(selected);
+                  if (checked) next.add(c.id);
+                  else next.delete(c.id);
+                  onChange({ ...data, categoryIds: Array.from(next) });
+                }}
+              />
+              {c.isFeatured ? <span className="shrink-0 rounded-full bg-wheat/20 px-2 py-0.5 text-[10px] font-medium text-wheat">Featured</span> : null}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 export function CategoryGridPreview({ data }: { data: CategoryGridData }) {
+  const { categories } = useReferenceData();
+  const mode = data.mode ?? "dynamic";
+  const featured = featuredCount(categories);
   return (
     <div className="rounded-md border border-dashed border-neutral-700 bg-neutral-900/50 p-8 text-center text-sm text-neutral-400">
       {data.heading ? <p className="mb-1 font-medium text-neutral-200">{data.heading}</p> : null}
-      Live Category Grid — {data.categoryIds?.length ? `${data.categoryIds.length} selected` : "all categories"}.
+      {mode === "dynamic" ? (
+        featured === 0 ? (
+          <span className="text-amber-400">No featured categories selected yet.</span>
+        ) : (
+          <>
+            Live Category Grid — {featured} featured categor{featured === 1 ? "y" : "ies"}
+            {data.limit ? `, up to ${data.limit}` : ""}.
+          </>
+        )
+      ) : (
+        <>Live Category Grid — {data.categoryIds?.length ? `${data.categoryIds.length} selected` : "all categories"}.</>
+      )}
     </div>
   );
 }

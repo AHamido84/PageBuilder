@@ -115,8 +115,8 @@ const sections: SectionSeed[] = [
   },
   {
     type: "CATEGORY_GRID",
-    dataEn: { heading: "Product categories", categoryIds: [] },
-    dataAr: { heading: "فئات المنتجات", categoryIds: [] },
+    dataEn: { heading: "Product categories", mode: "dynamic", categoryIds: [] },
+    dataAr: { heading: "فئات المنتجات", mode: "dynamic", categoryIds: [] },
     settings: defaultSectionSettings(),
   },
   {

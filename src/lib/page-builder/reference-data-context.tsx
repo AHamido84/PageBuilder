@@ -15,8 +15,15 @@ export interface BrandOption extends ReferenceOption {
   isActive: boolean;
 }
 
+/** Lets the Category Grid block's Edit panel show real Featured status/order (and an empty-state
+ * hint) without a separate live query -- see category-brand-grid.tsx. */
+export interface CategoryOption extends ReferenceOption {
+  isFeatured: boolean;
+  featuredOrder: number | null;
+}
+
 export interface ReferenceData {
-  categories: ReferenceOption[];
+  categories: CategoryOption[];
   brands: BrandOption[];
   blogCategories: ReferenceOption[];
   /** Real catalog products, for Hero's Product Composition mode (Primary/Secondary/Supporting picks reference an id here, never duplicate product data). */

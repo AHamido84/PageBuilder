@@ -198,6 +198,12 @@ model Category {
   icon      String?
   isActive  Boolean  @default(true)
   order     Int      @default(0)
+  /** Shown in the dynamic "Featured Categories" Page Builder section (CATEGORY_GRID block,
+   * dynamic mode) when true. Independent of `order`, which still governs plain admin/nav listing. */
+  isFeatured    Boolean @default(false)
+  /** Display order among featured categories only. Null falls back to `order` at render time --
+   * see loadFeaturedCategories in category-brand-grid-render.tsx. */
+  featuredOrder Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -214,6 +220,7 @@ model Category {
   seo          SEO?
 
   @@index([parentId])
+  @@index([isFeatured])
 }
 
 model CategoryTranslation {

@@ -22,6 +22,7 @@ const categorySchema = z.object({
   parentId: z.string().optional().or(z.literal("")),
   imageId: z.string().optional().or(z.literal("")),
   order: z.coerce.number().int().default(0),
+  featuredOrder: z.string().optional().or(z.literal("")),
 });
 
 export interface FormActionState {
@@ -49,6 +50,8 @@ export async function createCategoryAction(_prev: FormActionState, formData: For
       slug: data.slug,
       icon: data.icon || null,
       order: data.order,
+      isFeatured: formData.has("isFeatured"),
+      featuredOrder: data.featuredOrder ? Number(data.featuredOrder) : null,
       parentId: data.parentId || null,
       imageId: data.imageId || null,
       translations: {
@@ -89,6 +92,8 @@ export async function updateCategoryAction(_prev: FormActionState, formData: For
         slug: data.slug,
         icon: data.icon || null,
         order: data.order,
+        isFeatured: formData.has("isFeatured"),
+        featuredOrder: data.featuredOrder ? Number(data.featuredOrder) : null,
         parentId: data.parentId || null,
         imageId: data.imageId || null,
         isActive: formData.has("isActive"),

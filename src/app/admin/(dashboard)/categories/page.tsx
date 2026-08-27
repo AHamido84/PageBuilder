@@ -25,6 +25,8 @@ export default async function CategoriesPage() {
     slug: category.slug,
     icon: category.icon,
     isActive: category.isActive,
+    isFeatured: category.isFeatured,
+    featuredOrder: category.featuredOrder,
     nameEn: category.translations.find((t) => t.locale === "EN")?.name ?? category.slug,
     nameAr: category.translations.find((t) => t.locale === "AR")?.name ?? category.slug,
     productCount: category._count.products,

@@ -11,6 +11,8 @@ export interface CategoryTreeNode {
   slug: string;
   icon: string | null;
   isActive: boolean;
+  isFeatured: boolean;
+  featuredOrder: number | null;
   nameEn: string;
   nameAr: string;
   productCount: number;
@@ -82,6 +84,11 @@ export function CategoryTree({ items, canDelete }: { items: CategoryTreeNode[]; 
           <span className="w-24 text-neutral-500">{node.slug}</span>
           <span className="w-16 text-neutral-500">{node.productCount} SKUs</span>
           <span className="w-20 text-neutral-500">{node.isActive ? "Active" : "Inactive"}</span>
+          {node.isFeatured ? (
+            <span className="shrink-0 rounded-full bg-wheat/20 px-2 py-0.5 text-[10px] font-medium text-wheat">
+              Featured{node.featuredOrder != null ? ` #${node.featuredOrder}` : ""}
+            </span>
+          ) : null}
           {canDelete ? <DeleteCategoryButton categoryId={node.id} /> : null}
         </div>
         {renderLevel(node.id, depth + 1)}

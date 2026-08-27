@@ -18,7 +18,13 @@ export type ProductGridData = z.infer<typeof productGridSchema>;
 
 const categoryGridSchema = z.object({
   heading: z.string().max(200).optional().default(""),
+  /** "dynamic" (default): pulls categories with Category.isFeatured=true, ordered by
+   * featuredOrder/order -- see loadFeaturedCategories in category-brand-grid-render.tsx.
+   * "manual": legacy/opt-out behavior, unchanged -- uses categoryIds below exactly as before. */
+  mode: z.enum(["dynamic", "manual"]).default("dynamic"),
   categoryIds: z.array(z.string()).default([]),
+  /** Dynamic mode only: caps how many featured categories render. Unset = no limit. */
+  limit: z.number().int().min(1).max(24).optional(),
 });
 export type CategoryGridData = z.infer<typeof categoryGridSchema>;
 
@@ -94,7 +100,10 @@ export const commerceBlocks: BlockDefinition<any>[] = [
     category: "commerce",
     icon: Tags,
     dataSchema: categoryGridSchema,
-    defaultData: { en: { heading: "Shop by category", categoryIds: [] }, ar: { heading: "تسوق حسب الفئة", categoryIds: [] } },
+    defaultData: {
+      en: { heading: "Shop by category", mode: "dynamic", categoryIds: [] },
+      ar: { heading: "تسوق حسب الفئة", mode: "dynamic", categoryIds: [] },
+    },
     defaultSettings: defaultSectionSettings(),
     Edit: CategoryGridEdit,
     Render: CategoryGridRender,

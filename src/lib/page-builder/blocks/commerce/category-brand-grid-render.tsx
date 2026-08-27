@@ -109,12 +109,38 @@ function CategoryCard({ category, locale }: { category: CategoryWithRelations; l
   );
 }
 
-export async function CategoryGridRender({ data, locale }: BlockRenderProps<CategoryGridData>) {
-  const categories = await prisma.category.findMany({
-    where: { isActive: true, ...(data.categoryIds?.length ? { id: { in: data.categoryIds } } : {}) },
+/** Dynamic-mode data source: categories the admin has marked Featured in Category Management,
+ * ordered by featuredOrder -- falling back to the category's regular `order` for any category
+ * without an explicit featuredOrder, per the "Dynamic Featured Categories" spec. */
+async function loadFeaturedCategories(limit: number | undefined): Promise<CategoryWithRelations[]> {
+  const rows = await prisma.category.findMany({
+    where: { isActive: true, isFeatured: true },
     include: { translations: true, image: { select: { url: true } } },
-    orderBy: { order: "asc" },
   });
+  const sorted = rows.sort((a, b) => {
+    const aKey = a.featuredOrder ?? a.order;
+    const bKey = b.featuredOrder ?? b.order;
+    if (aKey !== bKey) return aKey - bKey;
+    return a.order - b.order;
+  });
+  return limit ? sorted.slice(0, limit) : sorted;
+}
+
+export async function CategoryGridRender({ data, locale }: BlockRenderProps<CategoryGridData>) {
+  const mode = data.mode ?? "dynamic";
+  const categories =
+    mode === "manual"
+      ? await prisma.category.findMany({
+          where: { isActive: true, ...(data.categoryIds?.length ? { id: { in: data.categoryIds } } : {}) },
+          include: { translations: true, image: { select: { url: true } } },
+          orderBy: { order: "asc" },
+        })
+      : await loadFeaturedCategories(data.limit);
+
+  // Dynamic mode with nothing marked Featured: hide the section on the public site rather than
+  // showing an empty/broken grid -- the admin-facing warning lives in CategoryGridPreview instead.
+  if (mode === "dynamic" && categories.length === 0) return null;
+
   const [featured, ...rest] = categories;
 
   return (

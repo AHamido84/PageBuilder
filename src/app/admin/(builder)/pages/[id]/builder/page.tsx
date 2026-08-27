@@ -32,7 +32,10 @@ export default async function PageBuilderPage({ params }: { params: Promise<{ id
         revisions: { orderBy: { createdAt: "desc" }, take: 20, include: { author: { select: { name: true } } } },
       },
     }),
-    prisma.category.findMany({ include: { translations: true }, orderBy: { slug: "asc" } }),
+    prisma.category.findMany({
+      select: { id: true, slug: true, isFeatured: true, featuredOrder: true, translations: true },
+      orderBy: { slug: "asc" },
+    }),
     prisma.brand.findMany({ include: { translations: true }, orderBy: { slug: "asc" } }),
     prisma.blogCategory.findMany({ orderBy: { nameEn: "asc" } }),
     prisma.product.findMany({ select: { id: true, sku: true, translations: { where: { locale: "EN" }, select: { name: true } } }, orderBy: { sku: "asc" } }),
@@ -61,7 +64,12 @@ export default async function PageBuilderPage({ params }: { params: Promise<{ id
   }));
 
   const referenceData = {
-    categories: categories.map((c) => ({ id: c.id, label: c.translations.find((t) => t.locale === "EN")?.name ?? c.slug })),
+    categories: categories.map((c) => ({
+      id: c.id,
+      label: c.translations.find((t) => t.locale === "EN")?.name ?? c.slug,
+      isFeatured: c.isFeatured,
+      featuredOrder: c.featuredOrder,
+    })),
     brands: brands.map((b) => ({
       id: b.id,
       label: b.translations.find((t) => t.locale === "EN")?.name ?? b.slug,
