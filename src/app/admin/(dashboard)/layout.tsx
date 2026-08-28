@@ -23,6 +23,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Content",
     items: [
       { href: "/admin/pages", label: "Pages", resource: "pages" },
+      { href: "/admin/solutions", label: "Solutions", resource: "solutions" },
       { href: "/admin/media", label: "Media Library", resource: "media" },
       { href: "/admin/menus", label: "Menus", resource: "menus" },
       { href: "/admin/blog", label: "Blog", resource: "blog" },

@@ -20,6 +20,7 @@ const certificationSchema = z.object({
   validFrom: z.string().max(20).optional().or(z.literal("")),
   validUntil: z.string().max(20).optional().or(z.literal("")),
   imageId: z.string().optional().or(z.literal("")),
+  order: z.coerce.number().int().default(0),
 });
 
 export interface FormActionState {
@@ -48,6 +49,7 @@ export async function createCertificationAction(_prev: FormActionState, formData
       validFrom: data.validFrom ? new Date(data.validFrom) : null,
       validUntil: data.validUntil ? new Date(data.validUntil) : null,
       imageId: data.imageId || null,
+      order: data.order,
     },
   });
 
@@ -79,6 +81,7 @@ export async function updateCertificationAction(_prev: FormActionState, formData
       validFrom: data.validFrom ? new Date(data.validFrom) : null,
       validUntil: data.validUntil ? new Date(data.validUntil) : null,
       imageId: data.imageId || null,
+      order: data.order,
       isPublished: formData.has("isPublished"),
     },
   });
@@ -87,6 +90,19 @@ export async function updateCertificationAction(_prev: FormActionState, formData
   revalidatePath("/admin/certifications");
   revalidatePath(`/admin/certifications/${data.id}`);
   return { success: true, id: data.id };
+}
+
+export async function reorderCertificationsAction(orderedIds: string[]): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "certifications", "update");
+
+  await prisma.$transaction(
+    orderedIds.map((id, index) => prisma.certification.update({ where: { id }, data: { order: index } }))
+  );
+
+  await logActivity({ userId: currentUser.id, action: "certification.reorder", entityType: "Certification" });
+  revalidatePath("/admin/certifications");
+  return {};
 }
 
 export async function deleteCertificationAction(certificationId: string): Promise<{ error?: string }> {

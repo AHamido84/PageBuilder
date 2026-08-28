@@ -149,6 +149,7 @@ model Page {
   revisions PageRevision[]
   menuItems MenuItem[]
   seo       SEO?
+  solution  Solution?
 
   @@index([status])
 }
@@ -186,6 +187,44 @@ model PageRevision {
   @@index([pageId])
   @@index([authorId])
   @@index([pageId, isPublished])
+}
+
+/** Catalog entry for a public /solutions/[slug] page. Owns only index-card metadata
+ * (slug/icon/sortOrder/isPublished + a short name/description per locale); the actual
+ * hero + unlimited sections live on the linked Page, reusing the full Page Builder
+ * pipeline (SectionRenderer, publish/draft, revisions, per-page SEO) rather than a
+ * second parallel section system. The linked Page uses a reserved slug
+ * (`__solution__<slug>`, see src/lib/page-builder/homepage.ts's HOMEPAGE_SLUG for the
+ * same convention) so it's never independently reachable via the [...slug] catch-all. */
+model Solution {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  icon        String?
+  sortOrder   Int      @default(0)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pageId String @unique
+  page   Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  translations SolutionTranslation[]
+
+  @@index([isPublished])
+}
+
+model SolutionTranslation {
+  id               String  @id @default(cuid())
+  solutionId       String
+  locale           Locale
+  name             String
+  /** Shown on the /solutions index card only -- full body content lives in the linked Page's sections. */
+  shortDescription String?
+
+  solution Solution @relation(fields: [solutionId], references: [id], onDelete: Cascade)
+
+  @@unique([solutionId, locale])
+  @@index([locale])
 }
 
 // ---------------------------------------------------------------------------
@@ -241,6 +280,10 @@ model Brand {
   slug      String   @unique
   website   String?
   isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  /** Shown in the dynamic Brand Grid section (BRAND_GRID block, dynamic mode) when true --
+   * same pattern as Category.isFeatured. */
+  isFeatured Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -253,6 +296,8 @@ model Brand {
   translations BrandTranslation[]
   products     Product[]
   seo          SEO?
+
+  @@index([isFeatured])
 }
 
 model BrandTranslation {
@@ -561,6 +606,7 @@ model Certification {
   validFrom   DateTime?
   validUntil  DateTime?
   isPublished Boolean   @default(false)
+  order       Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

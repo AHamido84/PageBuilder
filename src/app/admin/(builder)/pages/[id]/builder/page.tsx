@@ -75,6 +75,7 @@ export default async function PageBuilderPage({ params }: { params: Promise<{ id
       label: b.translations.find((t) => t.locale === "EN")?.name ?? b.slug,
       hasLogo: Boolean(b.logoId),
       isActive: b.isActive,
+      isFeatured: b.isFeatured,
     })),
     blogCategories: blogCategories.map((c) => ({ id: c.id, label: c.nameEn })),
     products: products.map((p) => ({ id: p.id, label: `${p.translations[0]?.name ?? p.sku} (${p.sku})` })),

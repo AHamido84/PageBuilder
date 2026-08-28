@@ -1,104 +1,47 @@
-import Link from "next/link";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getTranslations, getLocale } from "next-intl/server";
-import { CheckCircle2, Crosshair, Eye, Handshake, MapPin, Package, ShieldCheck, Snowflake, Target, UtensilsCrossed } from "lucide-react";
-import { Section } from "@/components/ui/section";
-import { Container } from "@/components/ui/container";
-import { buttonClasses } from "@/components/ui/button";
-import { IconFeatureGrid } from "@/components/site/icon-feature-grid";
-import { ProcessTimeline } from "@/components/site/process-timeline";
-import { KineticText } from "@/lib/motion/primitives";
+import { getLocale, getTranslations } from "next-intl/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser, can } from "@/lib/rbac/current-user";
+import { SectionRenderer, type SectionRow } from "@/components/site/section-renderer";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
 
-// Inherits the section's own text color (ink on light tones, paper on ink) so contrast is always
-// correct — a fixed wheat icon color measured well under WCAG AA against paper (2.37:1) and frost (2.03:1).
-const ICON_PROPS = { size: 22, strokeWidth: 1.75, className: "opacity-70", "aria-hidden": true } as const;
+const ABOUT_SLUG = "about";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
+  const page = await prisma.page.findUnique({
+    where: { slug: ABOUT_SLUG },
+    include: { seo: { include: { ogImage: { select: { url: true } } } } },
+  });
+  if (!page || page.status !== "PUBLISHED") return {};
   const t = await getTranslations({ locale, namespace: "about" });
-  return buildMetadata({ locale, path: "/about", fallbackTitle: t("title"), fallbackDescription: t("storyBody") });
+  return buildMetadata({ locale, path: "/about", seo: page.seo, fallbackTitle: t("title"), fallbackDescription: t("storyBody") });
 }
 
 export default async function AboutPage() {
   const locale = await getLocale();
-  const t = await getTranslations("about");
-  const tHome = await getTranslations("home");
 
-  const values = [
-    { icon: <CheckCircle2 {...ICON_PROPS} />, title: t("value1Title"), body: t("value1Body") },
-    { icon: <ShieldCheck {...ICON_PROPS} />, title: t("value2Title"), body: t("value2Body") },
-    { icon: <Crosshair {...ICON_PROPS} />, title: t("value3Title"), body: t("value3Body") },
-    { icon: <Handshake {...ICON_PROPS} />, title: t("value4Title"), body: t("value4Body") },
-  ];
+  const page = await prisma.page.findUnique({
+    where: { slug: ABOUT_SLUG },
+    include: { sections: { orderBy: { order: "asc" } } },
+  });
 
-  const whyItems = [
-    { icon: <Snowflake {...ICON_PROPS} />, title: tHome("why1Title"), body: tHome("why1Body") },
-    { icon: <Package {...ICON_PROPS} />, title: tHome("why2Title"), body: tHome("why2Body") },
-    { icon: <UtensilsCrossed {...ICON_PROPS} />, title: tHome("why3Title"), body: tHome("why3Body") },
-    { icon: <MapPin {...ICON_PROPS} />, title: tHome("why4Title"), body: tHome("why4Body") },
-  ];
+  // The About Page row is a required setup step (see scripts/seed-about-page.ts) -- if it's ever
+  // missing, fail loudly instead of rendering a blank page.
+  if (!page) notFound();
 
-  const processSteps = [1, 2, 3].map((n) => ({
-    number: `0${n}`,
-    title: t(`process${n}Title`),
-    body: t(`process${n}Body`),
-  }));
+  if (page.status !== "PUBLISHED") {
+    const user = await getCurrentUser();
+    if (!user || !can(user, "pages", "read")) notFound();
+    return <SectionRenderer sections={page.sections as SectionRow[]} locale={locale} />;
+  }
 
-  return (
-    <div>
-      <Section tone="paper" className="border-t-0 pb-10 pt-14 text-center sm:pt-20">
-        <p className="manifest-strip mb-4 text-harbor">{t("eyebrow")}</p>
-        <KineticText as="h1" text={t("title")} className="font-display text-hero measure-ar mx-auto max-w-3xl" />
-      </Section>
+  const publishedRevision = await prisma.pageRevision.findFirst({ where: { pageId: page.id, isPublished: true } });
+  if (!publishedRevision) notFound();
 
-      <Section tone="paper" eyebrow={t("storyEyebrow")} title={t("storyTitle")}>
-        <p className="measure-ar max-w-2xl text-base leading-relaxed text-ink/70 sm:text-lg">{t("storyBody")}</p>
-      </Section>
-
-      <Section tone="ink">
-        <div className="grid gap-10 sm:grid-cols-2">
-          <div>
-            <Target size={22} strokeWidth={1.75} className="text-wheat" aria-hidden="true" />
-            <p className="manifest-strip mb-1 mt-4 text-wheat">{t("missionTitle")}</p>
-            <p className="mt-2 text-lg leading-relaxed">{t("missionBody")}</p>
-          </div>
-          <div>
-            <Eye size={22} strokeWidth={1.75} className="text-wheat" aria-hidden="true" />
-            <p className="manifest-strip mb-1 mt-4 text-wheat">{t("visionTitle")}</p>
-            <p className="mt-2 text-lg leading-relaxed">{t("visionBody")}</p>
-          </div>
-        </div>
-      </Section>
-
-      <Section tone="paper" eyebrow={t("valuesEyebrow")} title={t("valuesTitle")}>
-        <IconFeatureGrid items={values} />
-      </Section>
-
-      <Section tone="frost" eyebrow={t("processEyebrow")} title={t("processTitle")}>
-        <ProcessTimeline steps={processSteps} />
-      </Section>
-
-      <Section tone="paper" eyebrow={t("whyEyebrow")} title={t("whyTitle")}>
-        <IconFeatureGrid items={whyItems} />
-      </Section>
-
-      <Section tone="ink" className="text-center">
-        <Container className="mx-auto max-w-xl text-center">
-          <h2 className="font-display text-h2">{t("ctaTitle")}</h2>
-          <p className="mx-auto mt-4 text-paper/65">{t("ctaBody")}</p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link href={`/${locale}/contact`} className={buttonClasses("primary", "lg")}>
-              {tHome("ctaButton")}
-            </Link>
-            <Link href={`/${locale}/products`} className={buttonClasses("ghost-light", "lg")}>
-              {tHome("heroCtaSecondary")}
-            </Link>
-          </div>
-        </Container>
-      </Section>
-    </div>
-  );
+  const snapshot = publishedRevision.snapshot as unknown as { sections: SectionRow[] };
+  return <SectionRenderer sections={snapshot.sections} locale={locale} />;
 }

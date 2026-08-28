@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GalleryHorizontal, Newspaper, ShoppingBag, Tag, Tags } from "lucide-react";
+import { Award, GalleryHorizontal, Newspaper, ShoppingBag, Tag, Tags } from "lucide-react";
 import type { BlockDefinition } from "../types";
 import { defaultSectionSettings } from "../types";
 import { ProductGridEdit, ProductGridPreview } from "./commerce/product-grid";
@@ -8,6 +8,8 @@ import { CategoryGridEdit, CategoryGridPreview, BrandGridEdit, BrandGridPreview 
 import { CategoryGridRender, BrandGridRender } from "./commerce/category-brand-grid-render";
 import { NewsGridEdit, NewsGridPreview } from "./commerce/news-grid";
 import { NewsGridRender } from "./commerce/news-grid-render";
+import { CertificationsGridEdit, CertificationsGridPreview } from "./commerce/certifications-grid";
+import { CertificationsGridRender } from "./commerce/certifications-grid-render";
 
 const productGridSchema = z.object({
   heading: z.string().max(200).optional().default(""),
@@ -39,7 +41,13 @@ const resolvedBrandSchema = z.object({
 
 const brandGridSchema = z.object({
   heading: z.string().max(200).optional().default(""),
+  /** "dynamic" (default): pulls brands with Brand.isFeatured=true, ordered by `order` -- see
+   * loadFeaturedBrands in category-brand-grid-render.tsx. "manual": legacy/opt-out behavior,
+   * unchanged -- uses brandIds below exactly as before. */
+  mode: z.enum(["dynamic", "manual"]).default("dynamic"),
   brandIds: z.array(z.string()).default([]),
+  /** Dynamic mode only: caps how many featured brands render. Unset = no limit. */
+  limit: z.number().int().min(1).max(24).optional(),
   /**
    * Root-cause fix for "brand logo sometimes disappears after publish": BrandGridRender otherwise
    * always queries `Brand.logo` live, so a later brand deactivation or Media deletion silently
@@ -63,6 +71,12 @@ const newsGridSchema = z.object({
   limit: z.number().int().min(1).max(12).default(3),
 });
 export type NewsGridData = z.infer<typeof newsGridSchema>;
+
+const certificationsGridSchema = z.object({
+  heading: z.string().max(200).optional().default(""),
+  limit: z.number().int().min(1).max(24).optional(),
+});
+export type CertificationsGridData = z.infer<typeof certificationsGridSchema>;
 
 // `any` is required here, not a shortcut: this array holds BlockDefinition<T> for many different T (each
 // entry individually typed via its own `as BlockDefinition<XData>` cast below), and TData's contravariant
@@ -115,7 +129,10 @@ export const commerceBlocks: BlockDefinition<any>[] = [
     category: "commerce",
     icon: Tag,
     dataSchema: brandGridSchema,
-    defaultData: { en: { heading: "Brands we distribute", brandIds: [] }, ar: { heading: "العلامات التجارية التي نوزعها", brandIds: [] } },
+    defaultData: {
+      en: { heading: "Brands we distribute", mode: "dynamic", brandIds: [] },
+      ar: { heading: "العلامات التجارية التي نوزعها", mode: "dynamic", brandIds: [] },
+    },
     defaultSettings: defaultSectionSettings(),
     Edit: BrandGridEdit,
     Render: BrandGridRender,
@@ -133,4 +150,16 @@ export const commerceBlocks: BlockDefinition<any>[] = [
     Render: NewsGridRender,
     canvasPreview: NewsGridPreview,
   } as BlockDefinition<NewsGridData>,
+  {
+    type: "CERTIFICATIONS_GRID",
+    label: "Certifications Grid",
+    category: "commerce",
+    icon: Award,
+    dataSchema: certificationsGridSchema,
+    defaultData: { en: { heading: "Certifications" }, ar: { heading: "الشهادات" } },
+    defaultSettings: defaultSectionSettings(),
+    Edit: CertificationsGridEdit,
+    Render: CertificationsGridRender,
+    canvasPreview: CertificationsGridPreview,
+  } as BlockDefinition<CertificationsGridData>,
 ];

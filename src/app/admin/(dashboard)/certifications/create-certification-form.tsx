@@ -42,6 +42,10 @@ export function CreateCertificationForm() {
         <label className={labelClass}>Valid until (optional)</label>
         <input type="date" name="validUntil" className={inputClass} />
       </div>
+      <div>
+        <label className={labelClass}>Order</label>
+        <input name="order" type="number" defaultValue={0} className={inputClass} />
+      </div>
       <MediaPickerField name="imageId" label="Certificate image (optional)" accept="IMAGE" />
       {state.error ? <p className="col-span-full text-sm text-red-400">{state.error}</p> : null}
       <div className="col-span-full">

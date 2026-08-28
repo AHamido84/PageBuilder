@@ -182,10 +182,36 @@ async function loadLiveBrands(brandIds: string[], locale: string): Promise<Displ
   }));
 }
 
+/** Dynamic-mode data source: brands the admin has marked Featured in Brand Management, ordered by
+ * `order` -- same pattern as loadFeaturedCategories in this file's Category half. */
+export async function loadFeaturedBrands(locale: string, limit: number | undefined): Promise<DisplayBrand[]> {
+  const brands = await prisma.brand.findMany({
+    where: { isActive: true, isFeatured: true },
+    orderBy: { order: "asc" },
+    include: { translations: true, logo: { select: { url: true } }, _count: { select: { products: true } } },
+    take: limit,
+  });
+  return brands.map((brand) => ({
+    id: brand.id,
+    name: brand.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? brand.slug,
+    logoUrl: brand.logo?.url ?? null,
+    logoId: brand.logoId,
+    count: brand._count.products,
+  }));
+}
+
 export async function BrandGridRender({ data, locale }: BlockRenderProps<BrandGridData>) {
+  const mode = data.mode ?? "dynamic";
   const brands: DisplayBrand[] = data.resolvedBrands
     ? data.resolvedBrands.map((b) => ({ id: b.id, name: b.name, logoUrl: b.logoUrl, logoId: b.logoId, count: b.productCount }))
-    : await loadLiveBrands(data.brandIds ?? [], locale);
+    : mode === "manual"
+      ? await loadLiveBrands(data.brandIds ?? [], locale)
+      : await loadFeaturedBrands(locale, data.limit);
+
+  // Dynamic mode with nothing marked Featured: hide the section on the public site rather than
+  // showing an empty/broken grid -- same convention as CategoryGridRender above. Applies whether
+  // `brands` came from a live query or a frozen (possibly empty) `resolvedBrands` snapshot.
+  if (mode === "dynamic" && brands.length === 0) return null;
 
   return (
     <div>

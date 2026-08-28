@@ -21,6 +21,7 @@ const brandSchema = z.object({
   descriptionAr: z.string().max(2000).optional().or(z.literal("")),
   logoId: z.string().optional().or(z.literal("")),
   bannerId: z.string().optional().or(z.literal("")),
+  order: z.coerce.number().int().default(0),
 });
 
 export interface FormActionState {
@@ -48,6 +49,8 @@ export async function createBrandAction(_prev: FormActionState, formData: FormDa
       website: data.website || null,
       logoId: data.logoId || null,
       bannerId: data.bannerId || null,
+      order: data.order,
+      isFeatured: formData.has("isFeatured"),
       translations: {
         create: [
           { locale: "EN", name: data.nameEn, description: data.descriptionEn || null },
@@ -85,6 +88,8 @@ export async function updateBrandAction(_prev: FormActionState, formData: FormDa
         website: data.website || null,
         logoId: data.logoId || null,
         bannerId: data.bannerId || null,
+        order: data.order,
+        isFeatured: formData.has("isFeatured"),
         isActive: formData.has("isActive"),
       },
     }),
@@ -104,6 +109,19 @@ export async function updateBrandAction(_prev: FormActionState, formData: FormDa
   revalidatePath("/admin/brands");
   revalidatePath(`/admin/brands/${data.id}`);
   return { success: true, id: data.id };
+}
+
+export async function reorderBrandsAction(orderedIds: string[]): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "brands", "update");
+
+  await prisma.$transaction(
+    orderedIds.map((id, index) => prisma.brand.update({ where: { id }, data: { order: index } }))
+  );
+
+  await logActivity({ userId: currentUser.id, action: "brand.reorder", entityType: "Brand" });
+  revalidatePath("/admin/brands");
+  return {};
 }
 
 export async function deleteBrandAction(brandId: string): Promise<{ error?: string }> {

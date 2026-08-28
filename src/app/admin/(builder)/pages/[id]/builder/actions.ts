@@ -132,11 +132,20 @@ export async function saveDraftAction(pageId: string, sections: unknown[]): Prom
 async function freezeBrandGridSection(rawData: unknown, locale: "en" | "ar"): Promise<unknown> {
   const parsed = brandGridSchema.safeParse(rawData);
   if (!parsed.success) return rawData;
+  const mode = parsed.data.mode ?? "dynamic";
   const brandIds = parsed.data.brandIds;
-  const brands = await prisma.brand.findMany({
-    where: brandIds.length ? { id: { in: brandIds } } : { isActive: true },
-    include: { translations: true, logo: { select: { url: true } }, _count: { select: { products: true } } },
-  });
+  const brands =
+    mode === "manual"
+      ? await prisma.brand.findMany({
+          where: brandIds.length ? { id: { in: brandIds } } : { isActive: true },
+          include: { translations: true, logo: { select: { url: true } }, _count: { select: { products: true } } },
+        })
+      : await prisma.brand.findMany({
+          where: { isActive: true, isFeatured: true },
+          orderBy: { order: "asc" },
+          take: parsed.data.limit,
+          include: { translations: true, logo: { select: { url: true } }, _count: { select: { products: true } } },
+        });
   const resolvedBrands = brands.map((b) => ({
     id: b.id,
     name: b.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? b.slug,

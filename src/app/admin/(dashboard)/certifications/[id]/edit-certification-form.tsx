@@ -20,6 +20,7 @@ interface Props {
     isPublished: boolean;
     imageId: string | null;
     image: { url: string } | null;
+    order: number;
   };
 }
 
@@ -57,6 +58,10 @@ export function EditCertificationForm({ certification }: Props) {
       <div>
         <label className={labelClass}>Valid until</label>
         <input type="date" name="validUntil" defaultValue={toDateInputValue(certification.validUntil)} className={inputClass} />
+      </div>
+      <div>
+        <label className={labelClass}>Order</label>
+        <input name="order" type="number" defaultValue={certification.order} className={inputClass} />
       </div>
       <MediaPickerField name="imageId" label="Certificate image" accept="IMAGE" defaultMediaId={certification.imageId} defaultUrl={certification.image?.url} />
       <label className="col-span-full flex items-center gap-2 text-sm text-neutral-300">

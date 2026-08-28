@@ -12,6 +12,8 @@ interface Props {
     slug: string;
     website: string | null;
     isActive: boolean;
+    isFeatured: boolean;
+    order: number;
     logoId: string | null;
     logo: { url: string } | null;
     bannerId: string | null;
@@ -52,11 +54,19 @@ export function EditBrandForm({ brand }: Props) {
         <label className="mb-1 block text-xs text-neutral-400">الوصف (عربي)</label>
         <textarea name="descriptionAr" defaultValue={ar?.description ?? ""} rows={2} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
       </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Order</label>
+        <input name="order" type="number" defaultValue={brand.order} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+      </div>
       <MediaPickerField name="logoId" label="Logo" accept="IMAGE" defaultMediaId={brand.logoId} defaultUrl={brand.logo?.url} />
       <MediaPickerField name="bannerId" label="Banner" accept="IMAGE" defaultMediaId={brand.bannerId} defaultUrl={brand.banner?.url} />
       <label className="col-span-full flex items-center gap-2 text-sm text-neutral-300">
         <input type="checkbox" name="isActive" value="true" defaultChecked={brand.isActive} />
         Active
+      </label>
+      <label className="col-span-full flex items-center gap-2 text-sm text-neutral-300">
+        <input type="checkbox" name="isFeatured" value="true" defaultChecked={brand.isFeatured} />
+        Featured brand — show in the dynamic Brand Grid section
       </label>
       {state.error ? <p className="col-span-full text-sm text-red-400">{state.error}</p> : null}
       {state.success ? <p className="col-span-full text-sm text-emerald-400">Saved.</p> : null}

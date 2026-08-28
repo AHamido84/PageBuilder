@@ -5,6 +5,7 @@ export const RESOURCES = [
   "products",
   "categories",
   "brands",
+  "solutions",
   "media",
   "menus",
   "blog",
@@ -38,7 +39,7 @@ export const ROLE_SLUGS = {
 
 export type RoleSlug = (typeof ROLE_SLUGS)[keyof typeof ROLE_SLUGS];
 
-const contentResources: Resource[] = ["pages", "products", "categories", "brands", "media", "menus", "blog"];
+const contentResources: Resource[] = ["pages", "products", "categories", "brands", "media", "menus", "blog", "solutions"];
 const readAllResources: Resource[] = [...RESOURCES];
 
 /**

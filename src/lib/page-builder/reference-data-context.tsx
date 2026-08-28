@@ -13,6 +13,7 @@ export interface ReferenceOption {
 export interface BrandOption extends ReferenceOption {
   hasLogo: boolean;
   isActive: boolean;
+  isFeatured: boolean;
 }
 
 /** Lets the Category Grid block's Edit panel show real Featured status/order (and an empty-state
