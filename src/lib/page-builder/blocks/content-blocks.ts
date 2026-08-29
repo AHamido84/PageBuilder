@@ -87,6 +87,59 @@ const heroSlideSchema = z.object({
 });
 export type HeroSlide = z.infer<typeof heroSlideSchema>;
 
+/**
+ * "3D Composition" mode's config -- a layered arrangement of arbitrary Media Library images
+ * (background/main/secondary/product/decorative), distinct from "product-composition" mode above
+ * which references real Product catalog rows instead. Grouped as its own nested object (like
+ * `heroSlideSchema`) rather than ~20 more flat fields on `heroSchema` directly. Every field is
+ * defaulted, so existing Hero rows with no `composition` key parse to this default object
+ * unaffected -- no migration, no risk to any pre-existing Hero (image/video/slideshow/
+ * product-composition all stay exactly as they render today).
+ */
+const heroCompositionSchema = z.object({
+  // Content -- plain Media ids, resolved server-side by resolveHeroData like every other Hero
+  // media reference (never duplicates the image data itself).
+  backgroundId: z.string().optional().default(""),
+  mobileBackgroundId: z.string().optional().default(""), // "" => falls back to backgroundId
+  mainImageId: z.string().optional().default(""),
+  secondaryImageId: z.string().optional().default(""),
+  productImageIds: z.array(z.string()).max(6).default([]),
+  decorativeImageIds: z.array(z.string()).max(4).default([]),
+
+  // Animation
+  animationEnabled: z.boolean().default(true),
+  intensity: z.number().min(0).max(100).default(50), // scales float distance/rotation
+  speed: z.number().min(0.5).max(2).default(1), // multiplier on base durations
+  entrance: z.enum(["none", "fade", "fade-slide"]).default("fade-slide"),
+  floating: z.boolean().default(true),
+  hoverInteraction: z.boolean().default(true), // pointer parallax on the main image
+  parallaxIntensity: z.number().min(0).max(100).default(40),
+
+  // Layout
+  mainPosition: z.enum(["left", "right", "center"]).default("right"),
+  width: z.number().min(40).max(100).default(100), // % of hero width the composition occupies
+  height: z.number().min(40).max(100).default(100), // % of hero height
+  mobileLayout: z.enum(["simplified", "background-only", "stacked"]).default("simplified"),
+
+  // Style
+  borderRadius: z.number().min(0).max(48).default(24),
+  shadow: z.enum(["none", "sm", "md", "lg"]).default("md"),
+  overlay: z.enum(["none", "light", "dark", "gradient"]).default("none"),
+  frameStyle: heroFrameStyleSchema.default("full-bleed"),
+  opacity: z.number().min(0).max(100).default(100),
+  blendMode: z.enum(["normal", "multiply", "screen", "soft-light"]).default("normal"),
+});
+export type HeroCompositionData = z.infer<typeof heroCompositionSchema>;
+
+const DEFAULT_COMPOSITION: HeroCompositionData = {
+  backgroundId: "", mobileBackgroundId: "", mainImageId: "", secondaryImageId: "",
+  productImageIds: [], decorativeImageIds: [],
+  animationEnabled: true, intensity: 50, speed: 1, entrance: "fade-slide", floating: true,
+  hoverInteraction: true, parallaxIntensity: 40,
+  mainPosition: "right", width: 100, height: 100, mobileLayout: "simplified",
+  borderRadius: 24, shadow: "md", overlay: "none", frameStyle: "full-bleed", opacity: 100, blendMode: "normal",
+};
+
 const heroSchema = z.object({
   // Content -- used directly in image/video mode; ignored in slideshow mode, which reads from `slides` instead.
   eyebrow: z.string().max(80).optional().default(""),
@@ -104,7 +157,7 @@ const heroSchema = z.object({
   ctaExternal2: z.boolean().default(false),
 
   // Media
-  mediaType: z.enum(["image", "video", "slideshow", "product-composition"]).default("image"),
+  mediaType: z.enum(["image", "video", "slideshow", "product-composition", "3d-composition"]).default("image"),
   // "split": media in its own framed column beside the text (current default). "full-bleed": media
   // stretches across the whole section as a background layer, text overlays on top of it.
   layout: z.enum(["split", "full-bleed"]).default("split"),
@@ -188,6 +241,9 @@ const heroSchema = z.object({
   // hard-swap behavior for admins who prefer it. Defaults to "crossfade" for the more premium feel
   // the brief asks for; existing sections with no stored value pick this up automatically.
   slideTransition: z.enum(["cut", "crossfade"]).default("crossfade"),
+
+  // "3d-composition" mode only -- see heroCompositionSchema above.
+  composition: heroCompositionSchema.default(DEFAULT_COMPOSITION),
 });
 export type HeroData = z.infer<typeof heroSchema>;
 
@@ -215,6 +271,19 @@ export interface HeroResolvedMedia {
   primaryProduct?: HeroResolvedProduct;
   secondaryProduct?: HeroResolvedProduct;
   supportingProduct?: HeroResolvedProduct;
+  /** "3d-composition" mode's resolved image URLs. productUrls/decorativeUrls are id-keyed (like
+   * `slideMedia` above), not plain arrays -- keeps them robust to a referenced Media row being
+   * deleted (a missing entry just means that one id doesn't render, without shifting/misaligning
+   * every id after it the way a filtered array would) and lets the Edit UI look up a thumbnail by
+   * id directly. */
+  compositionMedia?: {
+    backgroundUrl?: string;
+    mobileBackgroundUrl?: string;
+    mainUrl?: string;
+    secondaryUrl?: string;
+    productUrls: Record<string, string>;
+    decorativeUrls: Record<string, string>;
+  };
 }
 export type HeroRenderData = HeroData & HeroResolvedMedia;
 
@@ -266,6 +335,7 @@ export const contentBlocks: BlockDefinition<any>[] = [
         textColorMode: "auto", accentColor: "wheat", overlayDirection: "auto", zoomAmount: 4, animationSpeedSec: 20,
         primaryProductId: "", secondaryProductId: "", supportingProductId: "",
         productsClickable: true, showProductBadges: true, slides: [], slideTransition: "crossfade",
+        composition: DEFAULT_COMPOSITION,
       },
       ar: {
         eyebrow: "", headline: "العنوان الرئيسي هنا", subheading: "",
@@ -283,6 +353,7 @@ export const contentBlocks: BlockDefinition<any>[] = [
         textColorMode: "auto", accentColor: "wheat", overlayDirection: "auto", zoomAmount: 4, animationSpeedSec: 20,
         primaryProductId: "", secondaryProductId: "", supportingProductId: "",
         productsClickable: true, showProductBadges: true, slides: [], slideTransition: "crossfade",
+        composition: DEFAULT_COMPOSITION,
       },
     },
     defaultSettings: defaultSectionSettings({ background: "ink", desktop: { paddingY: "xl", marginY: "none", align: "center", columns: "1", headingSize: "2xl", bodySize: "md", visible: true } }),

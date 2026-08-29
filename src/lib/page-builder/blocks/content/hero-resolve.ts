@@ -22,6 +22,14 @@ export async function resolveHeroData(data: HeroData, locale: string): Promise<H
     if (slide.posterId) ids.add(slide.posterId);
   }
 
+  const c = data.composition;
+  if (c.backgroundId) ids.add(c.backgroundId);
+  if (c.mobileBackgroundId) ids.add(c.mobileBackgroundId);
+  if (c.mainImageId) ids.add(c.mainImageId);
+  if (c.secondaryImageId) ids.add(c.secondaryImageId);
+  for (const id of c.productImageIds) ids.add(id);
+  for (const id of c.decorativeImageIds) ids.add(id);
+
   const productIds = new Set<string>();
   if (data.primaryProductId) productIds.add(data.primaryProductId);
   if (data.secondaryProductId) productIds.add(data.secondaryProductId);
@@ -75,6 +83,24 @@ export async function resolveHeroData(data: HeroData, locale: string): Promise<H
     }
   }
 
+  function toUrlMap(mediaIds: string[]): Record<string, string> {
+    const map: Record<string, string> = {};
+    for (const id of mediaIds) {
+      const url = byId.get(id)?.url;
+      if (url) map[id] = url;
+    }
+    return map;
+  }
+
+  const compositionMedia = {
+    backgroundUrl: c.backgroundId ? byId.get(c.backgroundId)?.url : undefined,
+    mobileBackgroundUrl: c.mobileBackgroundId ? byId.get(c.mobileBackgroundId)?.url : undefined,
+    mainUrl: c.mainImageId ? byId.get(c.mainImageId)?.url : undefined,
+    secondaryUrl: c.secondaryImageId ? byId.get(c.secondaryImageId)?.url : undefined,
+    productUrls: toUrlMap(c.productImageIds),
+    decorativeUrls: toUrlMap(c.decorativeImageIds),
+  };
+
   return {
     ...data,
     desktopMediaUrl: desktop?.url,
@@ -86,5 +112,6 @@ export async function resolveHeroData(data: HeroData, locale: string): Promise<H
     primaryProduct: data.primaryProductId ? toResolvedProduct(data.primaryProductId) : undefined,
     secondaryProduct: data.secondaryProductId ? toResolvedProduct(data.secondaryProductId) : undefined,
     supportingProduct: data.supportingProductId ? toResolvedProduct(data.supportingProductId) : undefined,
+    compositionMedia,
   };
 }

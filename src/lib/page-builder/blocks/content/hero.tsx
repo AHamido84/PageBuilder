@@ -4,6 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { TextField, TextareaField, SelectField, NumberField, CheckboxField } from "@/components/admin/ui/field";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
+import { MultiMediaPickerButton, type MediaListItem } from "@/components/admin/ui/media-library-modal";
+import { Trash2 } from "lucide-react";
 import { buttonClasses, type ButtonVariant } from "@/components/ui/button";
 import { KineticText, Stagger, StaggerItem, usePointerParallaxContainer, pointerParallaxStyle } from "@/lib/motion/primitives";
 import { RouteLine } from "@/components/site/graphics/route-line";
@@ -11,11 +13,12 @@ import { TemperatureIndicator } from "@/components/site/graphics/temperature-ind
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
 import { useReferenceData } from "../../reference-data-context";
-import type { HeroData, HeroRenderData, HeroResolvedMedia, HeroButtonStyle, HeroImagePosition, HeroFramePosition } from "../content-blocks";
+import type { HeroData, HeroRenderData, HeroResolvedMedia, HeroButtonStyle, HeroImagePosition, HeroFramePosition, HeroCompositionData } from "../content-blocks";
 import { HeroFrame, HeroMediaMotion, HeroVideoLayer, type HeroFullBleedOptions } from "./hero-shared";
 import { HeroFrameShape } from "./hero-frame-shape";
 import { HeroDecorativeTypography } from "./hero-decorative-typography";
 import { HeroProductComposition } from "./hero-product-composition-render";
+import { HeroComposition } from "./hero-3d-composition";
 import { FRAME_STYLES, FRAME_STYLE_LABELS, FRAME_BORDER_STYLES, FRAME_GLOWS, FRAME_PRESETS, FRAME_PRESET_LABELS, FRAME_PRESET_BUNDLES } from "./frame-shapes";
 import { HeroSlidesEditor } from "./hero-slides-edit";
 import { HeroSlideshow } from "./hero-slideshow-render";
@@ -72,6 +75,266 @@ function HeroProductPicker({
   );
 }
 
+/** Add/remove list for the composition's product/decorative image arrays -- same interaction shape
+ * as HeroSlidesEditor's slide list (bulk-add via MultiMediaPickerButton, remove per-item), just
+ * picker rows instead of full slide objects. Locally caches each newly-picked id's URL into
+ * `compositionMedia` (mirroring HeroSlidesEditor's own `slideMedia` local-cache pattern) so a
+ * thumbnail appears immediately, without waiting on the next resolveHeroData round trip. */
+function HeroCompositionImageList({
+  label,
+  ids,
+  max,
+  urlMap,
+  onChange,
+}: {
+  label: string;
+  ids: string[];
+  max: number;
+  urlMap: Record<string, string> | undefined;
+  onChange: (nextIds: string[], nextUrlMap: Record<string, string>) => void;
+}) {
+  function addItems(items: MediaListItem[]) {
+    const room = max - ids.length;
+    const toAdd = items.slice(0, Math.max(0, room));
+    if (toAdd.length === 0) return;
+    const nextUrlMap = { ...(urlMap ?? {}) };
+    for (const item of toAdd) nextUrlMap[item.id] = item.url;
+    onChange([...ids, ...toAdd.map((item) => item.id)], nextUrlMap);
+  }
+  function removeAt(index: number) {
+    onChange(ids.filter((_, i) => i !== index), urlMap ?? {});
+  }
+
+  return (
+    <div>
+      <p className="mb-1 text-xs text-neutral-400">
+        {label} ({ids.length}/{max})
+      </p>
+      {ids.length > 0 ? (
+        <div className="mb-2 flex flex-wrap gap-2">
+          {ids.map((id, i) => (
+            <div key={id} className="relative h-16 w-16 overflow-hidden rounded-md border border-neutral-700">
+              {urlMap?.[id] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={urlMap[id]} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-neutral-800 text-[10px] text-neutral-500">?</div>
+              )}
+              <button
+                type="button"
+                onClick={() => removeAt(i)}
+                aria-label="Remove"
+                className="absolute right-0.5 top-0.5 rounded-full bg-neutral-950/80 p-0.5 text-neutral-300 hover:text-red-400"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {ids.length < max ? <MultiMediaPickerButton label={`Add ${label.toLowerCase()}...`} accept="IMAGE" onConfirm={addItems} /> : null}
+    </div>
+  );
+}
+
+/** "3D Composition" mode's full settings panel, grouped into Content/Animation/Layout/Style --
+ * mirrors the request's own grouping. Renders arbitrary Media Library images (unlike
+ * HeroProductPicker above, which references real Product rows) via hero-3d-composition.tsx. */
+function HeroCompositionEditor({
+  data,
+  onChange,
+}: {
+  data: HeroData & Partial<HeroResolvedMedia>;
+  onChange: (next: HeroData & Partial<HeroResolvedMedia>) => void;
+}) {
+  const c = data.composition;
+  const media = data.compositionMedia;
+  function update(patch: Partial<HeroCompositionData>) {
+    onChange({ ...data, composition: { ...c, ...patch } });
+  }
+  function updateMediaMap(key: "productUrls" | "decorativeUrls", nextMap: Record<string, string>) {
+    onChange({
+      ...data,
+      compositionMedia: {
+        backgroundUrl: media?.backgroundUrl,
+        mobileBackgroundUrl: media?.mobileBackgroundUrl,
+        mainUrl: media?.mainUrl,
+        secondaryUrl: media?.secondaryUrl,
+        productUrls: media?.productUrls ?? {},
+        decorativeUrls: media?.decorativeUrls ?? {},
+        [key]: nextMap,
+      },
+    });
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3 rounded-md border border-neutral-800 p-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">3D Composition — Content</p>
+        <MediaPickerControlled
+          label="Background image"
+          accept="IMAGE"
+          mediaId={c.backgroundId}
+          previewUrl={media?.backgroundUrl}
+          onChange={(backgroundId, backgroundUrl) =>
+            onChange({ ...data, composition: { ...c, backgroundId }, compositionMedia: { ...media, backgroundUrl, productUrls: media?.productUrls ?? {}, decorativeUrls: media?.decorativeUrls ?? {} } })
+          }
+        />
+        <MediaPickerControlled
+          label="Mobile background (optional — falls back to desktop)"
+          accept="IMAGE"
+          mediaId={c.mobileBackgroundId}
+          previewUrl={media?.mobileBackgroundUrl}
+          onChange={(mobileBackgroundId, mobileBackgroundUrl) =>
+            onChange({ ...data, composition: { ...c, mobileBackgroundId }, compositionMedia: { ...media, mobileBackgroundUrl, productUrls: media?.productUrls ?? {}, decorativeUrls: media?.decorativeUrls ?? {} } })
+          }
+        />
+        <MediaPickerControlled
+          label="Main image"
+          accept="IMAGE"
+          mediaId={c.mainImageId}
+          previewUrl={media?.mainUrl}
+          onChange={(mainImageId, mainUrl) =>
+            onChange({ ...data, composition: { ...c, mainImageId }, compositionMedia: { ...media, mainUrl, productUrls: media?.productUrls ?? {}, decorativeUrls: media?.decorativeUrls ?? {} } })
+          }
+        />
+        <MediaPickerControlled
+          label="Secondary image (optional)"
+          accept="IMAGE"
+          mediaId={c.secondaryImageId}
+          previewUrl={media?.secondaryUrl}
+          onChange={(secondaryImageId, secondaryUrl) =>
+            onChange({ ...data, composition: { ...c, secondaryImageId }, compositionMedia: { ...media, secondaryUrl, productUrls: media?.productUrls ?? {}, decorativeUrls: media?.decorativeUrls ?? {} } })
+          }
+        />
+        <HeroCompositionImageList
+          label="Product images"
+          ids={c.productImageIds}
+          max={6}
+          urlMap={media?.productUrls}
+          onChange={(productImageIds, nextMap) => {
+            update({ productImageIds });
+            updateMediaMap("productUrls", nextMap);
+          }}
+        />
+        <HeroCompositionImageList
+          label="Decorative images"
+          ids={c.decorativeImageIds}
+          max={4}
+          urlMap={media?.decorativeUrls}
+          onChange={(decorativeImageIds, nextMap) => {
+            update({ decorativeImageIds });
+            updateMediaMap("decorativeUrls", nextMap);
+          }}
+        />
+      </div>
+
+      <div className="space-y-3 rounded-md border border-neutral-800 p-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">3D Composition — Animation</p>
+        <div className="flex flex-wrap items-center gap-4">
+          <CheckboxField label="Enable animation" checked={c.animationEnabled} onChange={(animationEnabled) => update({ animationEnabled })} />
+          <CheckboxField label="Floating movement" checked={c.floating} onChange={(floating) => update({ floating })} />
+          <CheckboxField label="Hover / pointer interaction" checked={c.hoverInteraction} onChange={(hoverInteraction) => update({ hoverInteraction })} />
+        </div>
+        <SelectField
+          label="Entrance animation"
+          value={c.entrance}
+          onChange={(entrance) => update({ entrance })}
+          options={[
+            { value: "fade-slide", label: "Fade + slide (default)" },
+            { value: "fade", label: "Fade only" },
+            { value: "none", label: "None" },
+          ]}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <NumberField label="Animation intensity (%)" value={c.intensity} min={0} max={100} onChange={(intensity) => update({ intensity })} />
+          <NumberField label="Animation speed (0.5–2x)" value={c.speed} min={0.5} max={2} onChange={(speed) => update({ speed })} />
+        </div>
+        <NumberField label="Parallax intensity (%)" value={c.parallaxIntensity} min={0} max={100} onChange={(parallaxIntensity) => update({ parallaxIntensity })} />
+      </div>
+
+      <div className="space-y-3 rounded-md border border-neutral-800 p-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">3D Composition — Layout</p>
+        <SelectField
+          label="Main image position"
+          value={c.mainPosition}
+          onChange={(mainPosition) => update({ mainPosition })}
+          options={[
+            { value: "left", label: "Left" },
+            { value: "center", label: "Center" },
+            { value: "right", label: "Right" },
+          ]}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <NumberField label="Composition width (%)" value={c.width} min={40} max={100} onChange={(width) => update({ width })} />
+          <NumberField label="Composition height (%)" value={c.height} min={40} max={100} onChange={(height) => update({ height })} />
+        </div>
+        <SelectField
+          label="Mobile layout"
+          value={c.mobileLayout}
+          onChange={(mobileLayout) => update({ mobileLayout })}
+          options={[
+            { value: "simplified", label: "Simplified — main + background, fewer floating layers" },
+            { value: "stacked", label: "Stacked — every layer, repositioned" },
+            { value: "background-only", label: "Background only" },
+          ]}
+        />
+      </div>
+
+      <div className="space-y-3 rounded-md border border-neutral-800 p-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">3D Composition — Style</p>
+        <SelectField
+          label="Frame style"
+          value={c.frameStyle}
+          onChange={(frameStyle) => update({ frameStyle })}
+          options={FRAME_STYLES.map((s) => ({ value: s, label: FRAME_STYLE_LABELS[s] }))}
+        />
+        {c.frameStyle === "rounded-rectangle" ? (
+          <NumberField label="Border radius (px)" value={c.borderRadius} min={0} max={48} onChange={(borderRadius) => update({ borderRadius })} />
+        ) : null}
+        <div className="grid grid-cols-2 gap-3">
+          <SelectField
+            label="Shadow"
+            value={c.shadow}
+            onChange={(shadow) => update({ shadow })}
+            options={[
+              { value: "none", label: "None" },
+              { value: "sm", label: "Small" },
+              { value: "md", label: "Medium" },
+              { value: "lg", label: "Large" },
+            ]}
+          />
+          <SelectField
+            label="Overlay"
+            value={c.overlay}
+            onChange={(overlay) => update({ overlay })}
+            options={[
+              { value: "none", label: "None" },
+              { value: "light", label: "Light" },
+              { value: "dark", label: "Dark" },
+              { value: "gradient", label: "Gradient (brand)" },
+            ]}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <NumberField label="Opacity (%)" value={c.opacity} min={0} max={100} onChange={(opacity) => update({ opacity })} />
+          <SelectField
+            label="Blend mode"
+            value={c.blendMode}
+            onChange={(blendMode) => update({ blendMode })}
+            options={[
+              { value: "normal", label: "Normal" },
+              { value: "multiply", label: "Multiply" },
+              { value: "screen", label: "Screen" },
+              { value: "soft-light", label: "Soft light" },
+            ]}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & Partial<HeroResolvedMedia>>) {
   const dir = locale === "ar" ? "rtl" : "ltr";
 
@@ -87,17 +350,25 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
             // mode can't validly carry over to another (e.g. an image id left in `desktopMediaId`
             // would otherwise show as "already selected" in the video picker, then fail to play
             // as a <video src>). Clear the shared media fields on an actual mode change.
-            onChange(
-              mediaType === data.mediaType
-                ? { ...data, mediaType }
-                : { ...data, mediaType, desktopMediaId: "", desktopMediaUrl: undefined, mobileMediaId: "", mobileMediaUrl: undefined, posterId: "", posterUrl: undefined }
-            )
+            onChange({
+              ...data,
+              mediaType,
+              ...(mediaType === data.mediaType
+                ? {}
+                : { desktopMediaId: "", desktopMediaUrl: undefined, mobileMediaId: "", mobileMediaUrl: undefined, posterId: "", posterUrl: undefined }),
+              // 3D Composition is built for the immersive edge-to-edge presentation -- default new
+              // selections into full-bleed, same "only override the mode's own still-default value"
+              // carefulness as the Layout select just below (never clobbers a deliberate split choice
+              // an admin already made before switching modes back and forth).
+              ...(mediaType === "3d-composition" && mediaType !== data.mediaType && data.layout === "split" ? { layout: "full-bleed" } : {}),
+            })
           }
           options={[
             { value: "image", label: "Image" },
             { value: "video", label: "Video" },
             { value: "slideshow", label: "Slideshow" },
             { value: "product-composition", label: "Product Composition" },
+            { value: "3d-composition", label: "3D Composition" },
           ]}
         />
         <SelectField
@@ -413,9 +684,15 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
           </>
         ) : null}
         {data.mediaType !== "product-composition" ? (
-          <NumberField label="Overlay opacity (%)" value={data.overlayOpacity} min={0} max={100} onChange={(overlayOpacity) => onChange({ ...data, overlayOpacity })} />
+          <NumberField
+            label={data.mediaType === "3d-composition" ? "Text-readability overlay opacity (%)" : "Overlay opacity (%)"}
+            value={data.overlayOpacity}
+            min={0}
+            max={100}
+            onChange={(overlayOpacity) => onChange({ ...data, overlayOpacity })}
+          />
         ) : null}
-        {data.mediaType !== "slideshow" && data.mediaType !== "product-composition" ? (
+        {data.mediaType !== "slideshow" && data.mediaType !== "product-composition" && data.mediaType !== "3d-composition" ? (
           <SelectField
             label="Animation"
             value={data.animation}
@@ -445,6 +722,10 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
           </p>
           <HeroProductPicker data={data} onChange={onChange} />
         </div>
+      ) : null}
+
+      {data.mediaType === "3d-composition" ? (
+        <HeroCompositionEditor data={data} onChange={onChange} />
       ) : null}
 
       {data.mediaType === "slideshow" ? (
@@ -693,6 +974,8 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
     );
   } else if (data.mediaType === "product-composition") {
     media = <HeroProductComposition data={data} locale={locale} />;
+  } else if (data.mediaType === "3d-composition") {
+    media = <HeroComposition data={data} locale={locale} />;
   }
 
   const isProductComposition = data.mediaType === "product-composition";
