@@ -32,17 +32,30 @@ const plexArabic = IBM_Plex_Sans_Arabic({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: { default: "Seven Eleven Trading", template: "%s — Seven Eleven Trading" },
-  description: "Wholesale food distribution — Jeddah, Saudi Arabia",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  // The favicon lives at public/favicon.ico (a plain static asset), not the App Router's special
+  // src/app/favicon.ico convention -- that convention always auto-injects its own <link rel="icon">
+  // regardless of what `icons` below declares, which would leave two competing icon tags in <head>
+  // once a custom favicon is uploaded (observed directly: browsers don't reliably pick one).
+  // Referencing the static file explicitly here instead makes this the single source of truth,
+  // falling back to it whenever no SiteSetting.favicon has been uploaded yet.
+  const settings = await getSiteSettings();
+  return {
+    title: { default: "Seven Eleven Trading", template: "%s — Seven Eleven Trading" },
+    description: "Wholesale food distribution — Jeddah, Saudi Arabia",
+    icons: { icon: settings?.favicon?.url ?? "/favicon.ico" },
+  };
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
 async function getSiteSettings() {
-  return prisma.siteSetting.findUnique({ where: { id: "singleton" }, include: { logo: { select: { url: true } } } });
+  return prisma.siteSetting.findUnique({
+    where: { id: "singleton" },
+    include: { logo: { select: { url: true } }, favicon: { select: { url: true } } },
+  });
 }
 
 async function getNavData(locale: string) {
