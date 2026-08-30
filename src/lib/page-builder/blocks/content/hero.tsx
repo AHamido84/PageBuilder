@@ -6,15 +6,15 @@ import { TextField, TextareaField, SelectField, NumberField, CheckboxField } fro
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { MultiMediaPickerButton, type MediaListItem } from "@/components/admin/ui/media-library-modal";
 import { Trash2 } from "lucide-react";
-import { buttonClasses, type ButtonVariant } from "@/components/ui/button";
+import { buttonClasses } from "@/components/ui/button";
 import { KineticText, Stagger, StaggerItem, usePointerParallaxContainer, pointerParallaxStyle } from "@/lib/motion/primitives";
 import { RouteLine } from "@/components/site/graphics/route-line";
 import { TemperatureIndicator } from "@/components/site/graphics/temperature-indicator";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
 import { useReferenceData } from "../../reference-data-context";
-import type { HeroData, HeroRenderData, HeroResolvedMedia, HeroButtonStyle, HeroImagePosition, HeroFramePosition, HeroCompositionData } from "../content-blocks";
-import { HeroFrame, HeroMediaMotion, HeroVideoLayer, type HeroFullBleedOptions } from "./hero-shared";
+import type { HeroData, HeroRenderData, HeroResolvedMedia, HeroImagePosition, HeroFramePosition, HeroCompositionData } from "../content-blocks";
+import { HeroFrame, HeroMediaMotion, HeroVideoLayer, HeroCtaOverlay, heroButtonVariant, heroImageFitClass, CTA_STYLE_OPTIONS, type HeroFullBleedOptions } from "./hero-shared";
 import { HeroFrameShape } from "./hero-frame-shape";
 import { HeroDecorativeTypography } from "./hero-decorative-typography";
 import { HeroProductComposition } from "./hero-product-composition-render";
@@ -44,13 +44,6 @@ const FRAME_POSITION_ALIGN: Record<HeroFramePosition, string> = {
   bottom: "items-end justify-center",
   custom: "items-center justify-center",
 };
-
-/** "secondary"/"ghost" map to the button kit's light/dark ghost variants rather than its own "secondary" — Hero defaults to a dark (ink) section background, where a light-bordered ghost reads correctly and a dark-text "secondary" variant would vanish. Both remain available so an admin using Hero on a light section background can pick the one that's actually visible there. */
-function heroButtonVariant(style: HeroButtonStyle): ButtonVariant {
-  if (style === "secondary") return "ghost-light";
-  if (style === "ghost") return "ghost-dark";
-  return "primary";
-}
 
 /** Primary/Secondary/Supporting product pickers for Product Composition mode. Sourced from `useReferenceData().products` -- the same "eager-load the whole small catalog into a plain select" pattern already used by Category/Brand Grid's own reference-data pickers, not a new search component (the real catalog is 23 rows, the same order of magnitude). */
 function HeroProductPicker({
@@ -410,11 +403,24 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
             />
           </>
         ) : null}
+        {data.mediaType === "image" || data.mediaType === "video" || data.mediaType === "slideshow" ? (
+          <SelectField
+            label="Image / video fit"
+            value={data.imageFit}
+            onChange={(imageFit) => onChange({ ...data, imageFit })}
+            options={[
+              { value: "cover", label: "Cover — fill the frame, may crop" },
+              { value: "contain", label: "Contain — show the complete image, no cropping" },
+              { value: "fill", label: "Fill — stretch to the exact frame size" },
+              { value: "none", label: "Natural — original size, unscaled" },
+            ]}
+          />
+        ) : null}
         {data.mediaType === "image" || data.mediaType === "slideshow" ? (
-          // Slideshow mode reuses this same focal point for every slide's crop (HeroSlideshow reads
-          // data.focalX/focalY, not a per-slide value) -- it needs this control just as much as plain
-          // image mode does, e.g. for a banner with baked-in text sitting off-center that gets cropped
-          // out on a narrower/taller viewport than the source photo's own aspect ratio.
+          // Slideshow mode falls back to this shared focal point for any slide that hasn't set its
+          // own (HeroSlideshow reads slide.focalX ?? data.focalX) -- it needs this control just as
+          // much as plain image mode does, e.g. for a banner with baked-in text sitting off-center
+          // that gets cropped out on a narrower/taller viewport than the source photo's own aspect ratio.
           <>
             <SelectField
               label="Image position"
@@ -748,11 +754,7 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
                 label="Style"
                 value={data.ctaStyle}
                 onChange={(ctaStyle) => onChange({ ...data, ctaStyle })}
-                options={[
-                  { value: "primary", label: "Primary" },
-                  { value: "secondary", label: "Secondary (light ghost)" },
-                  { value: "ghost", label: "Ghost (dark)" },
-                ]}
+                options={CTA_STYLE_OPTIONS}
                 className="min-w-[10rem]"
               />
               <CheckboxField label="Visible" checked={data.ctaVisible} onChange={(ctaVisible) => onChange({ ...data, ctaVisible })} />
@@ -771,16 +773,38 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
                 label="Style"
                 value={data.ctaStyle2}
                 onChange={(ctaStyle2) => onChange({ ...data, ctaStyle2 })}
-                options={[
-                  { value: "primary", label: "Primary" },
-                  { value: "secondary", label: "Secondary (light ghost)" },
-                  { value: "ghost", label: "Ghost (dark)" },
-                ]}
+                options={CTA_STYLE_OPTIONS}
                 className="min-w-[10rem]"
               />
               <CheckboxField label="Visible" checked={data.ctaVisible2} onChange={(ctaVisible2) => onChange({ ...data, ctaVisible2 })} />
               <CheckboxField label="External link" checked={data.ctaExternal2} onChange={(ctaExternal2) => onChange({ ...data, ctaExternal2 })} />
             </div>
+          </div>
+
+          <div className="space-y-3 rounded-md border border-neutral-800 p-3">
+            <p className="text-xs text-neutral-500">CTA position</p>
+            <SelectField
+              label="Mode"
+              value={data.ctaPositionMode}
+              onChange={(ctaPositionMode) => onChange({ ...data, ctaPositionMode })}
+              options={[
+                { value: "flow", label: "Flow — inline under the description (default)" },
+                { value: "custom", label: "Custom — absolute X/Y over the hero" },
+              ]}
+            />
+            {data.ctaPositionMode === "custom" ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <NumberField label="CTA X (%)" value={data.ctaX} min={0} max={100} onChange={(ctaX) => onChange({ ...data, ctaX })} />
+                  <NumberField label="CTA Y (%)" value={data.ctaY} min={0} max={100} onChange={(ctaY) => onChange({ ...data, ctaY })} />
+                </div>
+                <CheckboxField
+                  label="Mirror position for RTL (Arabic)"
+                  checked={data.ctaMirrorForRtl}
+                  onChange={(ctaMirrorForRtl) => onChange({ ...data, ctaMirrorForRtl })}
+                />
+              </>
+            ) : null}
           </div>
         </div>
       )}
@@ -807,6 +831,43 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
   const desktopVideoUrl = data.mediaType === "video" ? data.desktopMediaUrl : undefined;
   const mobileVideoUrl = data.mediaType === "video" ? (data.mobileMediaUrl || data.desktopMediaUrl) : undefined;
   const imagePositionStyle = { objectPosition: `${data.focalX}% ${data.focalY}%` };
+  const imageFitClass = heroImageFitClass(data.imageFit);
+
+  // Pulled out of the content Stagger so "custom" CTA positioning (below) can place it as an
+  // independent absolutely-positioned sibling instead -- moving the CTA must never drag the
+  // heading/body text along with it (advanced hero CTA controls brief's independence requirement).
+  const ctaButtons =
+    hasPrimaryCta || hasSecondaryCta ? (
+      <div className="flex flex-wrap items-center gap-3">
+        {hasPrimaryCta ? (
+          <Link
+            href={resolveHref(data.ctaUrl, locale)}
+            className={buttonClasses(heroButtonVariant(data.ctaStyle), "lg")}
+            {...(data.ctaExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          >
+            {data.ctaLabel}
+          </Link>
+        ) : null}
+        {hasSecondaryCta ? (
+          <Link
+            href={resolveHref(data.ctaUrl2, locale)}
+            className={buttonClasses(heroButtonVariant(data.ctaStyle2), "lg")}
+            {...(data.ctaExternal2 ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          >
+            {data.ctaLabel2}
+          </Link>
+        ) : null}
+      </div>
+    ) : null;
+  const ctaIsCustom = data.ctaPositionMode === "custom" && Boolean(ctaButtons);
+  // Physical X is independent per locale already (dataEn/dataAr are separate objects) -- mirroring
+  // only happens when an admin deliberately opts in via ctaMirrorForRtl (brief §13).
+  const effectiveCtaX = locale === "ar" && data.ctaMirrorForRtl ? 100 - data.ctaX : data.ctaX;
+  const ctaOverlay = ctaIsCustom ? (
+    <HeroCtaOverlay x={effectiveCtaX} y={data.ctaY}>
+      {ctaButtons}
+    </HeroCtaOverlay>
+  ) : null;
 
   const content = (
     // Text column renders first in DOM so it lands on the reading-start side in both LTR and RTL —
@@ -832,30 +893,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
           <p className="measure-ar mt-5 max-w-lg text-base leading-relaxed opacity-70 sm:text-lg">{data.subheading}</p>
         </StaggerItem>
       ) : null}
-      {hasPrimaryCta || hasSecondaryCta ? (
-        <StaggerItem>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            {hasPrimaryCta ? (
-              <Link
-                href={resolveHref(data.ctaUrl, locale)}
-                className={buttonClasses(heroButtonVariant(data.ctaStyle), "lg")}
-                {...(data.ctaExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              >
-                {data.ctaLabel}
-              </Link>
-            ) : null}
-            {hasSecondaryCta ? (
-              <Link
-                href={resolveHref(data.ctaUrl2, locale)}
-                className={buttonClasses(heroButtonVariant(data.ctaStyle2), "lg")}
-                {...(data.ctaExternal2 ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              >
-                {data.ctaLabel2}
-              </Link>
-            ) : null}
-          </div>
-        </StaggerItem>
-      ) : null}
+      {!ctaIsCustom && ctaButtons ? <StaggerItem><div className="mt-8">{ctaButtons}</div></StaggerItem> : null}
     </Stagger>
   );
 
@@ -898,7 +936,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
                 animation={data.animation}
                 className="absolute inset-0 hidden lg:block"
               >
-                <Image src={desktopImageUrl as string} alt="" fill priority sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" style={imagePositionStyle} />
+                <Image src={desktopImageUrl as string} alt="" fill priority sizes="(min-width: 1024px) 50vw, 100vw" className={imageFitClass} style={imagePositionStyle} />
                 <div className="pointer-events-none absolute inset-0" style={splitOverlayStyle} />
               </HeroFrameShape>
               {mobileImageUrl ? (
@@ -912,7 +950,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
                   animation={data.animation}
                   className="absolute inset-0 lg:hidden"
                 >
-                  <Image src={mobileImageUrl} alt="" fill priority sizes="100vw" className="object-cover" style={imagePositionStyle} />
+                  <Image src={mobileImageUrl} alt="" fill priority sizes="100vw" className={imageFitClass} style={imagePositionStyle} />
                   <div className="pointer-events-none absolute inset-0" style={splitOverlayStyle} />
                 </HeroFrameShape>
               ) : null}
@@ -933,9 +971,9 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
               art-direction pattern already used by the cold-chain journey's route line) rather
               than one <img> the browser just crops — "mobile" can be a genuinely different photo,
               not a squeeze of the desktop one (brief §9). */}
-          <Image src={desktopImageUrl} alt="" fill priority sizes="(min-width: 1024px) 50vw, 100vw" className="hidden object-cover lg:block" style={imagePositionStyle} />
+          <Image src={desktopImageUrl} alt="" fill priority sizes="(min-width: 1024px) 50vw, 100vw" className={`hidden lg:block ${imageFitClass}`} style={imagePositionStyle} />
           {mobileImageUrl ? (
-            <Image src={mobileImageUrl} alt="" fill priority sizes="100vw" className="object-cover lg:hidden" style={imagePositionStyle} />
+            <Image src={mobileImageUrl} alt="" fill priority sizes="100vw" className={`lg:hidden ${imageFitClass}`} style={imagePositionStyle} />
           ) : null}
         </HeroMediaMotion>
       </div>
@@ -955,7 +993,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
             autoPlay={data.videoAutoplay}
             muted={data.videoMuted}
             loop={data.videoLoop}
-            className="hidden h-full w-full object-cover lg:block"
+            className={`hidden h-full w-full lg:block ${imageFitClass}`}
             style={imagePositionStyle}
           />
           {mobileVideoUrl ? (
@@ -965,7 +1003,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
               autoPlay={data.videoAutoplay}
               muted={data.videoMuted}
               loop={data.videoLoop}
-              className="h-full w-full object-cover lg:hidden"
+              className={`h-full w-full lg:hidden ${imageFitClass}`}
               style={imagePositionStyle}
             />
           ) : null}
@@ -1015,6 +1053,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
         allowOverflow={isFramedImage && data.frameOverflow}
         hideOverlay={isFramedImage || isProductComposition}
         fullBleed={fullBleedOptions}
+        ctaOverlay={ctaOverlay}
       />
       {/* Extremely subtle cold-chain accent (brief §39-40) -- conceptually tied to the frame
           (the product/scene it's presenting), not a decorative graphic dropped in arbitrarily.

@@ -5,7 +5,72 @@ import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { ClipReveal, Parallax } from "@/lib/motion/primitives";
 import { DURATION, EASE_PREMIUM } from "@/lib/motion/motionTokens";
-import type { HeroAnimation, HeroHeight, HeroContentPosition, HeroVerticalAlign, HeroContentMaxWidth, HeroTextColorMode, HeroOverlayDirection } from "../content-blocks";
+import type { ButtonVariant } from "@/components/ui/button";
+import type {
+  HeroAnimation,
+  HeroHeight,
+  HeroContentPosition,
+  HeroVerticalAlign,
+  HeroContentMaxWidth,
+  HeroTextColorMode,
+  HeroOverlayDirection,
+  HeroButtonStyle,
+  HeroImageFit,
+} from "../content-blocks";
+
+/** CTA style options shared by every "Style" select across the Hero block -- the top-level Hero's
+ * own two buttons (hero.tsx) and, per-slide, each slideshow slide's two buttons (hero-slides-edit.tsx).
+ * Kept in this leaf module (rather than defined in hero.tsx and imported by hero-slides-edit.tsx)
+ * so neither of those two files needs to import from the other. "Primary"/"Secondary (light
+ * ghost)"/"Ghost (dark)" are the three original values (kept first, same labels, so no existing
+ * selection looks different); "Ghost Light"/"Ghost Dark"/"Gold"/"Gold Outline" are new. */
+export const CTA_STYLE_OPTIONS: { value: HeroButtonStyle; label: string }[] = [
+  { value: "primary", label: "Primary" },
+  { value: "secondary", label: "Secondary (light ghost)" },
+  { value: "ghost", label: "Ghost (dark)" },
+  { value: "ghost-light", label: "Ghost Light" },
+  { value: "ghost-dark", label: "Ghost Dark" },
+  { value: "gold", label: "Gold" },
+  { value: "gold-outline", label: "Gold Outline" },
+];
+
+/** Maps Hero's own CTA style enum onto the shared button kit's variants. "secondary"/"ghost" are
+ * the two original values, kept mapped exactly as they always were (secondary->ghost-light,
+ * ghost->ghost-dark) so no already-published Hero CTA changes appearance; every other value maps
+ * to its same-named button variant directly. */
+export function heroButtonVariant(style: HeroButtonStyle): ButtonVariant {
+  if (style === "secondary") return "ghost-light";
+  if (style === "ghost") return "ghost-dark";
+  return style;
+}
+
+/** object-fit for a Hero image/video layer -- "none" (CSS's own "natural size, no scaling" value)
+ * is what the brief calls "Natural / Auto". */
+export function heroImageFitClass(fit: HeroImageFit): string {
+  if (fit === "contain") return "object-contain";
+  if (fit === "fill") return "object-fill";
+  if (fit === "none") return "object-none";
+  return "object-cover";
+}
+
+/** The absolutely-positioned CTA layer for `ctaPositionMode: "custom"` -- rendered as a sibling of
+ * the normal content flow (never inside it), so moving the CTA can never move the heading/body
+ * text sitting in that flow (advanced hero CTA controls brief's independence requirement). `x`/`y`
+ * are 0-100 anchor points; the group is centered on that point and the anchor itself is clamped
+ * at least 1rem from every edge so a translate(-50%,-50%)-centered group can't be pushed fully off
+ * the visible box on a narrow viewport. */
+export function HeroCtaOverlay({ x, y, children }: { x: number; y: number; children: React.ReactNode }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20">
+      <div
+        className="pointer-events-auto absolute max-w-[min(90%,28rem)]"
+        style={{ left: `clamp(1rem, ${x}%, calc(100% - 1rem))`, top: `clamp(1rem, ${y}%, calc(100% - 1rem))`, transform: "translate(-50%, -50%)" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Pieces shared between Hero's image/video render (hero.tsx) and its slideshow render
@@ -95,6 +160,7 @@ export function HeroFrame({
   allowOverflow = false,
   hideOverlay = false,
   fullBleed,
+  ctaOverlay,
 }: {
   layout: "split" | "full-bleed";
   overlayOpacity: number;
@@ -106,6 +172,10 @@ export function HeroFrame({
   hideOverlay?: boolean;
   /** Full-bleed layout only. Falls back to sane defaults (matching heroSchema's own) if omitted -- callers that haven't been updated for these fields yet (e.g. an older slide) still render correctly. */
   fullBleed?: Partial<HeroFullBleedOptions>;
+  /** `ctaPositionMode: "custom"`'s absolutely-positioned CTA group (see HeroCtaOverlay) -- rendered
+   * over the *entire* frame (both columns in split layout, the whole box in full-bleed), never
+   * inside `content`, so it can never drag the heading/body text along with it. */
+  ctaOverlay?: React.ReactNode;
 }) {
   const isFullBleed = layout === "full-bleed";
   // Split mode only, unchanged: a directional scrim behind a boxed side-image (only the bottom
@@ -137,12 +207,13 @@ export function HeroFrame({
             {content}
           </div>
         </div>
+        {ctaOverlay}
       </div>
     );
   }
 
   return (
-    <div className={`grid items-center gap-12 lg:grid-cols-2 lg:gap-16 ${allowOverflow ? "lg:overflow-visible" : ""}`}>
+    <div className={`relative grid items-center gap-12 lg:grid-cols-2 lg:gap-16 ${allowOverflow ? "lg:overflow-visible" : ""}`}>
       {/* Mobile composition order is Background/Product -> Text -> CTA (brief §42), not a plain
           top-to-bottom stack of whatever the DOM order happens to be -- `content` renders first in
           DOM for desktop's RTL-correct grid-track placement (see its own comment at the call site),
@@ -156,6 +227,7 @@ export function HeroFrame({
           {hideOverlay ? null : <div className="pointer-events-none absolute inset-0" style={splitOverlayStyle} />}
         </div>
       ) : null}
+      {ctaOverlay}
     </div>
   );
 }

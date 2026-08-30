@@ -5,9 +5,13 @@ import { TextField, TextareaField, SelectField, NumberField, CheckboxField } fro
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { MultiMediaPickerButton, type MediaListItem } from "@/components/admin/ui/media-library-modal";
 import { IconButton } from "@/components/admin/ui/icon-button";
+import { CTA_STYLE_OPTIONS } from "./hero-shared";
 import type { BlockEditProps } from "../../types";
 import type { HeroData, HeroResolvedMedia, HeroSlide } from "../content-blocks";
 
+/** Same "" / null sentinels heroSlideSchema itself uses -- see the schema's own comments in
+ * content-blocks.ts. A brand-new slide has nothing to fall back to yet other than the Hero-level
+ * defaults, exactly the same as an older, pre-existing slide that predates these fields. */
 function newSlide(): HeroSlide {
   return {
     id: crypto.randomUUID(),
@@ -25,6 +29,16 @@ function newSlide(): HeroSlide {
     ctaUrl2: "",
     durationMs: 6000,
     animation: "slow-zoom",
+    imageFit: "",
+    imageFitMobile: "",
+    focalX: null,
+    focalY: null,
+    ctaStyle: "",
+    ctaStyle2: "",
+    ctaPositionMode: "",
+    ctaX: null,
+    ctaY: null,
+    overlayOpacity: null,
   };
 }
 
@@ -167,6 +181,52 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
                 />
               ) : null}
 
+              {/* Every field below is genuinely per-slide -- "" / null means "not set on this
+                  slide", resolved at render time against this slideshow's own hero-level values
+                  (see HeroSlideshow), never a single setting shared across every slide. */}
+              <div className="grid grid-cols-2 gap-3">
+                <SelectField
+                  label="Image fit"
+                  value={slide.imageFit}
+                  onChange={(imageFit) => updateSlide(i, { imageFit })}
+                  options={[
+                    { value: "", label: "Use Hero default (Cover)" },
+                    { value: "cover", label: "Cover — fill, may crop" },
+                    { value: "contain", label: "Contain — no cropping" },
+                    { value: "fill", label: "Fill — stretch" },
+                    { value: "none", label: "Natural — unscaled" },
+                  ]}
+                />
+                <SelectField
+                  label="Image fit (mobile)"
+                  value={slide.imageFitMobile}
+                  onChange={(imageFitMobile) => updateSlide(i, { imageFitMobile })}
+                  options={[
+                    { value: "", label: "Same as desktop" },
+                    { value: "cover", label: "Cover — fill, may crop" },
+                    { value: "contain", label: "Contain — no cropping" },
+                    { value: "fill", label: "Fill — stretch" },
+                    { value: "none", label: "Natural — unscaled" },
+                  ]}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <NumberField
+                  label="Focal X (%)"
+                  value={slide.focalX ?? 50}
+                  min={0}
+                  max={100}
+                  onChange={(focalX) => updateSlide(i, { focalX })}
+                />
+                <NumberField
+                  label="Focal Y (%)"
+                  value={slide.focalY ?? 50}
+                  min={0}
+                  max={100}
+                  onChange={(focalY) => updateSlide(i, { focalY })}
+                />
+              </div>
+
               <TextField label="Eyebrow" value={slide.eyebrow ?? ""} onChange={(eyebrow) => updateSlide(i, { eyebrow })} dir={dir} />
               <TextField label="Headline" value={slide.headline ?? ""} onChange={(headline) => updateSlide(i, { headline })} dir={dir} />
               <TextareaField label="Description" value={slide.description ?? ""} onChange={(description) => updateSlide(i, { description })} dir={dir} rows={2} />
@@ -175,9 +235,58 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
                 <TextField label="Primary CTA label" value={slide.ctaLabel ?? ""} onChange={(ctaLabel) => updateSlide(i, { ctaLabel })} dir={dir} />
                 <TextField label="Primary CTA URL" value={slide.ctaUrl ?? ""} onChange={(ctaUrl) => updateSlide(i, { ctaUrl })} />
               </div>
+              <SelectField
+                label="Primary CTA style"
+                value={slide.ctaStyle}
+                onChange={(ctaStyle) => updateSlide(i, { ctaStyle })}
+                options={[{ value: "", label: "Use Hero default (Primary)" }, ...CTA_STYLE_OPTIONS]}
+              />
               <div className="grid grid-cols-2 gap-3">
                 <TextField label="Secondary CTA label" value={slide.ctaLabel2 ?? ""} onChange={(ctaLabel2) => updateSlide(i, { ctaLabel2 })} dir={dir} />
                 <TextField label="Secondary CTA URL" value={slide.ctaUrl2 ?? ""} onChange={(ctaUrl2) => updateSlide(i, { ctaUrl2 })} />
+              </div>
+              <SelectField
+                label="Secondary CTA style"
+                value={slide.ctaStyle2}
+                onChange={(ctaStyle2) => updateSlide(i, { ctaStyle2 })}
+                options={[{ value: "", label: "Use Hero default (Secondary)" }, ...CTA_STYLE_OPTIONS]}
+              />
+
+              <div className="space-y-3 rounded-md border border-neutral-800 p-3">
+                <p className="text-xs text-neutral-500">CTA position (this slide)</p>
+                <SelectField
+                  label="Mode"
+                  value={slide.ctaPositionMode}
+                  onChange={(ctaPositionMode) => updateSlide(i, { ctaPositionMode })}
+                  options={[
+                    { value: "", label: "Use Hero default (Flow)" },
+                    { value: "flow", label: "Flow — inline under the description" },
+                    { value: "custom", label: "Custom — absolute X/Y over this slide" },
+                  ]}
+                />
+                {slide.ctaPositionMode === "custom" ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <NumberField label="CTA X (%)" value={slide.ctaX ?? 75} min={0} max={100} onChange={(ctaX) => updateSlide(i, { ctaX })} />
+                    <NumberField label="CTA Y (%)" value={slide.ctaY ?? 80} min={0} max={100} onChange={(ctaY) => updateSlide(i, { ctaY })} />
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="flex items-center gap-4">
+                <CheckboxField
+                  label="Override overlay opacity for this slide"
+                  checked={slide.overlayOpacity !== null}
+                  onChange={(checked) => updateSlide(i, { overlayOpacity: checked ? 35 : null })}
+                />
+                {slide.overlayOpacity !== null ? (
+                  <NumberField
+                    label="Overlay opacity (%)"
+                    value={slide.overlayOpacity}
+                    min={0}
+                    max={100}
+                    onChange={(overlayOpacity) => updateSlide(i, { overlayOpacity })}
+                  />
+                ) : null}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

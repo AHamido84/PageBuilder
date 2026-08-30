@@ -10,8 +10,28 @@ import { HeadingEdit, HeadingRender } from "./content/heading";
 import { RichTextEdit, RichTextRender } from "./content/rich-text";
 import { CtaEdit, CtaRender } from "./content/cta";
 
-const heroButtonStyleSchema = z.enum(["primary", "secondary", "ghost"]);
+// "secondary"/"ghost" are the two original values -- kept exactly as-is (still mapped by
+// heroButtonVariant in hero-shared.tsx the same way they always were: secondary->ghost-light,
+// ghost->ghost-dark) so no previously-published Hero changes appearance. "ghost-light"/"ghost-dark"
+// let an admin pick either of those two button-kit variants directly and explicitly; "gold"/
+// "gold-outline" are new CTA colors for a Hero button that wants to stand out (advanced hero
+// CTA controls brief).
+const heroButtonStyleSchema = z.enum(["primary", "secondary", "ghost", "ghost-light", "ghost-dark", "gold", "gold-outline"]);
 export type HeroButtonStyle = z.infer<typeof heroButtonStyleSchema>;
+
+// object-fit for the Hero's own image/video, real (not decorative) -- "contain" is the one that
+// matters most: guarantees the complete image stays visible with no cropping, for a banner with a
+// product/logo/baked-in text that "cover" would otherwise cut off (see session H's mobile-crop bug,
+// which this generalizes into an admin-configurable control instead of only a focal-point fix).
+const heroImageFitSchema = z.enum(["cover", "contain", "fill", "none"]);
+export type HeroImageFit = z.infer<typeof heroImageFitSchema>;
+
+// "flow": CTA(s) render inline in the normal content stack, exactly like today (default, zero
+// visual change for every existing Hero/slide). "custom": CTA(s) are pulled out of that stack and
+// placed at an explicit X/Y point over the media instead -- independent of where the heading/body
+// text sits (advanced hero CTA controls brief's "CTA position must not move the Hero heading").
+const heroCtaPositionModeSchema = z.enum(["flow", "custom"]);
+export type HeroCtaPositionMode = z.infer<typeof heroCtaPositionModeSchema>;
 
 // "scale"/"morph"/"float" added for the premium frame system (morph only visually applies to the
 // three organic/blob frame styles; float/scale apply to any frame). "cinematic-loop" added for the
@@ -84,6 +104,22 @@ const heroSlideSchema = z.object({
   ctaUrl2: z.string().max(300).optional().default(""),
   durationMs: z.number().int().min(1000).max(30000).default(6000),
   animation: heroAnimationSchema.default("slow-zoom"),
+
+  // Advanced media & CTA controls -- every field below is genuinely per-slide (brief's core
+  // requirement: no single global value shared across all slides). "" / null sentinels mean
+  // "not set on this slide" and are resolved at render time falling back to a value that
+  // reproduces this slideshow's exact pre-existing behavior, so no already-published slide's
+  // appearance changes until an admin deliberately opens a slide and sets one of these.
+  imageFit: z.union([heroImageFitSchema, z.literal("")]).default(""), // "" => "cover" (today's hardcoded behavior)
+  imageFitMobile: z.union([heroImageFitSchema, z.literal("")]).default(""), // "" => same as this slide's imageFit
+  focalX: z.number().min(0).max(100).nullable().default(null), // null => the Hero-level focalX (pre-existing shared value)
+  focalY: z.number().min(0).max(100).nullable().default(null), // null => the Hero-level focalY
+  ctaStyle: z.union([heroButtonStyleSchema, z.literal("")]).default(""), // "" => "primary" (today's hardcoded primary button)
+  ctaStyle2: z.union([heroButtonStyleSchema, z.literal("")]).default(""), // "" => "secondary" (today's hardcoded ghost-light button)
+  ctaPositionMode: z.union([heroCtaPositionModeSchema, z.literal("")]).default(""), // "" => "flow"
+  ctaX: z.number().min(0).max(100).nullable().default(null), // null => 75 (only read when ctaPositionMode is "custom")
+  ctaY: z.number().min(0).max(100).nullable().default(null), // null => 80
+  overlayOpacity: z.number().min(0).max(100).nullable().default(null), // null => the Hero-level overlayOpacity
 });
 export type HeroSlide = z.infer<typeof heroSlideSchema>;
 
@@ -156,6 +192,22 @@ const heroSchema = z.object({
   ctaStyle2: heroButtonStyleSchema.default("secondary"),
   ctaExternal2: z.boolean().default(false),
 
+  // Real absolute CTA positioning (advanced hero CTA controls brief), independent of both the
+  // heading/body text (which never moves -- see contentPosition/verticalAlign below, untouched by
+  // this) and of image/video/product-composition/3d-composition mode (these apply to whichever
+  // media mode is active; slideshow mode instead reads each slide's own ctaPositionMode/ctaX/ctaY,
+  // see heroSlideSchema). Defaults to "flow" -- the CTA(s) stay exactly where they render today,
+  // inline after the description -- so no existing Hero changes until an admin opts in to "custom".
+  ctaPositionMode: heroCtaPositionModeSchema.default("flow"),
+  ctaX: z.number().min(0).max(100).default(75),
+  ctaY: z.number().min(0).max(100).default(80),
+  // Off by default: each locale's Hero content (dataEn/dataAr) is already a fully independent JSON
+  // object, so ctaX/ctaY set while editing /ar never touches /en's values -- this toggle is only
+  // for an admin who deliberately wants one X value to read as "mirrored" on the RTL locale instead
+  // of re-entering the mirrored number by hand. Physical (un-mirrored) is the safe, unsurprising
+  // default matching how every other physical value on this schema (frameX, decorativeRotation...) already behaves.
+  ctaMirrorForRtl: z.boolean().default(false),
+
   // Media
   mediaType: z.enum(["image", "video", "slideshow", "product-composition", "3d-composition"]).default("image"),
   // "split": media in its own framed column beside the text (current default). "full-bleed": media
@@ -167,6 +219,11 @@ const heroSchema = z.object({
   imagePosition: heroImagePositionSchema.default("center"),
   focalX: z.number().min(0).max(100).default(50),
   focalY: z.number().min(0).max(100).default(50),
+  // Real object-fit control for image/video mode (advanced hero CTA controls brief) -- "cover"
+  // preserves every already-published Hero's exact current rendering (the class was hardcoded
+  // "object-cover" before this field existed). "contain" is the one that matters most: guarantees
+  // the complete photo stays visible with no cropping of a product/logo/baked-in text.
+  imageFit: heroImageFitSchema.default("cover"),
   overlayOpacity: z.number().min(0).max(100).default(35),
   animation: heroAnimationSchema.default("slow-zoom"),
   videoAutoplay: z.boolean().default(true),
@@ -323,8 +380,9 @@ export const contentBlocks: BlockDefinition<any>[] = [
         eyebrow: "", headline: "Your headline here", subheading: "",
         ctaLabel: "", ctaUrl: "", ctaVisible: true, ctaStyle: "primary", ctaExternal: false,
         ctaLabel2: "", ctaUrl2: "", ctaVisible2: true, ctaStyle2: "secondary", ctaExternal2: false,
+        ctaPositionMode: "flow", ctaX: 75, ctaY: 80, ctaMirrorForRtl: false,
         mediaType: "image", layout: "split", desktopMediaId: "", mobileMediaId: "", posterId: "",
-        imagePosition: "center", focalX: 50, focalY: 50, overlayOpacity: 35, animation: "slow-zoom",
+        imagePosition: "center", focalX: 50, focalY: 50, imageFit: "cover", overlayOpacity: 35, animation: "slow-zoom",
         videoAutoplay: true, videoMuted: true, videoLoop: true,
         frameStyle: "full-bleed", mobileFrameStyle: "", framePreset: "", framePosition: "center", frameX: 0, frameY: 0,
         frameWidth: 100, frameHeight: 100, frameScale: 1, frameRotation: 0, frameOverflow: false,
@@ -341,8 +399,9 @@ export const contentBlocks: BlockDefinition<any>[] = [
         eyebrow: "", headline: "العنوان الرئيسي هنا", subheading: "",
         ctaLabel: "", ctaUrl: "", ctaVisible: true, ctaStyle: "primary", ctaExternal: false,
         ctaLabel2: "", ctaUrl2: "", ctaVisible2: true, ctaStyle2: "secondary", ctaExternal2: false,
+        ctaPositionMode: "flow", ctaX: 75, ctaY: 80, ctaMirrorForRtl: false,
         mediaType: "image", layout: "split", desktopMediaId: "", mobileMediaId: "", posterId: "",
-        imagePosition: "center", focalX: 50, focalY: 50, overlayOpacity: 35, animation: "slow-zoom",
+        imagePosition: "center", focalX: 50, focalY: 50, imageFit: "cover", overlayOpacity: 35, animation: "slow-zoom",
         videoAutoplay: true, videoMuted: true, videoLoop: true,
         frameStyle: "full-bleed", mobileFrameStyle: "", framePreset: "", framePosition: "center", frameX: 0, frameY: 0,
         frameWidth: 100, frameHeight: 100, frameScale: 1, frameRotation: 0, frameOverflow: false,

@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
 import { KineticText, Stagger, StaggerItem } from "@/lib/motion/primitives";
 import { DURATION, EASE_PREMIUM } from "@/lib/motion/motionTokens";
-import { HeroFrame, HeroMediaMotion, HeroVideoLayer } from "./hero-shared";
+import { HeroFrame, HeroMediaMotion, HeroVideoLayer, HeroCtaOverlay, heroButtonVariant, heroImageFitClass } from "./hero-shared";
 import type { BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
 import type { HeroRenderData } from "../content-blocks";
@@ -85,10 +85,51 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
   const media = data.slideMedia?.[slide.id];
   const desktopUrl = media?.desktopUrl;
   const mobileUrl = media?.mobileUrl || media?.desktopUrl;
-  const imagePositionStyle = { objectPosition: `${data.focalX}% ${data.focalY}%` };
+  // "" / null on the slide means "not set" -- fall back to the Hero-level shared value, which is
+  // exactly what this slideshow always read before per-slide overrides existed (so an
+  // already-published slideshow with no slide-level values keeps rendering identically).
+  const focalX = slide.focalX ?? data.focalX;
+  const focalY = slide.focalY ?? data.focalY;
+  const imagePositionStyle = { objectPosition: `${focalX}% ${focalY}%` };
+  const desktopFitClass = heroImageFitClass(slide.imageFit || "cover");
+  const mobileFitClass = heroImageFitClass((slide.imageFitMobile || slide.imageFit) || "cover");
+  const overlayOpacity = slide.overlayOpacity ?? data.overlayOpacity;
 
   const hasPrimaryCta = Boolean(slide.ctaLabel && slide.ctaUrl);
   const hasSecondaryCta = Boolean(slide.ctaLabel2 && slide.ctaUrl2);
+  // "" falls back to the exact same styles this slideshow always hardcoded (primary / ghost-light),
+  // so a slide that hasn't set its own CTA style renders identically to before this field existed.
+  const primaryVariant = heroButtonVariant(slide.ctaStyle || "primary");
+  const secondaryVariant = heroButtonVariant(slide.ctaStyle2 || "secondary");
+
+  const ctaButtons =
+    hasPrimaryCta || hasSecondaryCta ? (
+      <div className="flex flex-wrap items-center gap-3">
+        {hasPrimaryCta ? (
+          <Link href={resolveHref(slide.ctaUrl, locale)} className={buttonClasses(primaryVariant, "lg")}>
+            {slide.ctaLabel}
+          </Link>
+        ) : null}
+        {hasSecondaryCta ? (
+          <Link href={resolveHref(slide.ctaUrl2, locale)} className={buttonClasses(secondaryVariant, "lg")}>
+            {slide.ctaLabel2}
+          </Link>
+        ) : null}
+      </div>
+    ) : null;
+  // "" falls back to "flow" -- the original always-inline behavior, unchanged until an admin
+  // deliberately opts this slide into custom positioning.
+  const ctaIsCustom = (slide.ctaPositionMode || "flow") === "custom" && Boolean(ctaButtons);
+  const ctaX = slide.ctaX ?? 75;
+  const ctaY = slide.ctaY ?? 80;
+  // Reuses the Hero-level mirror toggle -- each locale's slides array is already fully independent
+  // (dataEn/dataAr), this only matters for an admin who wants one physical X to read as mirrored.
+  const effectiveCtaX = locale === "ar" && data.ctaMirrorForRtl ? 100 - ctaX : ctaX;
+  const ctaOverlay = ctaIsCustom ? (
+    <HeroCtaOverlay x={effectiveCtaX} y={ctaY}>
+      {ctaButtons}
+    </HeroCtaOverlay>
+  ) : null;
 
   const content = (
     <Stagger key={slide.id}>
@@ -107,22 +148,7 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
           <p className="measure-ar mt-5 max-w-lg text-base leading-relaxed opacity-70 sm:text-lg">{slide.description}</p>
         </StaggerItem>
       ) : null}
-      {hasPrimaryCta || hasSecondaryCta ? (
-        <StaggerItem>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            {hasPrimaryCta ? (
-              <Link href={resolveHref(slide.ctaUrl, locale)} className={buttonClasses("primary", "lg")}>
-                {slide.ctaLabel}
-              </Link>
-            ) : null}
-            {hasSecondaryCta ? (
-              <Link href={resolveHref(slide.ctaUrl2, locale)} className={buttonClasses("ghost-light", "lg")}>
-                {slide.ctaLabel2}
-              </Link>
-            ) : null}
-          </div>
-        </StaggerItem>
-      ) : null}
+      {!ctaIsCustom && ctaButtons ? <StaggerItem><div className="mt-8">{ctaButtons}</div></StaggerItem> : null}
     </Stagger>
   );
 
@@ -146,15 +172,15 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
         <HeroMediaMotion animation={slide.animation} className="absolute inset-0">
           {slide.mediaType === "video" ? (
             <>
-              <HeroVideoLayer src={desktopUrl} poster={media?.posterUrl} autoPlay muted loop className="hidden h-full w-full object-cover lg:block" style={imagePositionStyle} />
+              <HeroVideoLayer src={desktopUrl} poster={media?.posterUrl} autoPlay muted loop className={`hidden h-full w-full lg:block ${desktopFitClass}`} style={imagePositionStyle} />
               {mobileUrl ? (
-                <HeroVideoLayer src={mobileUrl} poster={media?.posterUrl} autoPlay muted loop className="h-full w-full object-cover lg:hidden" style={imagePositionStyle} />
+                <HeroVideoLayer src={mobileUrl} poster={media?.posterUrl} autoPlay muted loop className={`h-full w-full lg:hidden ${mobileFitClass}`} style={imagePositionStyle} />
               ) : null}
             </>
           ) : (
             <>
-              <Image src={desktopUrl} alt="" fill sizes="(min-width: 1024px) 50vw, 100vw" className="hidden object-cover lg:block" style={imagePositionStyle} />
-              {mobileUrl ? <Image src={mobileUrl} alt="" fill sizes="100vw" className="object-cover lg:hidden" style={imagePositionStyle} /> : null}
+              <Image src={desktopUrl} alt="" fill sizes="(min-width: 1024px) 50vw, 100vw" className={`hidden lg:block ${desktopFitClass}`} style={imagePositionStyle} />
+              {mobileUrl ? <Image src={mobileUrl} alt="" fill sizes="100vw" className={`lg:hidden ${mobileFitClass}`} style={imagePositionStyle} /> : null}
             </>
           )}
         </HeroMediaMotion>
@@ -199,9 +225,10 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
       ) : null}
       <HeroFrame
         layout={data.layout}
-        overlayOpacity={data.overlayOpacity}
+        overlayOpacity={overlayOpacity}
         media={mediaNode}
         content={content}
+        ctaOverlay={ctaOverlay}
         fullBleed={
           data.layout === "full-bleed"
             ? {
