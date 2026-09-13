@@ -37,6 +37,14 @@ const marqueeSchema = z.object({
   // Always real CMS data (brand or category names) -- never free-text, so this block can't be
   // used to fabricate content.
   source: z.enum(["brands", "categories"]).default("brands"),
+  // Phase 2 addition -- "text" is the exact original (and default) behavior: the scrolling name
+  // ticker this block has always rendered. "logos" is the genuine gap identified against the
+  // "Logo Marquee" section type the design system brief asks for: neither this block (text-only)
+  // nor LOGO_CLOUD (a static, non-scrolling grid) previously combined "real brand/category logo
+  // images" with "auto-scrolling marquee motion" -- this field lets the one block do both, reusing
+  // its existing scroll animation/RTL-direction/reduced-motion handling rather than building a
+  // second marquee component.
+  contentType: z.enum(["text", "logos"]).default("text"),
 });
 export type MarqueeData = z.infer<typeof marqueeSchema>;
 
@@ -100,7 +108,7 @@ export const miscBlocks: BlockDefinition<any>[] = [
     category: "misc",
     icon: GalleryHorizontalEnd,
     dataSchema: marqueeSchema,
-    defaultData: { en: { heading: "", source: "brands" }, ar: { heading: "", source: "brands" } },
+    defaultData: { en: { heading: "", source: "brands", contentType: "text" }, ar: { heading: "", source: "brands", contentType: "text" } },
     defaultSettings: defaultSectionSettings({ desktop: { paddingY: "sm", marginY: "none", align: "center", columns: "1", headingSize: "md", bodySize: "md", visible: true } }),
     Edit: MarqueeEdit,
     Render: MarqueeRender,

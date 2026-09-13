@@ -37,12 +37,12 @@ export async function CertificationsGridRender({ data, locale }: BlockRenderProp
 
   return (
     <div>
-      {data.heading ? <h2 className="mb-8 font-display text-3xl">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-8 font-display text-h2">{data.heading}</h2> : null}
       <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
         {certifications.map((cert) => {
           const hasImage = Boolean(cert.imageUrl);
           return (
-            <div key={cert.id} className="group relative flex aspect-square flex-col items-center justify-center gap-2 overflow-hidden rounded-[var(--radius-md)] border border-current/10 bg-paper p-4 text-center">
+            <div key={cert.id} className="hover-lift group relative flex aspect-[4/3] flex-col items-center justify-center gap-2 overflow-hidden rounded-[var(--radius-lg)] border border-current/10 bg-paper p-6 text-center">
               <div aria-hidden className="bg-grid-fine pointer-events-none absolute inset-0" />
               {hasImage ? (
                 <CmsFillImage

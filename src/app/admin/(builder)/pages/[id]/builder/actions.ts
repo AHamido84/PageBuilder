@@ -146,14 +146,19 @@ async function freezeBrandGridSection(rawData: unknown, locale: "en" | "ar"): Pr
           take: parsed.data.limit,
           include: { translations: true, logo: { select: { url: true } }, _count: { select: { products: true } } },
         });
-  const resolvedBrands = brands.map((b) => ({
-    id: b.id,
-    name: b.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? b.slug,
-    slug: b.slug,
-    logoUrl: b.logo?.url ?? null,
-    logoId: b.logoId,
-    productCount: b._count.products,
-  }));
+  const resolvedBrands = brands.map((b) => {
+    const translation = b.translations.find((t) => t.locale === locale.toUpperCase());
+    return {
+      id: b.id,
+      name: translation?.name ?? b.slug,
+      slug: b.slug,
+      logoUrl: b.logo?.url ?? null,
+      logoId: b.logoId,
+      description: translation?.description ?? null,
+      website: b.website ?? null,
+      productCount: b._count.products,
+    };
+  });
   return { ...parsed.data, resolvedBrands };
 }
 

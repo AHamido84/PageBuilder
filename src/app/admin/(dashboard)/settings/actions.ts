@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { logActivity } from "@/lib/activity-log";
 import { HEADER_LOGO_DEFAULTS, type HeaderLogoLocaleSettings, type HeaderLogoSettings } from "@/lib/site-settings/header-logo";
+import { designTokensSchema } from "@/lib/design-tokens/schema";
 
 export interface FormActionState {
   error?: string;
@@ -283,5 +284,112 @@ export async function updateFooterSettingsAction(_prev: FormActionState, formDat
 
   await logSettingsUpdate(currentUser.id, "footer");
   revalidatePath("/admin/settings");
+  return { success: true };
+}
+
+// Phase 8 "Global Visual Control Center". Every field is genuinely optional -- an empty form input
+// means "no override, inherit today's default" (see src/lib/design-tokens/schema.ts's doc comment),
+// so these helpers turn an empty string into `undefined` rather than 0/false/"" -- the difference
+// between "the admin explicitly set this to 0" and "the admin left this blank" matters here.
+function optionalString(formData: FormData, key: string): string | undefined {
+  const value = formData.get(key);
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+}
+function optionalNumber(formData: FormData, key: string): number | undefined {
+  const value = optionalString(formData, key);
+  if (value === undefined) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+/** Tri-state <select> (Default / On / Off), not a checkbox -- an unchecked checkbox is
+ * indistinguishable from "not submitted" in a plain HTML form, which would make "explicitly set to
+ * Off" impossible to express. "" -> undefined (inherit), "true"/"false" -> real booleans. */
+function optionalBoolean(formData: FormData, key: string): boolean | undefined {
+  const value = optionalString(formData, key);
+  if (value === undefined) return undefined;
+  return value === "true";
+}
+
+export async function updateDesignTokensAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "settings", "update");
+
+  // Typed loosely (not as `DesignTokens`) on purpose -- the enum-shaped fields (fontEn/fontAr/
+  // shadow/defaultAnimation) come off the form as plain strings; `designTokensSchema.safeParse`
+  // below is what actually validates them against their real literal-union types, same as every
+  // other zod-validated form action in this file (Object.fromEntries(formData) is `unknown` too).
+  const raw = {
+    colors: {
+      primary: optionalString(formData, "colors.primary"),
+      secondary: optionalString(formData, "colors.secondary"),
+      accent: optionalString(formData, "colors.accent"),
+      gold: optionalString(formData, "colors.gold"),
+      background: optionalString(formData, "colors.background"),
+      surface: optionalString(formData, "colors.surface"),
+      text: optionalString(formData, "colors.text"),
+      mutedText: optionalString(formData, "colors.mutedText"),
+    },
+    typography: {
+      fontEn: optionalString(formData, "typography.fontEn"),
+      fontAr: optionalString(formData, "typography.fontAr"),
+      displaySize: optionalNumber(formData, "typography.displaySize"),
+      h1Size: optionalNumber(formData, "typography.h1Size"),
+      h2Size: optionalNumber(formData, "typography.h2Size"),
+      h3Size: optionalNumber(formData, "typography.h3Size"),
+      bodySize: optionalNumber(formData, "typography.bodySize"),
+      weightHeading: optionalNumber(formData, "typography.weightHeading"),
+      weightBody: optionalNumber(formData, "typography.weightBody"),
+      lineHeightScale: optionalNumber(formData, "typography.lineHeightScale"),
+      letterSpacingExtra: optionalNumber(formData, "typography.letterSpacingExtra"),
+    },
+    layout: {
+      containerWidth: optionalNumber(formData, "layout.containerWidth"),
+      sectionSpacingScale: optionalNumber(formData, "layout.sectionSpacingScale"),
+      gridGap: optionalNumber(formData, "layout.gridGap"),
+      cardGap: optionalNumber(formData, "layout.cardGap"),
+      buttonRadius: optionalNumber(formData, "layout.buttonRadius"),
+      cardRadius: optionalNumber(formData, "layout.cardRadius"),
+      imageRadius: optionalNumber(formData, "layout.imageRadius"),
+    },
+    buttons: {
+      paddingScale: optionalNumber(formData, "buttons.paddingScale"),
+      radius: optionalNumber(formData, "buttons.radius"),
+      shadow: optionalString(formData, "buttons.shadow"),
+      showIcon: optionalBoolean(formData, "buttons.showIcon"),
+    },
+    animation: {
+      enabled: optionalBoolean(formData, "animation.enabled"),
+      defaultAnimation: optionalString(formData, "animation.defaultAnimation"),
+      speed: optionalNumber(formData, "animation.speed"),
+      scrollReveal: optionalBoolean(formData, "animation.scrollReveal"),
+      hoverAnimation: optionalBoolean(formData, "animation.hoverAnimation"),
+      pageTransition: optionalBoolean(formData, "animation.pageTransition"),
+    },
+    responsive: {
+      tablet: {
+        sectionSpacingScale: optionalNumber(formData, "responsive.tablet.sectionSpacingScale"),
+        gridGap: optionalNumber(formData, "responsive.tablet.gridGap"),
+        cardGap: optionalNumber(formData, "responsive.tablet.cardGap"),
+      },
+      mobile: {
+        sectionSpacingScale: optionalNumber(formData, "responsive.mobile.sectionSpacingScale"),
+        gridGap: optionalNumber(formData, "responsive.mobile.gridGap"),
+        cardGap: optionalNumber(formData, "responsive.mobile.cardGap"),
+      },
+    },
+  };
+
+  const parsed = designTokensSchema.safeParse(raw);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+
+  await prisma.siteSetting.upsert({
+    where: { id: "singleton" },
+    create: { id: "singleton", siteNameEn: "Seven Eleven Trading", siteNameAr: "سفن إليفن للتجارة", designTokens: parsed.data },
+    update: { designTokens: parsed.data },
+  });
+
+  await logSettingsUpdate(currentUser.id, "appearance");
+  revalidatePath("/admin/settings");
+  revalidatePath("/", "layout");
   return { success: true };
 }

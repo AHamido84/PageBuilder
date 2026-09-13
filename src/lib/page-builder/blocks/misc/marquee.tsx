@@ -17,6 +17,15 @@ export function MarqueeEdit({ data, onChange, locale }: BlockEditProps<MarqueeDa
           { value: "categories", label: "Categories" },
         ]}
       />
+      <SelectField
+        label="Content"
+        value={data.contentType}
+        onChange={(contentType) => onChange({ ...data, contentType })}
+        options={[
+          { value: "text", label: "Names (text)" },
+          { value: "logos", label: "Logos (image)" },
+        ]}
+      />
     </div>
   );
 }
@@ -25,7 +34,7 @@ export function MarqueePreview({ data }: { data: MarqueeData }) {
   return (
     <div className="rounded-md border border-dashed border-neutral-700 bg-neutral-900/50 p-8 text-center text-sm text-neutral-400">
       {data.heading ? <p className="mb-1 font-medium text-neutral-200">{data.heading}</p> : null}
-      Live Marquee — real {data.source} names, looping.
+      Live Marquee — real {data.source} {data.contentType === "logos" ? "logos" : "names"}, looping.
     </div>
   );
 }

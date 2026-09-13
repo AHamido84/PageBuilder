@@ -39,6 +39,17 @@ function newSlide(): HeroSlide {
     ctaX: null,
     ctaY: null,
     overlayOpacity: null,
+    imageFitTablet: "",
+    focalXTablet: null,
+    focalYTablet: null,
+    focalXMobile: null,
+    focalYMobile: null,
+    ctaXTablet: null,
+    ctaYTablet: null,
+    ctaXMobile: null,
+    ctaYMobile: null,
+    animationDurationMs: null,
+    animationDelayMs: null,
   };
 }
 
@@ -110,6 +121,19 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
           { value: "crossfade", label: "Crossfade" },
           { value: "cut", label: "Instant cut" },
         ]}
+      />
+
+      {/* Phase 4 fix: a genuine pre-existing gap -- HeroSlideshow's render already read
+          data.ctaMirrorForRtl for every slide's custom CTA position (this is a single Hero-level
+          flag shared by every slide in this locale's array, not per-slide, exactly like the
+          top-level image/video mode's own field of the same name), but this control only ever
+          lived in the flat "Hero Content" section that Slideshow mode replaces with this editor --
+          so there was no way to actually set it once an admin switched to Slideshow. Moved here,
+          once, rather than duplicated per slide. */}
+      <CheckboxField
+        label="Mirror CTA position for RTL (Arabic) — applies to every slide's custom CTA position in this locale"
+        checked={data.ctaMirrorForRtl}
+        onChange={(ctaMirrorForRtl) => onChange({ ...data, ctaMirrorForRtl })}
       />
 
       {slides.map((slide, i) => {
@@ -184,13 +208,26 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
               {/* Every field below is genuinely per-slide -- "" / null means "not set on this
                   slide", resolved at render time against this slideshow's own hero-level values
                   (see HeroSlideshow), never a single setting shared across every slide. */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <SelectField
-                  label="Image fit"
+                  label="Image fit (desktop)"
                   value={slide.imageFit}
                   onChange={(imageFit) => updateSlide(i, { imageFit })}
                   options={[
                     { value: "", label: "Use Hero default (Cover)" },
+                    { value: "cover", label: "Cover — fill, may crop" },
+                    { value: "contain", label: "Contain — no cropping" },
+                    { value: "fill", label: "Fill — stretch" },
+                    { value: "none", label: "Natural — unscaled" },
+                  ]}
+                />
+                {/* Phase 4 -- the tablet tier, previously nonexistent (only a desktop/mobile split existed). */}
+                <SelectField
+                  label="Image fit (tablet)"
+                  value={slide.imageFitTablet}
+                  onChange={(imageFitTablet) => updateSlide(i, { imageFitTablet })}
+                  options={[
+                    { value: "", label: "Same as desktop" },
                     { value: "cover", label: "Cover — fill, may crop" },
                     { value: "contain", label: "Contain — no cropping" },
                     { value: "fill", label: "Fill — stretch" },
@@ -226,6 +263,33 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
                   onChange={(focalY) => updateSlide(i, { focalY })}
                 />
               </div>
+              {/* Phase 4 -- independent focal point per breakpoint tier. */}
+              <div className="flex items-center gap-4">
+                <CheckboxField
+                  label="Override focal point on tablet"
+                  checked={slide.focalXTablet !== null}
+                  onChange={(checked) => updateSlide(i, { focalXTablet: checked ? (slide.focalX ?? 50) : null, focalYTablet: checked ? (slide.focalY ?? 50) : null })}
+                />
+              </div>
+              {slide.focalXTablet !== null ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <NumberField label="Tablet focal X (%)" value={slide.focalXTablet} min={0} max={100} onChange={(focalXTablet) => updateSlide(i, { focalXTablet })} />
+                  <NumberField label="Tablet focal Y (%)" value={slide.focalYTablet ?? 50} min={0} max={100} onChange={(focalYTablet) => updateSlide(i, { focalYTablet })} />
+                </div>
+              ) : null}
+              <div className="flex items-center gap-4">
+                <CheckboxField
+                  label="Override focal point on mobile"
+                  checked={slide.focalXMobile !== null}
+                  onChange={(checked) => updateSlide(i, { focalXMobile: checked ? (slide.focalX ?? 50) : null, focalYMobile: checked ? (slide.focalY ?? 50) : null })}
+                />
+              </div>
+              {slide.focalXMobile !== null ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <NumberField label="Mobile focal X (%)" value={slide.focalXMobile} min={0} max={100} onChange={(focalXMobile) => updateSlide(i, { focalXMobile })} />
+                  <NumberField label="Mobile focal Y (%)" value={slide.focalYMobile ?? 50} min={0} max={100} onChange={(focalYMobile) => updateSlide(i, { focalYMobile })} />
+                </div>
+              ) : null}
 
               <TextField label="Eyebrow" value={slide.eyebrow ?? ""} onChange={(eyebrow) => updateSlide(i, { eyebrow })} dir={dir} />
               <TextField label="Headline" value={slide.headline ?? ""} onChange={(headline) => updateSlide(i, { headline })} dir={dir} />
@@ -265,10 +329,39 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
                   ]}
                 />
                 {slide.ctaPositionMode === "custom" ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <NumberField label="CTA X (%)" value={slide.ctaX ?? 75} min={0} max={100} onChange={(ctaX) => updateSlide(i, { ctaX })} />
-                    <NumberField label="CTA Y (%)" value={slide.ctaY ?? 80} min={0} max={100} onChange={(ctaY) => updateSlide(i, { ctaY })} />
-                  </div>
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <NumberField label="CTA X (%)" value={slide.ctaX ?? 75} min={0} max={100} onChange={(ctaX) => updateSlide(i, { ctaX })} />
+                      <NumberField label="CTA Y (%)" value={slide.ctaY ?? 80} min={0} max={100} onChange={(ctaY) => updateSlide(i, { ctaY })} />
+                    </div>
+                    {/* Phase 4 -- independent CTA position per breakpoint tier, previously a single X/Y at every viewport width. */}
+                    <div className="flex items-center gap-4">
+                      <CheckboxField
+                        label="Override CTA position on tablet"
+                        checked={slide.ctaXTablet !== null}
+                        onChange={(checked) => updateSlide(i, { ctaXTablet: checked ? (slide.ctaX ?? 75) : null, ctaYTablet: checked ? (slide.ctaY ?? 80) : null })}
+                      />
+                    </div>
+                    {slide.ctaXTablet !== null ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        <NumberField label="Tablet CTA X (%)" value={slide.ctaXTablet} min={0} max={100} onChange={(ctaXTablet) => updateSlide(i, { ctaXTablet })} />
+                        <NumberField label="Tablet CTA Y (%)" value={slide.ctaYTablet ?? 80} min={0} max={100} onChange={(ctaYTablet) => updateSlide(i, { ctaYTablet })} />
+                      </div>
+                    ) : null}
+                    <div className="flex items-center gap-4">
+                      <CheckboxField
+                        label="Override CTA position on mobile"
+                        checked={slide.ctaXMobile !== null}
+                        onChange={(checked) => updateSlide(i, { ctaXMobile: checked ? (slide.ctaX ?? 75) : null, ctaYMobile: checked ? (slide.ctaY ?? 80) : null })}
+                      />
+                    </div>
+                    {slide.ctaXMobile !== null ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        <NumberField label="Mobile CTA X (%)" value={slide.ctaXMobile} min={0} max={100} onChange={(ctaXMobile) => updateSlide(i, { ctaXMobile })} />
+                        <NumberField label="Mobile CTA Y (%)" value={slide.ctaYMobile ?? 80} min={0} max={100} onChange={(ctaYMobile) => updateSlide(i, { ctaYMobile })} />
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
               </div>
 
@@ -290,7 +383,13 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <NumberField label="Duration (ms)" value={slide.durationMs} min={1000} max={30000} onChange={(durationMs) => updateSlide(i, { durationMs })} />
+                <NumberField
+                  label="Slide display duration (ms)"
+                  value={slide.durationMs}
+                  min={1000}
+                  max={30000}
+                  onChange={(durationMs) => updateSlide(i, { durationMs })}
+                />
                 <SelectField
                   label="Animation"
                   value={slide.animation}
@@ -298,11 +397,32 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
                   options={[
                     { value: "none", label: "None" },
                     { value: "fade", label: "Fade" },
-                    { value: "slow-zoom", label: "Slow Zoom" },
+                    { value: "slide", label: "Slide" },
+                    { value: "slow-zoom", label: "Ken Burns / Slow Zoom" },
+                    { value: "pan", label: "Pan" },
+                    { value: "cinematic-loop", label: "Cinematic Loop — infinite breathing zoom" },
                     { value: "parallax", label: "Parallax" },
                     { value: "reveal", label: "Reveal" },
                     { value: "cinematic", label: "Cinematic" },
+                    { value: "scale", label: "Scale" },
+                    { value: "float", label: "Float" },
                   ]}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <NumberField
+                  label="Animation duration (ms, optional)"
+                  value={slide.animationDurationMs ?? 0}
+                  min={0}
+                  max={30000}
+                  onChange={(v) => updateSlide(i, { animationDurationMs: v <= 0 ? null : v })}
+                />
+                <NumberField
+                  label="Animation delay (ms, optional)"
+                  value={slide.animationDelayMs ?? 0}
+                  min={0}
+                  max={5000}
+                  onChange={(v) => updateSlide(i, { animationDelayMs: v <= 0 ? null : v })}
                 />
               </div>
             </div>

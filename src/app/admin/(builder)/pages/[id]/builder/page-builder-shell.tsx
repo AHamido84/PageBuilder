@@ -219,6 +219,7 @@ export function PageBuilderShell({ pageId, slug, initialStatus, initialSections,
             <SettingsPanel
               section={selectedSection}
               device={device}
+              onDeviceChange={setDevice}
               locale={editorLocale}
               onLocaleChange={setEditorLocale}
               onUpdateData={updateData}

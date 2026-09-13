@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { NewsletterForm } from "./newsletter-form";
 import { ScrollReveal, KineticText } from "@/lib/motion/primitives";
 import { RouteLine } from "./graphics/route-line";
+import { SectionDivider } from "@/components/ui/section-divider";
+import { Grid } from "@/components/ui/grid";
 import type { PublicMenuItem } from "@/lib/menus";
 
 /** The footer's closing accent — a route that resolves to a single point, echoing "journey's end." */
@@ -52,16 +54,17 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
 
   return (
     <footer className="border-t border-paper/10 bg-petrol text-paper">
+      <SectionDivider curve="wave" className="text-petrol" />
       {/* Tier 1 — conversion: newsletter signup, the footer's one job besides navigation. */}
       <div className="border-b border-paper/10 bg-petrol-elevated">
-        <div className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 lg:px-12">
-          <ScrollReveal variant="fade-up" className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-md">
-              <RouteLine d={FOOTER_ACCENT_PATH} viewBox="0 0 80 28" strokeWidth={1.5} className="mb-3 h-5 w-20 text-wheat/60" />
-              <KineticText as="p" text={newsletterTitle} className="font-display text-h2" />
-              <p className="mt-2 text-sm leading-relaxed text-paper/60">{newsletterBody}</p>
+        <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20">
+          <ScrollReveal variant="fade-up" className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-lg">
+              <RouteLine d={FOOTER_ACCENT_PATH} viewBox="0 0 80 28" strokeWidth={1.5} className="mb-4 h-5 w-20 text-wheat/60" />
+              <KineticText as="p" text={newsletterTitle} className="font-display text-h1 leading-[1.05]" />
+              <p className="mt-3 max-w-md text-base leading-relaxed text-paper/60">{newsletterBody}</p>
             </div>
-            <div className="lg:w-auto lg:shrink-0">
+            <div className="lg:w-auto lg:min-w-[380px] lg:shrink-0">
               <NewsletterForm />
             </div>
           </ScrollReveal>
@@ -70,7 +73,7 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
 
       {/* Tier 2 — navigation. */}
       <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20">
-        <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:grid-cols-6">
+        <Grid cols={6} gap="xl">
           <div className="col-span-2 sm:col-span-3 lg:col-span-2">
             <p className="font-display text-lg">{aboutTitle}</p>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-paper/60">{aboutBody}</p>
@@ -142,7 +145,7 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
               </li>
             </ul>
           </div>
-        </div>
+        </Grid>
       </div>
 
       {/* Tier 3 — legal, social, copyright. */}

@@ -4,8 +4,10 @@ import Link from "next/link";
 import { SegmentedControl } from "@/components/admin/ui/segmented-control";
 import { TextField, TextareaField } from "@/components/admin/ui/field";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
-import { CmsImage } from "@/components/media/cms-image";
+import { CmsFillImage } from "@/components/media/cms-image";
+import { OrganicFrame } from "@/components/ui/organic-frame";
 import { buttonClasses } from "@/components/ui/button";
+import { ScrollReveal } from "@/lib/motion/primitives";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
 import type { ImageTextData } from "../misc-blocks";
@@ -37,10 +39,10 @@ export function ImageTextRender({ data, locale }: BlockRenderProps<ImageTextData
   const imageFirst = data.imagePosition !== "right";
   const textColumn = (
     <div className="sm:[direction:ltr]">
-      {data.heading ? <h2 className="font-display text-2xl">{data.heading}</h2> : null}
-      {data.body ? <p className="mt-3 whitespace-pre-line opacity-70">{data.body}</p> : null}
+      {data.heading ? <h2 className="font-display text-h1 leading-[1.05]">{data.heading}</h2> : null}
+      {data.body ? <p className="mt-5 max-w-lg whitespace-pre-line text-lg leading-relaxed opacity-70">{data.body}</p> : null}
       {data.ctaLabel && data.ctaUrl ? (
-        <Link href={resolveHref(data.ctaUrl, locale)} className={`${buttonClasses("secondary", "md")} mt-6 inline-flex`}>
+        <Link href={resolveHref(data.ctaUrl, locale)} className={`${buttonClasses("secondary", "lg")} mt-8 inline-flex`}>
           {data.ctaLabel}
         </Link>
       ) : null}
@@ -48,19 +50,25 @@ export function ImageTextRender({ data, locale }: BlockRenderProps<ImageTextData
   );
 
   // No image set yet (e.g. a freshly-added section awaiting a real photo from
-  // the admin) -- render text-only rather than leaving an empty box in the grid.
-  if (!data.image?.url) return <div className="mx-auto max-w-2xl">{textColumn}</div>;
+  // the admin) -- render as a large centered editorial statement rather than a text-image split
+  // waiting for its missing half.
+  if (!data.image?.url) return <div className="mx-auto max-w-3xl text-center">{textColumn}</div>;
 
   return (
-    <div className={`grid items-center gap-10 sm:grid-cols-2 ${imageFirst ? "" : "sm:[direction:rtl]"}`}>
-      <div className={imageFirst ? "" : "sm:[direction:ltr]"}>
-        <CmsImage
-          src={data.image.url}
-          alt=""
-          className="aspect-[4/3] w-full rounded-[var(--radius-md)] object-cover"
-          context={{ mediaId: data.image.id, component: "IMAGE_TEXT", locale }}
-        />
-      </div>
+    <div className={`grid items-center gap-10 lg:gap-16 sm:grid-cols-2 ${imageFirst ? "" : "sm:[direction:rtl]"}`}>
+      <ScrollReveal variant="fade-up" className={imageFirst ? "" : "sm:[direction:ltr]"}>
+        <div className="relative aspect-[4/5] w-full">
+          <OrganicFrame frameStyle="rounded-rectangle" className="absolute inset-0">
+            <CmsFillImage
+              src={data.image.url}
+              alt=""
+              sizes="(min-width: 640px) 50vw, 100vw"
+              className="object-cover"
+              context={{ mediaId: data.image.id, component: "IMAGE_TEXT", locale }}
+            />
+          </OrganicFrame>
+        </div>
+      </ScrollReveal>
       {textColumn}
     </div>
   );

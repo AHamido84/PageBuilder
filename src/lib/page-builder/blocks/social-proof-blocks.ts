@@ -9,7 +9,17 @@ import { FeatureCardsRender } from "./social-proof/feature-cards";
 import { IconCardsEdit, IconCardsRender } from "./social-proof/icon-cards";
 import { CardItemsEdit } from "./interactive/accordion";
 
-const testimonialItemSchema = z.object({ quote: z.string().max(600), authorName: z.string().max(150), authorRole: z.string().max(150).optional().default("") });
+const mediaRefSchema = z.object({ id: z.string(), url: z.string() });
+
+// Phase 3 premium redesign: `avatar` is additive + nullable/optional (defaults to null) -- every
+// already-published testimonial (with no avatar data at all) keeps rendering exactly as before,
+// via the initials-circle fallback in TestimonialsRender, rather than an empty image slot.
+const testimonialItemSchema = z.object({
+  quote: z.string().max(600),
+  authorName: z.string().max(150),
+  authorRole: z.string().max(150).optional().default(""),
+  avatar: mediaRefSchema.nullable().optional().default(null),
+});
 const testimonialsSchema = z.object({ heading: z.string().max(200).optional().default(""), items: z.array(testimonialItemSchema).default([]) });
 export type TestimonialsData = z.infer<typeof testimonialsSchema>;
 
@@ -19,7 +29,15 @@ const statItemSchema = z.object({ value: z.string().max(40), label: z.string().m
 const statisticsSchema = z.object({ heading: z.string().max(200).optional().default(""), items: z.array(statItemSchema).default([]) });
 export type StatisticsData = z.infer<typeof statisticsSchema>;
 
-const timelineItemSchema = z.object({ date: z.string().max(60).optional().default(""), title: z.string().max(150), body: z.string().max(500) });
+// `image` is additive + nullable/optional (defaults to null) -- Phase 3 premium redesign lets a
+// journey step show real supply-chain/cold-chain photography; every already-published step with no
+// image keeps rendering the original icon-only treatment in ColdChainJourney/TimelineRender.
+const timelineItemSchema = z.object({
+  date: z.string().max(60).optional().default(""),
+  title: z.string().max(150),
+  body: z.string().max(500),
+  image: mediaRefSchema.nullable().optional().default(null),
+});
 const timelineSchema = z.object({
   heading: z.string().max(200).optional().default(""),
   items: z.array(timelineItemSchema).default([]),
@@ -54,7 +72,9 @@ export const socialProofBlocks: BlockDefinition<any>[] = [
     label: "Testimonials",
     category: "social-proof",
     icon: MessageSquareQuote,
-    supportsColumns: true,
+    // Phase 3 premium redesign: layout is now a fixed featured-quote + supporting-list composition
+    // (see TestimonialsRender), not a settings-driven N-column grid, so the Columns control no
+    // longer applies -- previously `supportsColumns: true`.
     dataSchema: testimonialsSchema,
     defaultData: { en: { heading: "What our customers say", items: [] }, ar: { heading: "ماذا يقول عملاؤنا", items: [] } },
     defaultSettings: defaultSectionSettings({ desktop: { paddingY: "lg", marginY: "none", align: "left", columns: "3", headingSize: "lg", bodySize: "md", visible: true } }),

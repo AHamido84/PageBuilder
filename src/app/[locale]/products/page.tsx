@@ -8,6 +8,8 @@ import { Pagination } from "@/components/admin/ui/pagination";
 import { ProductCard, type ProductCardData } from "@/components/site/product-card";
 import { FilterBar } from "./filter-bar";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { SectionRenderer } from "@/components/site/section-renderer";
+import { loadPageHeaderSections } from "@/lib/page-builder/page-headers";
 
 export const dynamic = "force-dynamic";
 
@@ -134,13 +136,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     return `?${sp.toString()}`;
   }
 
-  return (
-    <Section
-      tone="paper"
-      eyebrow={activeCategory ? t("filterCategory") : t("eyebrow")}
-      title={activeCategory ? activeCategory.name : t("title")}
-      description={activeCategory?.description ?? undefined}
-    >
+  const results = (
+    <>
       <FilterBar categories={categories} brands={brands} />
       <p className="font-mono-data mb-6 text-xs text-ink/40">{t("resultsCount", { count: total })}</p>
       {products.length > 0 ? (
@@ -155,6 +152,37 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       ) : (
         <EmptyState title={t("empty")} />
       )}
-    </Section>
+    </>
+  );
+
+  // A category filter shows that category's own translated name/description as the header --
+  // dynamic, per-category SEO-relevant content, deliberately never replaced by the generic
+  // editable header below.
+  if (activeCategory) {
+    return (
+      <Section tone="paper" eyebrow={t("filterCategory")} title={activeCategory.name} description={activeCategory.description ?? undefined}>
+        {results}
+      </Section>
+    );
+  }
+
+  // Phase 7: the page's own generic header/intro is now a real, admin-editable Page Builder
+  // section (see src/lib/page-builder/page-headers.ts) -- falls back to the exact original
+  // hardcoded text if the one-time seed script hasn't been run in this environment yet, so the
+  // page never renders with a missing header.
+  const headerSections = await loadPageHeaderSections("products");
+  if (!headerSections) {
+    return (
+      <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
+        {results}
+      </Section>
+    );
+  }
+
+  return (
+    <>
+      <SectionRenderer sections={headerSections} locale={locale} />
+      <Section tone="paper">{results}</Section>
+    </>
   );
 }

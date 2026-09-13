@@ -4,11 +4,29 @@ import { useRef } from "react";
 import { cn } from "@/lib/cn";
 import { ScrollReveal, DrawLine } from "@/lib/motion/primitives";
 import { TemperatureIndicator } from "./graphics/temperature-indicator";
+import { CmsFillImage } from "@/components/media/cms-image";
+import { OrganicFrame } from "@/components/ui/organic-frame";
 
 export interface JourneyStep {
   date?: string;
   title: string;
   body: string;
+  /** Phase 3 premium redesign: optional real photography for a step, shown instead of the plain
+   * TemperatureIndicator icon. Additive -- a step with no image keeps the original icon-only look. */
+  image?: { id: string; url: string } | null;
+}
+
+/** Optional real photography for a step, rendered in the text flow below the connecting-line icon
+ * (which stays exactly as-is regardless) -- additive, so a step with no image is unaffected. */
+function StepImage({ step }: { step: JourneyStep }) {
+  if (!step.image?.url) return null;
+  return (
+    <div className="relative mb-4 aspect-[4/3] w-full max-w-[220px]">
+      <OrganicFrame frameStyle="curved-rectangle" className="absolute inset-0">
+        <CmsFillImage src={step.image.url} alt="" sizes="220px" className="object-cover" context={{ mediaId: step.image.id, component: "TIMELINE" }} />
+      </OrganicFrame>
+    </div>
+  );
 }
 
 /**
@@ -39,6 +57,7 @@ export function ColdChainJourney({ heading, steps, className }: { heading?: stri
           {steps.map((step, i) => (
             <ScrollReveal key={i} variant="fade-up" className="relative">
               <TemperatureIndicator className="absolute -start-12 top-0 h-8 text-wheat" />
+              <StepImage step={step} />
               {step.date ? <p className="font-mono-data text-xs uppercase tracking-wide opacity-50">{step.date}</p> : null}
               <p className="mt-1 font-display text-lg">{step.title}</p>
               <p className="mt-1 text-sm opacity-70">{step.body}</p>
@@ -64,6 +83,7 @@ export function ColdChainJourney({ heading, steps, className }: { heading?: stri
           {steps.map((step, i) => (
             <ScrollReveal key={i} variant="fade-up" className="relative pt-14">
               <TemperatureIndicator className="absolute start-0 top-0 h-10 text-wheat" />
+              <StepImage step={step} />
               {step.date ? <p className="font-mono-data text-xs uppercase tracking-wide opacity-50">{step.date}</p> : null}
               <p className="mt-1 font-display text-lg">{step.title}</p>
               <p className="mt-1 text-sm opacity-70">{step.body}</p>

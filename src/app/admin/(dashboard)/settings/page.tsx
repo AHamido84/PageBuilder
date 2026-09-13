@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { Tabs } from "@/components/admin/ui/tabs";
 import { normalizeHeaderLogoSettings } from "@/lib/site-settings/header-logo";
-import { GeneralForm, ContactForm, SocialForm, HoursForm, SeoForm, FooterForm, type Settings } from "./settings-forms";
+import { parseDesignTokens } from "@/lib/design-tokens/schema";
+import { GeneralForm, ContactForm, SocialForm, HoursForm, SeoForm, FooterForm, AppearanceForm, type Settings } from "./settings-forms";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export default async function SettingsPage() {
     newsletterTitleAr: record.newsletterTitleAr,
     newsletterBodyEn: record.newsletterBodyEn,
     newsletterBodyAr: record.newsletterBodyAr,
+    designTokens: parseDesignTokens(record.designTokens),
   };
 
   return (
@@ -65,6 +67,7 @@ export default async function SettingsPage() {
           { key: "hours", label: "Business hours", content: <HoursForm settings={settings} /> },
           { key: "seo", label: "SEO defaults", content: <SeoForm settings={settings} /> },
           { key: "footer", label: "Footer", content: <FooterForm settings={settings} /> },
+          { key: "appearance", label: "Appearance", content: <AppearanceForm settings={settings} /> },
         ]}
       />
     </div>

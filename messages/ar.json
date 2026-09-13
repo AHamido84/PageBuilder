@@ -30,7 +30,8 @@
   },
   "productCard": {
     "featured": "مميز",
-    "new": "جديد"
+    "new": "جديد",
+    "viewProduct": "عرض المنتج"
   },
   "error": {
     "title": "حدث خطأ ما",

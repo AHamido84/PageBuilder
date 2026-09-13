@@ -3,6 +3,8 @@
 import { useActionState, useState } from "react";
 import { MediaPickerField } from "@/components/admin/ui/media-picker-field";
 import type { HeaderLogoSettings, HeaderLogoLocaleSettings } from "@/lib/site-settings/header-logo";
+import type { DesignTokens } from "@/lib/design-tokens/schema";
+import { ENGLISH_FONT_OPTIONS, ARABIC_FONT_OPTIONS, SHADOW_OPTIONS, ANIMATION_DEFAULT_OPTIONS } from "@/lib/design-tokens/schema";
 import {
   updateGeneralSettingsAction,
   updateContactSettingsAction,
@@ -10,6 +12,7 @@ import {
   updateHoursSettingsAction,
   updateSeoSettingsAction,
   updateFooterSettingsAction,
+  updateDesignTokensAction,
   type FormActionState,
 } from "./actions";
 
@@ -60,6 +63,212 @@ export interface Settings {
   newsletterTitleAr: string | null;
   newsletterBodyEn: string | null;
   newsletterBodyAr: string | null;
+  designTokens: DesignTokens;
+}
+
+/** Text input for a color override -- deliberately plain text, not `type="color"` (which can never
+ * represent "empty/unset", only an actual color), so leaving it blank genuinely means "inherit the
+ * current default", matching every other optional field in this form. The placeholder shows that
+ * default so an admin can see what they're overriding. */
+function ColorField({ name, label, placeholder, defaultValue }: { name: string; label: string; placeholder: string; defaultValue?: string }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs text-neutral-400">{label}</label>
+      <div className="flex items-center gap-2">
+        <input name={name} defaultValue={defaultValue ?? ""} placeholder={placeholder} className={inputClass} />
+        <span className="h-6 w-6 shrink-0 rounded border border-neutral-700" style={{ background: defaultValue || placeholder.split(" ")[0] }} aria-hidden />
+      </div>
+    </div>
+  );
+}
+
+function NumField({ name, label, placeholder, defaultValue, step }: { name: string; label: string; placeholder: string; defaultValue?: number; step?: number }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs text-neutral-400">{label}</label>
+      <input type="number" step={step ?? "any"} name={name} defaultValue={defaultValue ?? ""} placeholder={placeholder} className={inputClass} />
+    </div>
+  );
+}
+
+/** Tri-state select (Default / On / Off) -- see updateDesignTokensAction's optionalBoolean() for
+ * why this isn't a checkbox: a plain HTML checkbox can't distinguish "not submitted" from
+ * "explicitly unchecked", which would make "explicitly set to Off" indistinguishable from
+ * "inherit". */
+function TriStateField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: boolean }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs text-neutral-400">{label}</label>
+      <select name={name} defaultValue={defaultValue === undefined ? "" : String(defaultValue)} className={inputClass}>
+        <option value="">Default</option>
+        <option value="true">On</option>
+        <option value="false">Off</option>
+      </select>
+    </div>
+  );
+}
+
+export function AppearanceForm({ settings }: { settings: Settings }) {
+  const [state, formAction, pending] = useActionState(updateDesignTokensAction, initialState);
+  const t = settings.designTokens;
+  const colors = t.colors ?? {};
+  const typography = t.typography ?? {};
+  const layout = t.layout ?? {};
+  const buttons = t.buttons ?? {};
+  const animation = t.animation ?? {};
+  const responsive = t.responsive ?? {};
+
+  return (
+    <form action={formAction} className="space-y-6">
+      <p className="text-xs text-neutral-500">
+        Every field below is optional. Leave one blank to keep the site&apos;s current default -- these become the site-wide DEFAULT; any Page Builder
+        section can still override background, animation, padding, etc. on its own Style panel exactly as before.
+      </p>
+
+      <fieldset className="space-y-3">
+        <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">Global colors</legend>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <ColorField name="colors.primary" label="Primary" placeholder="#ee665a (default)" defaultValue={colors.primary} />
+          <ColorField name="colors.secondary" label="Secondary" placeholder="#07564e (default)" defaultValue={colors.secondary} />
+          <ColorField name="colors.accent" label="Accent" placeholder="#0b806f (default)" defaultValue={colors.accent} />
+          <ColorField name="colors.gold" label="Gold" placeholder="#d5b45c (default)" defaultValue={colors.gold} />
+          <ColorField name="colors.background" label="Background" placeholder="#f7f8f5 (default)" defaultValue={colors.background} />
+          <ColorField name="colors.surface" label="Surface" placeholder="#e6efec (default)" defaultValue={colors.surface} />
+          <ColorField name="colors.text" label="Text" placeholder="#18302d (default)" defaultValue={colors.text} />
+          <ColorField name="colors.mutedText" label="Muted text" placeholder="#18302d (60% opacity, default)" defaultValue={colors.mutedText} />
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-3 border-t border-neutral-800 pt-4">
+        <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">Typography</legend>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs text-neutral-400">English font (body text)</label>
+            <select name="typography.fontEn" defaultValue={typography.fontEn ?? ""} className={inputClass}>
+              <option value="">Default (Public Sans)</option>
+              {ENGLISH_FONT_OPTIONS.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-neutral-400">Arabic font</label>
+            <select name="typography.fontAr" defaultValue={typography.fontAr ?? ""} className={inputClass}>
+              <option value="">Default (IBM Plex Sans Arabic)</option>
+              {ARABIC_FONT_OPTIONS.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <p className="text-xs text-neutral-500">
+          Sizes below are multipliers on the existing responsive scale (1 = today&apos;s size, 1.1 = 10% larger), not fixed pixel values -- this keeps
+          each heading&apos;s mobile-to-desktop fluid scaling intact at any size.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <NumField name="typography.displaySize" label="Display size" placeholder="1" step={0.05} defaultValue={typography.displaySize} />
+          <NumField name="typography.h1Size" label="H1 size" placeholder="1" step={0.05} defaultValue={typography.h1Size} />
+          <NumField name="typography.h2Size" label="H2 size" placeholder="1" step={0.05} defaultValue={typography.h2Size} />
+          <NumField name="typography.h3Size" label="H3 size" placeholder="1" step={0.05} defaultValue={typography.h3Size} />
+          <NumField name="typography.bodySize" label="Body size" placeholder="1" step={0.05} defaultValue={typography.bodySize} />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <NumField name="typography.weightHeading" label="Heading weight" placeholder="e.g. 700" step={100} defaultValue={typography.weightHeading} />
+          <NumField name="typography.weightBody" label="Body weight" placeholder="e.g. 400" step={100} defaultValue={typography.weightBody} />
+          <NumField name="typography.lineHeightScale" label="Line height (scale)" placeholder="1" step={0.05} defaultValue={typography.lineHeightScale} />
+          <NumField name="typography.letterSpacingExtra" label="Letter spacing, extra (em)" placeholder="0" step={0.005} defaultValue={typography.letterSpacingExtra} />
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-3 border-t border-neutral-800 pt-4">
+        <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">Layout</legend>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <NumField name="layout.containerWidth" label="Container width (px)" placeholder="1400" defaultValue={layout.containerWidth} />
+          <NumField name="layout.sectionSpacingScale" label="Section spacing (scale)" placeholder="1" step={0.05} defaultValue={layout.sectionSpacingScale} />
+          <NumField name="layout.gridGap" label="Grid gap (rem)" placeholder="1.25" step={0.125} defaultValue={layout.gridGap} />
+          <NumField name="layout.cardGap" label="Card gap (rem)" placeholder="1.5" step={0.125} defaultValue={layout.cardGap} />
+          <NumField name="layout.buttonRadius" label="Button radius (rem)" placeholder="0.125" step={0.0625} defaultValue={layout.buttonRadius} />
+          <NumField name="layout.cardRadius" label="Card radius (rem)" placeholder="0.25" step={0.0625} defaultValue={layout.cardRadius} />
+          <NumField name="layout.imageRadius" label="Image radius (rem)" placeholder="0.25" step={0.0625} defaultValue={layout.imageRadius} />
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-3 border-t border-neutral-800 pt-4">
+        <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">Buttons (Gold / Ghost Gold / Primary / Secondary)</legend>
+        <p className="text-xs text-neutral-500">
+          Each variant&apos;s own color already comes from Global Colors above (Primary/Secondary/Gold) -- these controls are shared across all four.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <NumField name="buttons.paddingScale" label="Padding (scale)" placeholder="1" step={0.05} defaultValue={buttons.paddingScale} />
+          <NumField name="buttons.radius" label="Radius (rem)" placeholder="0.125" step={0.0625} defaultValue={buttons.radius} />
+          <div>
+            <label className="mb-1 block text-xs text-neutral-400">Shadow</label>
+            <select name="buttons.shadow" defaultValue={buttons.shadow ?? ""} className={inputClass}>
+              <option value="">Default (Flat)</option>
+              {SHADOW_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <TriStateField name="buttons.showIcon" label="Icon" defaultValue={buttons.showIcon} />
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-3 border-t border-neutral-800 pt-4">
+        <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">Animation</legend>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <TriStateField name="animation.enabled" label="Animation enabled" defaultValue={animation.enabled} />
+          <TriStateField name="animation.scrollReveal" label="Scroll reveal" defaultValue={animation.scrollReveal} />
+          <TriStateField name="animation.hoverAnimation" label="Hover animation" defaultValue={animation.hoverAnimation} />
+          <TriStateField name="animation.pageTransition" label="Page transition" defaultValue={animation.pageTransition} />
+          <NumField name="animation.speed" label="Speed (scale)" placeholder="1" step={0.1} defaultValue={animation.speed} />
+          <div>
+            <label className="mb-1 block text-xs text-neutral-400">Default animation</label>
+            <select name="animation.defaultAnimation" defaultValue={animation.defaultAnimation ?? ""} className={inputClass}>
+              <option value="">Default (Fade up)</option>
+              {ANIMATION_DEFAULT_OPTIONS.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <p className="text-xs text-neutral-500">
+          &quot;Default animation&quot; is what a section resolves to when its own Style panel Animation is set to &quot;Inherit from global default&quot;.
+        </p>
+      </fieldset>
+
+      <fieldset className="space-y-3 border-t border-neutral-800 pt-4">
+        <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">Responsive (per-breakpoint spacing overrides)</legend>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-2 rounded-md border border-neutral-800 p-3">
+            <p className="text-xs font-medium text-neutral-400">Tablet (&le; 1023px)</p>
+            <NumField name="responsive.tablet.sectionSpacingScale" label="Section spacing (scale)" placeholder="inherit desktop" step={0.05} defaultValue={responsive.tablet?.sectionSpacingScale} />
+            <NumField name="responsive.tablet.gridGap" label="Grid gap (rem)" placeholder="inherit desktop" step={0.125} defaultValue={responsive.tablet?.gridGap} />
+            <NumField name="responsive.tablet.cardGap" label="Card gap (rem)" placeholder="inherit desktop" step={0.125} defaultValue={responsive.tablet?.cardGap} />
+          </div>
+          <div className="space-y-2 rounded-md border border-neutral-800 p-3">
+            <p className="text-xs font-medium text-neutral-400">Mobile (&le; 639px)</p>
+            <NumField name="responsive.mobile.sectionSpacingScale" label="Section spacing (scale)" placeholder="inherit tablet/desktop" step={0.05} defaultValue={responsive.mobile?.sectionSpacingScale} />
+            <NumField name="responsive.mobile.gridGap" label="Grid gap (rem)" placeholder="inherit tablet/desktop" step={0.125} defaultValue={responsive.mobile?.gridGap} />
+            <NumField name="responsive.mobile.cardGap" label="Card gap (rem)" placeholder="inherit tablet/desktop" step={0.125} defaultValue={responsive.mobile?.cardGap} />
+          </div>
+        </div>
+      </fieldset>
+
+      <StatusLine state={state} />
+      <div>
+        <SaveButton pending={pending} />
+      </div>
+    </form>
+  );
 }
 
 /** One language's independent set of logo controls -- see src/lib/site-settings/header-logo.ts.

@@ -1,11 +1,16 @@
 import { getTranslations } from "next-intl/server";
+import { MapPin, Mail, Phone, Clock } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { Card } from "@/components/ui/card";
 import type { BlockRenderProps } from "../../types";
 import type { ContactInfoData } from "../misc-blocks";
 
 const DAY_ORDER = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
 
-/** Async Server Component (live SiteSetting query) -- never mounts in the admin canvas, see ContactInfoPreview in contact-info.tsx. */
+/** Phase 7: presentation-only redesign (Card frame, icon-labeled rows, a proper frame around the
+ * map) -- every field/query/label below is unchanged from before; only the markup/classNames are
+ * new. Async Server Component (live SiteSetting query) -- never mounts in the admin canvas, see
+ * ContactInfoPreview in contact-info.tsx. */
 export async function ContactInfoRender({ data, locale }: BlockRenderProps<ContactInfoData>) {
   const t = await getTranslations({ locale, namespace: "contactPage" });
   const settings = await prisma.siteSetting.findUnique({ where: { id: "singleton" } });
@@ -14,58 +19,68 @@ export async function ContactInfoRender({ data, locale }: BlockRenderProps<Conta
 
   return (
     <div className="mx-auto max-w-md">
-      {data.heading ? <p className="manifest-strip mb-4 opacity-40">{data.heading}</p> : null}
-      <dl className="space-y-4 text-sm">
-        <div>
-          <dt className="opacity-50">{t("locationLabel")}</dt>
-          <dd className="mt-0.5 font-medium">{t("location")}</dd>
-        </div>
-        {settings?.contactEmail ? (
-          <div>
-            <dt className="opacity-50">{t("emailLabel")}</dt>
-            <dd className="mt-0.5 font-medium">
-              <a href={`mailto:${settings.contactEmail}`} dir="ltr" className="inline-block hover:underline">
-                {settings.contactEmail}
-              </a>
-            </dd>
+      <Card variant="default" className="p-6 sm:p-8">
+        {data.heading ? <p className="manifest-strip mb-5 text-harbor">{data.heading}</p> : null}
+        <dl className="space-y-5 text-base">
+          <div className="flex items-start gap-3">
+            <MapPin size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-harbor" aria-hidden="true" />
+            <div>
+              <dt className="text-sm opacity-50">{t("locationLabel")}</dt>
+              <dd className="mt-1 font-display text-xl">{t("location")}</dd>
+            </div>
           </div>
-        ) : null}
-        {settings?.contactPhone ? (
-          <div>
-            <dt className="opacity-50">{t("phoneLabel")}</dt>
-            <dd className="mt-0.5 font-medium">
-              <a href={`tel:${settings.contactPhone}`} dir="ltr" className="inline-block hover:underline">
-                {settings.contactPhone}
-              </a>
-            </dd>
-          </div>
-        ) : null}
-      </dl>
-
-      {hasHours ? (
-        <div className="mt-6 border-t border-current/10 pt-6">
-          <p className="manifest-strip mb-3 opacity-40">{t("hoursLabel")}</p>
-          <dl className="space-y-1.5 text-sm">
-            {DAY_ORDER.filter((day) => hours![day]).map((day) => (
-              <div key={day} className="flex items-center justify-between gap-4">
-                <dt className="opacity-60">{t(`days.${day}`)}</dt>
-                <dd className={hours![day].toLowerCase() === "closed" ? "opacity-40" : "font-mono-data font-medium"}>
-                  {hours![day].toLowerCase() === "closed" ? t("closed") : hours![day]}
+          {settings?.contactEmail ? (
+            <div className="flex items-start gap-3">
+              <Mail size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-harbor" aria-hidden="true" />
+              <div>
+                <dt className="text-sm opacity-50">{t("emailLabel")}</dt>
+                <dd className="mt-1 font-medium">
+                  <a href={`mailto:${settings.contactEmail}`} dir="ltr" className="inline-block hover:text-harbor hover:underline">
+                    {settings.contactEmail}
+                  </a>
                 </dd>
               </div>
-            ))}
-          </dl>
-        </div>
-      ) : null}
+            </div>
+          ) : null}
+          {settings?.contactPhone ? (
+            <div className="flex items-start gap-3">
+              <Phone size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-harbor" aria-hidden="true" />
+              <div>
+                <dt className="text-sm opacity-50">{t("phoneLabel")}</dt>
+                <dd className="mt-1 font-medium">
+                  <a href={`tel:${settings.contactPhone}`} dir="ltr" className="inline-block hover:text-harbor hover:underline">
+                    {settings.contactPhone}
+                  </a>
+                </dd>
+              </div>
+            </div>
+          ) : null}
+        </dl>
+
+        {hasHours ? (
+          <div className="mt-8 border-t border-current/10 pt-6">
+            <p className="mb-4 flex items-center gap-2 text-sm opacity-50">
+              <Clock size={16} strokeWidth={1.75} aria-hidden="true" />
+              {t("hoursLabel")}
+            </p>
+            <dl className="space-y-2 text-sm">
+              {DAY_ORDER.filter((day) => hours![day]).map((day) => (
+                <div key={day} className="flex items-center justify-between gap-4">
+                  <dt className="opacity-60">{t(`days.${day}`)}</dt>
+                  <dd className={hours![day].toLowerCase() === "closed" ? "opacity-40" : "font-mono-data font-medium"}>
+                    {hours![day].toLowerCase() === "closed" ? t("closed") : hours![day]}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ) : null}
+      </Card>
 
       {settings?.mapEmbedUrl ? (
-        <iframe
-          src={settings.mapEmbedUrl}
-          className="mt-6 h-64 w-full rounded-[var(--radius-md)] border border-current/10"
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-          title={t("locationLabel")}
-        />
+        <div className="mt-6 overflow-hidden rounded-[var(--radius-lg)] border border-ink/10 shadow-[var(--shadow-flat)]">
+          <iframe src={settings.mapEmbedUrl} className="h-80 w-full" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title={t("locationLabel")} />
+        </div>
       ) : null}
     </div>
   );

@@ -1,8 +1,9 @@
 "use client";
 
-import { TextField } from "@/components/admin/ui/field";
+import { ChevronUp, ChevronDown, X } from "lucide-react";
+import { TextField, TextareaField, SelectField, NumberField } from "@/components/admin/ui/field";
 import { CheckboxField } from "@/components/admin/ui/field";
-import { useReferenceData } from "../../reference-data-context";
+import { useReferenceData, type ReferenceOption } from "../../reference-data-context";
 import type { BlockEditProps } from "../../types";
 import type { CategoryGridData, BrandGridData } from "../commerce-blocks";
 
@@ -10,15 +11,54 @@ function featuredCount(categories: { isFeatured: boolean }[]): number {
   return categories.filter((c) => c.isFeatured).length;
 }
 
+/** Manual-selection reorder list, shared shape for both Category Grid and Brand Grid below --
+ * `categoryIds`/`brandIds`' own array order IS the display order (see loadManualCategories in
+ * category-brand-grid-render.tsx), so this is the only place that order can actually be set. */
+function OrderedSelectionList({ ids, options, onChange }: { ids: string[]; options: ReferenceOption[]; onChange: (next: string[]) => void }) {
+  if (ids.length === 0) return null;
+  const move = (index: number, dir: -1 | 1) => {
+    const next = [...ids];
+    const swapWith = index + dir;
+    if (swapWith < 0 || swapWith >= next.length) return;
+    [next[index], next[swapWith]] = [next[swapWith], next[index]];
+    onChange(next);
+  };
+  return (
+    <div className="space-y-1">
+      <label className="mb-1 block text-xs text-neutral-400">Display order</label>
+      {ids.map((id, i) => {
+        const label = options.find((o) => o.id === id)?.label ?? id;
+        return (
+          <div key={id} className="flex items-center gap-1.5 rounded-md border border-neutral-800 bg-neutral-900/50 px-2 py-1 text-sm text-neutral-300">
+            <span className="flex-1 truncate">{label}</span>
+            <button type="button" disabled={i === 0} onClick={() => move(i, -1)} className="rounded p-0.5 hover:bg-neutral-800 disabled:opacity-25" aria-label="Move up">
+              <ChevronUp size={14} />
+            </button>
+            <button type="button" disabled={i === ids.length - 1} onClick={() => move(i, 1)} className="rounded p-0.5 hover:bg-neutral-800 disabled:opacity-25" aria-label="Move down">
+              <ChevronDown size={14} />
+            </button>
+            <button type="button" onClick={() => onChange(ids.filter((x) => x !== id))} className="rounded p-0.5 text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300" aria-label="Remove">
+              <X size={14} />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function CategoryGridEdit({ data, onChange, locale }: BlockEditProps<CategoryGridData>) {
   const { categories } = useReferenceData();
   const selected = new Set(data.categoryIds ?? []);
   const mode = data.mode ?? "dynamic";
+  const layout = data.layout ?? "bento";
   const featured = featuredCount(categories);
+  const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={locale === "ar" ? "rtl" : "ltr"} />
+      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
+      <TextareaField label="Description (optional)" value={data.description ?? ""} onChange={(description) => onChange({ ...data, description })} dir={dir} rows={2} />
 
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Category source</label>
@@ -55,7 +95,7 @@ export function CategoryGridEdit({ data, onChange, locale }: BlockEditProps<Cate
       {mode === "dynamic" ? (
         <div className="space-y-2">
           <TextField
-            label="Limit (optional)"
+            label="Number displayed (optional)"
             value={data.limit != null ? String(data.limit) : ""}
             onChange={(v) => {
               const n = v.trim() === "" ? undefined : Math.max(1, Math.min(24, Number(v) || 1));
@@ -74,24 +114,56 @@ export function CategoryGridEdit({ data, onChange, locale }: BlockEditProps<Cate
           )}
         </div>
       ) : (
-        <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-neutral-800 p-2">
-          {categories.map((c) => (
-            <div key={c.id} className="flex items-center justify-between gap-2">
-              <CheckboxField
-                label={c.label}
-                checked={selected.has(c.id)}
-                onChange={(checked) => {
-                  const next = new Set(selected);
-                  if (checked) next.add(c.id);
-                  else next.delete(c.id);
-                  onChange({ ...data, categoryIds: Array.from(next) });
-                }}
-              />
-              {c.isFeatured ? <span className="shrink-0 rounded-full bg-wheat/20 px-2 py-0.5 text-[10px] font-medium text-wheat">Featured</span> : null}
-            </div>
-          ))}
+        <div className="space-y-2">
+          <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-neutral-800 p-2">
+            {categories.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-2">
+                <CheckboxField
+                  label={c.label}
+                  checked={selected.has(c.id)}
+                  onChange={(checked) => {
+                    const current = data.categoryIds ?? [];
+                    const next = checked ? [...current, c.id] : current.filter((id) => id !== c.id);
+                    onChange({ ...data, categoryIds: next });
+                  }}
+                />
+                {c.isFeatured ? <span className="shrink-0 rounded-full bg-wheat/20 px-2 py-0.5 text-[10px] font-medium text-wheat">Featured</span> : null}
+              </div>
+            ))}
+          </div>
+          <OrderedSelectionList ids={data.categoryIds ?? []} options={categories} onChange={(categoryIds) => onChange({ ...data, categoryIds })} />
+          <TextField
+            label="Number displayed (optional cap)"
+            value={data.limit != null ? String(data.limit) : ""}
+            onChange={(v) => {
+              const n = v.trim() === "" ? undefined : Math.max(1, Math.min(24, Number(v) || 1));
+              onChange({ ...data, limit: n });
+            }}
+          />
         </div>
       )}
+
+      <div className="grid grid-cols-2 gap-2 border-t border-neutral-800 pt-3">
+        <SelectField
+          label="Layout"
+          value={layout}
+          onChange={(v) => onChange({ ...data, layout: v })}
+          options={[
+            { value: "bento", label: "Bento (featured hero + grid)" },
+            { value: "grid", label: "Uniform grid" },
+          ]}
+        />
+        <NumberField label="Grid columns (desktop)" value={data.columns ?? 4} min={2} max={6} onChange={(columns) => onChange({ ...data, columns })} />
+      </div>
+
+      <div className="space-y-1.5 border-t border-neutral-800 pt-3">
+        <CheckboxField label="Show product count" checked={data.showProductCount ?? false} onChange={(showProductCount) => onChange({ ...data, showProductCount })} />
+        <CheckboxField label="Show description on cards" checked={data.showDescription ?? false} onChange={(showDescription) => onChange({ ...data, showDescription })} />
+        <CheckboxField label="Show CTA" checked={data.showCta ?? true} onChange={(showCta) => onChange({ ...data, showCta })} />
+        {data.showCta ? (
+          <TextField label="CTA label (optional)" value={data.ctaLabel ?? ""} onChange={(ctaLabel) => onChange({ ...data, ctaLabel })} dir={dir} placeholder="Shop now" />
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -207,6 +279,15 @@ export function BrandGridEdit({ data, onChange, locale }: BlockEditProps<BrandGr
           ))}
         </div>
       )}
+
+      <div className="space-y-1.5 border-t border-neutral-800 pt-3">
+        <CheckboxField
+          label="Show description on cards"
+          checked={data.showDescription ?? true}
+          onChange={(showDescription) => onChange({ ...data, showDescription })}
+        />
+        <p className="text-xs text-neutral-500">Each brand&apos;s own description is used, when it has one set in Brand Management. A brand&apos;s website link (if set) makes its whole card clickable.</p>
+      </div>
     </div>
   );
 }

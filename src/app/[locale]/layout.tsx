@@ -3,7 +3,7 @@ import { MotionConfig } from "framer-motion";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { Archivo, Public_Sans, IBM_Plex_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Archivo, Public_Sans, IBM_Plex_Mono, IBM_Plex_Sans_Arabic, Inter, Poppins, Cairo, Tajawal } from "next/font/google";
 import { routing } from "@/i18n/routing";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
@@ -15,6 +15,10 @@ import { JsonLd } from "@/components/site/json-ld";
 import { AnalyticsScripts } from "@/components/site/analytics-scripts";
 import { WhatsAppCta } from "@/components/site/whatsapp-cta";
 import { normalizeHeaderLogoSettings } from "@/lib/site-settings/header-logo";
+import { parseDesignTokens } from "@/lib/design-tokens/schema";
+import { buildDesignTokensCss, isAnimationEnabled, isPageTransitionEnabled, isScrollRevealEnabled, resolveAnimationSpeed, resolveDefaultAnimation } from "@/lib/design-tokens/resolve-css";
+import { DesignAnimationProvider } from "@/components/site/design-animation-context";
+import { PageTransition } from "@/components/site/page-transition";
 import "../globals.css";
 
 const archivo = Archivo({
@@ -23,14 +27,23 @@ const archivo = Archivo({
   variable: "--font-display",
   display: "swap",
 });
-const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+// Phase 8 "Global Visual Control Center": the default English/Arabic body fonts keep their
+// existing variable names (--font-body, --font-arabic) so nothing changes unless an admin
+// explicitly picks a different option -- but each is ALSO given its own dedicated
+// "--font-body-public-sans"/"--font-body-<option>" variable so the resolved CSS override
+// (resolve-css.ts) can point --font-body/--font-arabic at any of them by name.
+const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-body-public-sans", display: "swap" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-body-inter", display: "swap" });
+const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-body-poppins", display: "swap" });
 const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-mono", display: "swap" });
 const plexArabic = IBM_Plex_Sans_Arabic({
   subsets: ["arabic"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-arabic",
+  variable: "--font-arabic-plex-arabic",
   display: "swap",
 });
+const cairo = Cairo({ subsets: ["arabic"], weight: ["400", "500", "600", "700"], variable: "--font-arabic-cairo", display: "swap" });
+const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"], variable: "--font-arabic-tajawal", display: "swap" });
 
 export async function generateMetadata(): Promise<Metadata> {
   // The favicon lives at public/favicon.ico (a plain static asset), not the App Router's special
@@ -130,33 +143,59 @@ export default async function LocaleLayout({
     address: settings?.address,
   });
 
+  // Phase 8 "Global Visual Control Center" -- see src/lib/design-tokens/. `designTokens` is empty
+  // for every site that hasn't opened the Appearance panel yet, so `overrideCss` is an empty string
+  // and every helper below resolves to today's exact existing defaults (animations on, reveal on,
+  // 1x speed, no page transition) -- this whole block is a no-op until an admin actually configures
+  // something.
+  const designTokens = parseDesignTokens(settings?.designTokens);
+  const overrideCss = buildDesignTokensCss(designTokens);
+  const animationEnabled = isAnimationEnabled(designTokens);
+  const hoverAnimationEnabled = animationEnabled && designTokens.animation?.hoverAnimation !== false;
+
   return (
     <html
       lang={locale}
       dir={dir}
-      className={`${archivo.variable} ${publicSans.variable} ${plexMono.variable} ${plexArabic.variable} h-full antialiased`}
+      data-hover-animation={hoverAnimationEnabled ? "on" : "off"}
+      className={`${archivo.variable} ${publicSans.variable} ${inter.variable} ${poppins.variable} ${plexMono.variable} ${plexArabic.variable} ${cairo.variable} ${tajawal.variable} h-full antialiased`}
     >
+      {overrideCss ? <head><style dangerouslySetInnerHTML={{ __html: overrideCss }} /></head> : null}
       <body className="flex min-h-full flex-col bg-paper text-ink">
         <JsonLd data={orgSchema} />
         <AnalyticsScripts gtmId={settings?.gtmId} ga4Id={settings?.analyticsId} metaPixelId={settings?.metaPixelId} />
-        {/* reducedMotion="user" makes every framer-motion component in the tree honor
-            prefers-reduced-motion automatically — the CSS media query in globals.css only
-            catches CSS transitions/animations, not framer-motion's own JS-driven ones. */}
-        <MotionConfig reducedMotion="user">
-          <NextIntlClientProvider>
-            <ToastProvider>
-              <SiteHeader
-                categories={categories}
-                featuredProducts={featuredProducts}
-                logoUrl={settings?.logo?.url}
-                logoSettings={normalizeHeaderLogoSettings(settings?.headerLogo)[locale === "ar" ? "ar" : "en"]}
-                menuItems={headerMenu}
-                locale={locale}
-              />
-              <main className="flex-1">{children}</main>
-              <SiteFooter categories={categories} menuItems={footerMenu} locale={locale} />
-            </ToastProvider>
-          </NextIntlClientProvider>
+        {/* reducedMotion="user" (default) makes every framer-motion component in the tree honor
+            prefers-reduced-motion automatically -- the CSS media query in globals.css only catches
+            CSS transitions/animations, not framer-motion's own JS-driven ones. Animation > Animation
+            Enabled=false promotes this to "always" (the master switch), which framer-motion's own
+            useReducedMotion() -- already called by every primitive in motion/primitives.tsx --
+            immediately respects with zero further code changes needed there. */}
+        <MotionConfig reducedMotion={animationEnabled ? "user" : "always"}>
+          <DesignAnimationProvider
+            value={{
+              scrollRevealEnabled: isScrollRevealEnabled(designTokens),
+              speed: resolveAnimationSpeed(designTokens),
+              pageTransitionEnabled: isPageTransitionEnabled(designTokens),
+              defaultAnimation: resolveDefaultAnimation(designTokens) as never,
+            }}
+          >
+            <NextIntlClientProvider>
+              <ToastProvider>
+                <SiteHeader
+                  categories={categories}
+                  featuredProducts={featuredProducts}
+                  logoUrl={settings?.logo?.url}
+                  logoSettings={normalizeHeaderLogoSettings(settings?.headerLogo)[locale === "ar" ? "ar" : "en"]}
+                  menuItems={headerMenu}
+                  locale={locale}
+                />
+                <PageTransition>
+                  <main className="flex-1">{children}</main>
+                </PageTransition>
+                <SiteFooter categories={categories} menuItems={footerMenu} locale={locale} />
+              </ToastProvider>
+            </NextIntlClientProvider>
+          </DesignAnimationProvider>
         </MotionConfig>
         <WhatsAppCta whatsapp={settings?.whatsapp} label={tCommon("chatOnWhatsApp")} />
       </body>

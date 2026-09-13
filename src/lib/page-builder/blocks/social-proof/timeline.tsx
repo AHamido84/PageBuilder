@@ -3,6 +3,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { TextField, TextareaField, SelectField } from "@/components/admin/ui/field";
 import { IconButton } from "@/components/admin/ui/icon-button";
+import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { ColdChainJourney } from "@/components/site/cold-chain-journey";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { TimelineData } from "../social-proof-blocks";
@@ -34,11 +35,17 @@ export function TimelineEdit({ data, onChange, locale }: BlockEditProps<Timeline
           <TextField label="Date (optional)" value={item.date ?? ""} onChange={(date) => setItems(items.map((it, idx) => (idx === i ? { ...it, date } : it)))} />
           <TextField label="Title" value={item.title} onChange={(title) => setItems(items.map((it, idx) => (idx === i ? { ...it, title } : it)))} dir={dir} />
           <TextareaField label="Body" value={item.body} onChange={(body) => setItems(items.map((it, idx) => (idx === i ? { ...it, body } : it)))} dir={dir} rows={2} />
+          <MediaPickerControlled
+            label="Photo (optional — shown instead of the step icon)"
+            mediaId={item.image?.id ?? ""}
+            previewUrl={item.image?.url}
+            onChange={(id, url) => setItems(items.map((it, idx) => (idx === i ? { ...it, image: id ? { id, url } : null } : it)))}
+          />
         </div>
       ))}
       <button
         type="button"
-        onClick={() => setItems([...items, { date: "", title: "", body: "" }])}
+        onClick={() => setItems([...items, { date: "", title: "", body: "", image: null }])}
         className="flex items-center gap-1.5 rounded-md border border-dashed border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-200"
       >
         <Plus size={14} /> Add event

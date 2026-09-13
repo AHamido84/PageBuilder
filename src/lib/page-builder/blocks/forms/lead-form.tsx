@@ -4,6 +4,7 @@ import { useActionState, useRef, useEffect, useState, useContext } from "react";
 import { Loader2 } from "lucide-react";
 import { TextField, TextareaField, CheckboxField, SelectField } from "@/components/admin/ui/field";
 import { buttonClasses } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { ToastContext } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { submitBlockLeadAction } from "@/app/[locale]/page-builder-lead-action";
@@ -13,7 +14,7 @@ import type { LeadFormData } from "../forms-blocks";
 
 const initialState: LeadFormState = {};
 const inputClasses =
-  "w-full rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm text-ink placeholder:text-ink/35 transition-[border-color,box-shadow] duration-200 focus:border-harbor focus:shadow-[var(--shadow-focus)] focus:outline-none";
+  "w-full rounded-[var(--radius-md)] border border-ink/15 bg-paper px-4 py-3 text-sm text-ink placeholder:text-ink/35 transition-[border-color,box-shadow] duration-200 focus:border-harbor focus:shadow-[var(--shadow-focus)] focus:outline-none";
 
 const INQUIRY_TYPES = ["GENERAL", "QUOTE", "BECOME_CUSTOMER", "SALES_INQUIRY"] as const;
 type InquiryType = (typeof INQUIRY_TYPES)[number];
@@ -100,68 +101,70 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
 
   return (
     <div className="mx-auto max-w-xl">
-      {data.heading ? <h2 className="text-center font-display text-3xl">{data.heading}</h2> : null}
-      {data.body ? <p className="mt-3 text-center opacity-65">{data.body}</p> : null}
-      <form ref={formRef} action={interactive ? formAction : undefined} className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <input type="hidden" name="locale" value={locale.toUpperCase()} />
-        <input type="hidden" name="inquiryType" value={submittedInquiryType} />
-        <div className="hidden" aria-hidden="true">
-          <label htmlFor="website">{t.website}</label>
-          <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
-        </div>
-
-        {data.showTypeSelector ? (
-          <div className="flex flex-wrap gap-2 sm:col-span-2">
-            {INQUIRY_TYPES.map((type) => (
-              <button
-                key={type}
-                type="button"
-                disabled={!interactive}
-                onClick={() => setSelectedType(type)}
-                className={cn(
-                  "rounded-full border px-3.5 py-1.5 text-sm transition-colors",
-                  selectedType === type ? "border-ink bg-ink text-paper" : "border-ink/15 text-ink/60 hover:border-ink/40"
-                )}
-              >
-                {t.inquiryType[type]}
-              </button>
-            ))}
+      {data.heading ? <h2 className="text-center font-display text-h2">{data.heading}</h2> : null}
+      {data.body ? <p className="mx-auto mt-4 max-w-md text-center opacity-65">{data.body}</p> : null}
+      <Card variant="default" className="mt-10 p-6 sm:p-8">
+        <form ref={formRef} action={interactive ? formAction : undefined} className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <input type="hidden" name="locale" value={locale.toUpperCase()} />
+          <input type="hidden" name="inquiryType" value={submittedInquiryType} />
+          <div className="hidden" aria-hidden="true">
+            <label htmlFor="website">{t.website}</label>
+            <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
           </div>
-        ) : null}
 
-        <div>
-          <label className="mb-1.5 block text-sm opacity-60">{data.nameLabel || t.name}</label>
-          <input name="contactName" required className={inputClasses} disabled={!interactive} />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm opacity-60">{data.companyLabel || t.company}</label>
-          <input name="companyName" className={inputClasses} disabled={!interactive} />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm opacity-60">{data.emailLabel || t.email}</label>
-          <input name="email" type="email" dir="ltr" required className={`${inputClasses} text-end`} disabled={!interactive} />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm opacity-60">{data.phoneLabel || t.phone}</label>
-          <input name="phone" type="tel" dir="ltr" className={`${inputClasses} text-end`} disabled={!interactive} />
-        </div>
-        {data.showMessage ? (
+          {data.showTypeSelector ? (
+            <div className="flex flex-wrap gap-2 sm:col-span-2">
+              {INQUIRY_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  disabled={!interactive}
+                  onClick={() => setSelectedType(type)}
+                  className={cn(
+                    "rounded-full border px-3.5 py-1.5 text-sm transition-colors",
+                    selectedType === type ? "border-ink bg-ink text-paper" : "border-ink/15 text-ink/60 hover:border-ink/40"
+                  )}
+                >
+                  {t.inquiryType[type]}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <div>
+            <label className="mb-1.5 block text-sm opacity-60">{data.nameLabel || t.name}</label>
+            <input name="contactName" required className={inputClasses} disabled={!interactive} />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm opacity-60">{data.companyLabel || t.company}</label>
+            <input name="companyName" className={inputClasses} disabled={!interactive} />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm opacity-60">{data.emailLabel || t.email}</label>
+            <input name="email" type="email" dir="ltr" required className={`${inputClasses} text-end`} disabled={!interactive} />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm opacity-60">{data.phoneLabel || t.phone}</label>
+            <input name="phone" type="tel" dir="ltr" className={`${inputClasses} text-end`} disabled={!interactive} />
+          </div>
+          {data.showMessage ? (
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-sm opacity-60">{data.messageLabel || t.message}</label>
+              <textarea name="message" rows={4} className={inputClasses} disabled={!interactive} />
+            </div>
+          ) : null}
           <div className="sm:col-span-2">
-            <label className="mb-1.5 block text-sm opacity-60">{data.messageLabel || t.message}</label>
-            <textarea name="message" rows={4} className={inputClasses} disabled={!interactive} />
+            <button
+              type="submit"
+              disabled={pending || !interactive}
+              className={cn(buttonClasses("primary", "lg", "w-full sm:w-auto"), "inline-flex items-center justify-center gap-2")}
+            >
+              {pending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : null}
+              {pending ? t.sending : data.submitLabel || t.send}
+            </button>
           </div>
-        ) : null}
-        <div className="sm:col-span-2">
-          <button
-            type="submit"
-            disabled={pending || !interactive}
-            className={cn(buttonClasses("primary", "lg", "w-full sm:w-auto"), "inline-flex items-center justify-center gap-2")}
-          >
-            {pending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : null}
-            {pending ? t.sending : data.submitLabel || t.send}
-          </button>
-        </div>
-      </form>
+        </form>
+      </Card>
     </div>
   );
 }

@@ -73,7 +73,13 @@ export function CanvasSectionFrame({ section, selected, mode, locale, onSelect, 
         </div>
       ) : null}
 
-      <SectionShell settings={localeSettings}>
+      {/* Phase 2 fix: this was previously always omitted, so a bleeding block (e.g. Hero in
+          full-bleed layout mode) rendered inside the canvas's normal max-width/padding box even
+          though the public site correctly rendered it edge-to-edge -- a real WYSIWYG gap. Passing
+          the same bleedsWhen result the public SectionRenderer already computes makes the canvas
+          match; it's also what makes the new Container Width setting (which only has an effect
+          when NOT bleeding) actually previewable while editing. */}
+      <SectionShell settings={localeSettings} bleed={block.bleedsWhen?.(data) ?? false}>
         {block.canvasPreview ? <block.canvasPreview data={data} /> : <block.Render data={data} locale={locale} interactive={isPreview} settings={localeSettings} />}
       </SectionShell>
     </div>

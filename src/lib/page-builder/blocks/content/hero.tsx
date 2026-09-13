@@ -14,7 +14,7 @@ import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
 import { useReferenceData } from "../../reference-data-context";
 import type { HeroData, HeroRenderData, HeroResolvedMedia, HeroImagePosition, HeroFramePosition, HeroCompositionData } from "../content-blocks";
-import { HeroFrame, HeroMediaMotion, HeroVideoLayer, HeroCtaOverlay, heroButtonVariant, heroImageFitClass, CTA_STYLE_OPTIONS, type HeroFullBleedOptions } from "./hero-shared";
+import { HeroFrame, HeroMediaMotion, HeroVideoLayer, HeroCtaOverlay, heroButtonVariant, heroImageFitClass, resolveTier, CTA_STYLE_OPTIONS, type HeroFullBleedOptions } from "./hero-shared";
 import { HeroFrameShape } from "./hero-frame-shape";
 import { HeroDecorativeTypography } from "./hero-decorative-typography";
 import { HeroProductComposition } from "./hero-product-composition-render";
@@ -364,10 +364,15 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
             { value: "3d-composition", label: "3D Composition" },
           ]}
         />
-        <SelectField
-          label="Layout"
-          value={data.layout}
-          onChange={(layout) =>
+        {/* Phase 4 -- presented as a clear ON/OFF toggle rather than a "Split vs Full-bleed"
+            dropdown; the underlying `layout` field is unchanged (still "split" | "full-bleed"),
+            so nothing about how every other part of this file/hero-shared.tsx/hero-slideshow-render.tsx
+            reads `data.layout` needs to change. */}
+        <CheckboxField
+          label="Full bleed — cinematic edge-to-edge background (off = media in its own column)"
+          checked={data.layout === "full-bleed"}
+          onChange={(fullBleed) => {
+            const layout = fullBleed ? "full-bleed" : "split";
             onChange({
               ...data,
               layout,
@@ -377,12 +382,8 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
               // custom choice is never silently overridden.
               ...(layout === "full-bleed" && data.animation === "slow-zoom" ? { animation: "cinematic-loop" } : {}),
               ...(layout === "split" && data.animation === "cinematic-loop" ? { animation: "slow-zoom" } : {}),
-            })
-          }
-          options={[
-            { value: "split", label: "Split — media in its own column" },
-            { value: "full-bleed", label: "Full-bleed — cinematic edge-to-edge background" },
-          ]}
+            });
+          }}
         />
 
         {data.mediaType === "image" ? (
@@ -404,17 +405,32 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
           </>
         ) : null}
         {data.mediaType === "image" || data.mediaType === "video" || data.mediaType === "slideshow" ? (
-          <SelectField
-            label="Image / video fit"
-            value={data.imageFit}
-            onChange={(imageFit) => onChange({ ...data, imageFit })}
-            options={[
-              { value: "cover", label: "Cover — fill the frame, may crop" },
-              { value: "contain", label: "Contain — show the complete image, no cropping" },
-              { value: "fill", label: "Fill — stretch to the exact frame size" },
-              { value: "none", label: "Natural — original size, unscaled" },
-            ]}
-          />
+          <>
+            <SelectField
+              label="Image / video fit"
+              value={data.imageFit}
+              onChange={(imageFit) => onChange({ ...data, imageFit })}
+              options={[
+                { value: "cover", label: "Cover — fill the frame, may crop" },
+                { value: "contain", label: "Contain — show the complete image, no cropping" },
+                { value: "fill", label: "Fill — stretch to the exact frame size" },
+                { value: "none", label: "Natural — original size, unscaled" },
+              ]}
+            />
+            {/* Phase 4 -- independent mobile fit, previously always silently reusing the desktop value above. */}
+            <SelectField
+              label="Mobile fit (optional — falls back to the fit above)"
+              value={data.imageFitMobile}
+              onChange={(imageFitMobile) => onChange({ ...data, imageFitMobile })}
+              options={[
+                { value: "", label: "Same as desktop" },
+                { value: "cover", label: "Cover — fill the frame, may crop" },
+                { value: "contain", label: "Contain — show the complete image, no cropping" },
+                { value: "fill", label: "Fill — stretch to the exact frame size" },
+                { value: "none", label: "Natural — original size, unscaled" },
+              ]}
+            />
+          </>
         ) : null}
         {data.mediaType === "image" || data.mediaType === "slideshow" ? (
           // Slideshow mode falls back to this shared focal point for any slide that hasn't set its
@@ -443,6 +459,20 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
                 <NumberField label="Focal Y (%)" value={data.focalY} min={0} max={100} onChange={(focalY) => onChange({ ...data, focalY })} />
               </div>
             ) : null}
+            {/* Phase 4 -- independent mobile focal point, previously nonexistent at this level (only imageFitMobile existed, no mobile focal override). */}
+            <div className="flex items-center gap-4">
+              <CheckboxField
+                label="Override focal point on mobile"
+                checked={data.focalXMobile !== null}
+                onChange={(checked) => onChange({ ...data, focalXMobile: checked ? data.focalX : null, focalYMobile: checked ? data.focalY : null })}
+              />
+            </div>
+            {data.focalXMobile !== null ? (
+              <div className="grid grid-cols-2 gap-3">
+                <NumberField label="Mobile focal X (%)" value={data.focalXMobile} min={0} max={100} onChange={(focalXMobile) => onChange({ ...data, focalXMobile })} />
+                <NumberField label="Mobile focal Y (%)" value={data.focalYMobile ?? 50} min={0} max={100} onChange={(focalYMobile) => onChange({ ...data, focalYMobile })} />
+              </div>
+            ) : null}
           </>
         ) : null}
       </div>
@@ -455,12 +485,21 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
             value={data.heroHeight}
             onChange={(heroHeight) => onChange({ ...data, heroHeight })}
             options={[
-              { value: "compact", label: "Compact (~620px)" },
-              { value: "standard", label: "Standard (~780px)" },
-              { value: "tall", label: "Tall — 85–100vh, 780px minimum" },
+              { value: "auto", label: "Auto — content drives the height" },
+              { value: "compact", label: "Small (~620px)" },
+              { value: "standard", label: "Medium (~780px)" },
+              { value: "tall", label: "Large — 85–100vh, 780px minimum" },
               { value: "viewport", label: "Full viewport height" },
+              { value: "custom", label: "Custom" },
             ]}
           />
+          {data.heroHeight === "custom" ? (
+            <TextField
+              label="Custom height (CSS length, e.g. 600px or 70vh)"
+              value={data.heroHeightCustomValue}
+              onChange={(heroHeightCustomValue) => onChange({ ...data, heroHeightCustomValue })}
+            />
+          ) : null}
           <div className="grid grid-cols-2 gap-3">
             <SelectField
               label="Content position"
@@ -706,7 +745,9 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
             options={[
               { value: "none", label: "None" },
               { value: "fade", label: "Fade" },
-              { value: "slow-zoom", label: "Slow Zoom" },
+              { value: "slide", label: "Slide" },
+              { value: "slow-zoom", label: "Ken Burns / Slow Zoom" },
+              { value: "pan", label: "Pan" },
               { value: "cinematic-loop", label: "Cinematic Loop — infinite breathing zoom (full-bleed)" },
               { value: "parallax", label: "Parallax" },
               { value: "reveal", label: "Reveal" },
@@ -716,6 +757,24 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
               { value: "float", label: "Float" },
             ]}
           />
+        ) : null}
+        {data.mediaType !== "slideshow" && data.mediaType !== "product-composition" && data.mediaType !== "3d-composition" ? (
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Animation duration (ms, optional)"
+              value={data.animationDurationMs ?? 0}
+              min={0}
+              max={30000}
+              onChange={(v) => onChange({ ...data, animationDurationMs: v <= 0 ? null : v })}
+            />
+            <NumberField
+              label="Animation delay (ms, optional)"
+              value={data.animationDelayMs ?? 0}
+              min={0}
+              max={5000}
+              onChange={(v) => onChange({ ...data, animationDelayMs: v <= 0 ? null : v })}
+            />
+          </div>
         ) : null}
       </div>
 
@@ -803,6 +862,33 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
                   checked={data.ctaMirrorForRtl}
                   onChange={(ctaMirrorForRtl) => onChange({ ...data, ctaMirrorForRtl })}
                 />
+                {/* Phase 4 -- independent CTA position per breakpoint, previously a single X/Y applied at every viewport width. */}
+                <div className="flex items-center gap-4">
+                  <CheckboxField
+                    label="Override CTA position on tablet"
+                    checked={data.ctaXTablet !== null}
+                    onChange={(checked) => onChange({ ...data, ctaXTablet: checked ? data.ctaX : null, ctaYTablet: checked ? data.ctaY : null })}
+                  />
+                </div>
+                {data.ctaXTablet !== null ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <NumberField label="Tablet CTA X (%)" value={data.ctaXTablet} min={0} max={100} onChange={(ctaXTablet) => onChange({ ...data, ctaXTablet })} />
+                    <NumberField label="Tablet CTA Y (%)" value={data.ctaYTablet ?? 80} min={0} max={100} onChange={(ctaYTablet) => onChange({ ...data, ctaYTablet })} />
+                  </div>
+                ) : null}
+                <div className="flex items-center gap-4">
+                  <CheckboxField
+                    label="Override CTA position on mobile"
+                    checked={data.ctaXMobile !== null}
+                    onChange={(checked) => onChange({ ...data, ctaXMobile: checked ? data.ctaX : null, ctaYMobile: checked ? data.ctaY : null })}
+                  />
+                </div>
+                {data.ctaXMobile !== null ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <NumberField label="Mobile CTA X (%)" value={data.ctaXMobile} min={0} max={100} onChange={(ctaXMobile) => onChange({ ...data, ctaXMobile })} />
+                    <NumberField label="Mobile CTA Y (%)" value={data.ctaYMobile ?? 80} min={0} max={100} onChange={(ctaYMobile) => onChange({ ...data, ctaYMobile })} />
+                  </div>
+                ) : null}
               </>
             ) : null}
           </div>
@@ -832,6 +918,13 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
   const mobileVideoUrl = data.mediaType === "video" ? (data.mobileMediaUrl || data.desktopMediaUrl) : undefined;
   const imagePositionStyle = { objectPosition: `${data.focalX}% ${data.focalY}%` };
   const imageFitClass = heroImageFitClass(data.imageFit);
+  // Phase 4 -- the mobile media element previously always reused the desktop fit/focal verbatim;
+  // null/"" falls back to that same desktop value, so this reproduces today's exact output until an
+  // admin deliberately sets a mobile-specific override.
+  const mobileImagePositionStyle = { objectPosition: `${data.focalXMobile ?? data.focalX}% ${data.focalYMobile ?? data.focalY}%` };
+  const mobileImageFitClass = heroImageFitClass(data.imageFitMobile || data.imageFit);
+  const animationDurationSec = data.animationDurationMs != null ? data.animationDurationMs / 1000 : undefined;
+  const animationDelaySec = data.animationDelayMs != null ? data.animationDelayMs / 1000 : 0;
 
   // Pulled out of the content Stagger so "custom" CTA positioning (below) can place it as an
   // independent absolutely-positioned sibling instead -- moving the CTA must never drag the
@@ -861,10 +954,19 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
     ) : null;
   const ctaIsCustom = data.ctaPositionMode === "custom" && Boolean(ctaButtons);
   // Physical X is independent per locale already (dataEn/dataAr are separate objects) -- mirroring
-  // only happens when an admin deliberately opts in via ctaMirrorForRtl (brief §13).
-  const effectiveCtaX = locale === "ar" && data.ctaMirrorForRtl ? 100 - data.ctaX : data.ctaX;
+  // only happens when an admin deliberately opts in via ctaMirrorForRtl (brief §13). Applied per
+  // breakpoint tier (Phase 4) -- each tier's own X value gets mirrored independently.
+  const mirrorX = (x: number) => (locale === "ar" && data.ctaMirrorForRtl ? 100 - x : x);
+  const ctaXTier = resolveTier(data.ctaX, data.ctaXTablet, data.ctaXMobile);
+  const ctaYTier = resolveTier(data.ctaY, data.ctaYTablet, data.ctaYMobile);
   const ctaOverlay = ctaIsCustom ? (
-    <HeroCtaOverlay x={effectiveCtaX} y={data.ctaY}>
+    <HeroCtaOverlay
+      position={{
+        desktop: { x: mirrorX(ctaXTier.desktop), y: ctaYTier.desktop },
+        tablet: { x: mirrorX(ctaXTier.tablet), y: ctaYTier.tablet },
+        mobile: { x: mirrorX(ctaXTier.mobile), y: ctaYTier.mobile },
+      }}
+    >
       {ctaButtons}
     </HeroCtaOverlay>
   ) : null;
@@ -921,7 +1023,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
             className="absolute inset-0 transition-transform duration-300 ease-out"
             style={parallaxActive ? pointerParallaxStyle(parallaxX, parallaxY, 10) : undefined}
           >
-            <HeroMediaMotion animation={data.animation} className="absolute inset-0" delay={0.15}>
+            <HeroMediaMotion animation={data.animation} className="absolute inset-0" delay={0.15 + animationDelaySec} durationSec={animationDurationSec}>
               {/* Desktop and mobile get their own HeroFrameShape (not one shape with two <Image>s
                   inside it, like image mode's non-framed fallback below) so `mobileFrameStyle` can
                   genuinely differ from the desktop shape (brief §43, e.g. desktop Blob / mobile
@@ -950,7 +1052,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
                   animation={data.animation}
                   className="absolute inset-0 lg:hidden"
                 >
-                  <Image src={mobileImageUrl} alt="" fill priority sizes="100vw" className={imageFitClass} style={imagePositionStyle} />
+                  <Image src={mobileImageUrl} alt="" fill priority sizes="100vw" className={mobileImageFitClass} style={mobileImagePositionStyle} />
                   <div className="pointer-events-none absolute inset-0" style={splitOverlayStyle} />
                 </HeroFrameShape>
               ) : null}
@@ -966,14 +1068,21 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
     const bgParallax = data.layout === "full-bleed" && parallaxActive ? pointerParallaxStyle(parallaxX, parallaxY, 12) : undefined;
     media = (
       <div className="absolute inset-0" style={bgParallax}>
-        <HeroMediaMotion animation={data.animation} zoomAmount={data.zoomAmount} speedSec={data.animationSpeedSec} className="absolute inset-0">
+        <HeroMediaMotion
+          animation={data.animation}
+          zoomAmount={data.zoomAmount}
+          speedSec={data.animationSpeedSec}
+          durationSec={animationDurationSec}
+          delay={animationDelaySec}
+          className="absolute inset-0"
+        >
           {/* Desktop and mobile render as two elements toggled by CSS (matching the same
               art-direction pattern already used by the cold-chain journey's route line) rather
               than one <img> the browser just crops — "mobile" can be a genuinely different photo,
-              not a squeeze of the desktop one (brief §9). */}
+              not a squeeze of the desktop one (brief §9), with its own independent fit/focal point. */}
           <Image src={desktopImageUrl} alt="" fill priority sizes="(min-width: 1024px) 50vw, 100vw" className={`hidden lg:block ${imageFitClass}`} style={imagePositionStyle} />
           {mobileImageUrl ? (
-            <Image src={mobileImageUrl} alt="" fill priority sizes="100vw" className={`lg:hidden ${imageFitClass}`} style={imagePositionStyle} />
+            <Image src={mobileImageUrl} alt="" fill priority sizes="100vw" className={`lg:hidden ${mobileImageFitClass}`} style={mobileImagePositionStyle} />
           ) : null}
         </HeroMediaMotion>
       </div>
@@ -985,8 +1094,15 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
     const bgParallax = data.layout === "full-bleed" && parallaxActive ? pointerParallaxStyle(parallaxX, parallaxY, 12) : undefined;
     media = (
       <div className="absolute inset-0" style={bgParallax}>
-        <HeroMediaMotion animation={data.animation} zoomAmount={data.zoomAmount} speedSec={data.animationSpeedSec} className="absolute inset-0">
-          {/* Same desktop/mobile split as image mode — a mobile video can be a genuinely different clip, not a squeeze of the desktop one. */}
+        <HeroMediaMotion
+          animation={data.animation}
+          zoomAmount={data.zoomAmount}
+          speedSec={data.animationSpeedSec}
+          durationSec={animationDurationSec}
+          delay={animationDelaySec}
+          className="absolute inset-0"
+        >
+          {/* Same desktop/mobile split as image mode — a mobile video can be a genuinely different clip, not a squeeze of the desktop one, with its own independent fit/focal point. */}
           <HeroVideoLayer
             src={desktopVideoUrl}
             poster={data.posterUrl}
@@ -1003,8 +1119,8 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
               autoPlay={data.videoAutoplay}
               muted={data.videoMuted}
               loop={data.videoLoop}
-              className={`h-full w-full lg:hidden ${imageFitClass}`}
-              style={imagePositionStyle}
+              className={`h-full w-full lg:hidden ${mobileImageFitClass}`}
+              style={mobileImagePositionStyle}
             />
           ) : null}
         </HeroMediaMotion>
@@ -1025,6 +1141,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
     data.layout === "full-bleed"
       ? {
           height: data.heroHeight,
+          heightCustomValue: data.heroHeightCustomValue,
           contentPosition: data.contentPosition,
           verticalAlign: data.verticalAlign,
           contentMaxWidth: data.contentMaxWidth,

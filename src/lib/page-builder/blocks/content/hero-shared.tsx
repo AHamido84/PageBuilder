@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
-import { ClipReveal, Parallax } from "@/lib/motion/primitives";
+import { ClipReveal, Parallax, useIsRtl } from "@/lib/motion/primitives";
 import { DURATION, EASE_PREMIUM } from "@/lib/motion/motionTokens";
 import type { ButtonVariant } from "@/components/ui/button";
 import type {
@@ -32,6 +32,7 @@ export const CTA_STYLE_OPTIONS: { value: HeroButtonStyle; label: string }[] = [
   { value: "ghost-dark", label: "Ghost Dark" },
   { value: "gold", label: "Gold" },
   { value: "gold-outline", label: "Gold Outline" },
+  { value: "ghost-gold", label: "Ghost Gold" },
 ];
 
 /** Maps Hero's own CTA style enum onto the shared button kit's variants. "secondary"/"ghost" are
@@ -53,20 +54,75 @@ export function heroImageFitClass(fit: HeroImageFit): string {
   return "object-cover";
 }
 
+/**
+ * Phase 4 -- the single "" / null = inherit fallback rule used by every desktop/tablet/mobile
+ * responsive-tier field on Hero (imageFitTablet/Mobile, focalXTablet/Mobile, ctaXTablet/Mobile, and
+ * their Y counterparts), in one place instead of re-implemented at every call site. `tablet`/`mobile`
+ * fall back to `desktop` when unset -- an admin who only ever sets the desktop value keeps getting
+ * that same value at every breakpoint, exactly reproducing pre-Phase-4 behavior.
+ */
+export function resolveTier<T>(desktop: T, tablet: T | "" | null | undefined, mobile: T | "" | null | undefined): { desktop: T; tablet: T; mobile: T } {
+  const hasTablet = tablet !== "" && tablet !== null && tablet !== undefined;
+  const hasMobile = mobile !== "" && mobile !== null && mobile !== undefined;
+  return { desktop, tablet: hasTablet ? tablet : desktop, mobile: hasMobile ? mobile : desktop };
+}
+
+interface HeroCtaPoint {
+  x: number;
+  y: number;
+}
+
+/** One anchored, centered group at a 0-100 (x,y) point -- the anchor is clamped at least 1rem from
+ * every edge so a translate(-50%,-50%)-centered group can't be pushed fully off the visible box on
+ * a narrow viewport. Shared by every tier `HeroCtaOverlay` renders below. */
+function HeroCtaAnchor({ x, y, children }: HeroCtaPoint & { children: React.ReactNode }) {
+  return (
+    <div
+      className="pointer-events-auto absolute max-w-[min(90%,28rem)]"
+      style={{ left: `clamp(1rem, ${x}%, calc(100% - 1rem))`, top: `clamp(1rem, ${y}%, calc(100% - 1rem))`, transform: "translate(-50%, -50%)" }}
+    >
+      {children}
+    </div>
+  );
+}
+
 /** The absolutely-positioned CTA layer for `ctaPositionMode: "custom"` -- rendered as a sibling of
  * the normal content flow (never inside it), so moving the CTA can never move the heading/body
- * text sitting in that flow (advanced hero CTA controls brief's independence requirement). `x`/`y`
- * are 0-100 anchor points; the group is centered on that point and the anchor itself is clamped
- * at least 1rem from every edge so a translate(-50%,-50%)-centered group can't be pushed fully off
- * the visible box on a narrow viewport. */
-export function HeroCtaOverlay({ x, y, children }: { x: number; y: number; children: React.ReactNode }) {
+ * text sitting in that flow (advanced hero CTA controls brief's independence requirement).
+ *
+ * Two call shapes: a single `{x, y}` (every pre-existing call site -- one position at every
+ * viewport width, unchanged) or Phase 4's `{desktop, tablet, mobile}` (independent position per
+ * breakpoint). The responsive shape renders three sibling anchors, each visible only at its own
+ * tier via the same literal Tailwind display-utility pattern already used for the desktop/mobile
+ * media split (`block sm:hidden` / `hidden sm:block lg:hidden` / `hidden lg:block`) -- no CSS custom
+ * properties or inline `<style>` media queries needed, and every class stays JIT-scannable.
+ */
+export function HeroCtaOverlay({ position, children }: { position: HeroCtaPoint | { desktop: HeroCtaPoint; tablet: HeroCtaPoint; mobile: HeroCtaPoint }; children: React.ReactNode }) {
+  if ("x" in position) {
+    return (
+      <div className="pointer-events-none absolute inset-0 z-20">
+        <HeroCtaAnchor x={position.x} y={position.y}>
+          {children}
+        </HeroCtaAnchor>
+      </div>
+    );
+  }
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
-      <div
-        className="pointer-events-auto absolute max-w-[min(90%,28rem)]"
-        style={{ left: `clamp(1rem, ${x}%, calc(100% - 1rem))`, top: `clamp(1rem, ${y}%, calc(100% - 1rem))`, transform: "translate(-50%, -50%)" }}
-      >
-        {children}
+      <div className="block h-full w-full sm:hidden">
+        <HeroCtaAnchor x={position.mobile.x} y={position.mobile.y}>
+          {children}
+        </HeroCtaAnchor>
+      </div>
+      <div className="hidden h-full w-full sm:block lg:hidden">
+        <HeroCtaAnchor x={position.tablet.x} y={position.tablet.y}>
+          {children}
+        </HeroCtaAnchor>
+      </div>
+      <div className="hidden h-full w-full lg:block">
+        <HeroCtaAnchor x={position.desktop.x} y={position.desktop.y}>
+          {children}
+        </HeroCtaAnchor>
       </div>
     </div>
   );
@@ -84,11 +140,17 @@ export function HeroCtaOverlay({ x, y, children }: { x: number; y: number; child
  * substring physically present in source. "tall" combines a real viewport fraction with a hard px
  * floor via CSS `max()` so a short/wide viewport (e.g. a laptop in a browser window) never collapses
  * below a usable height -- matches the brief's "85-100vh, minimum 780px" (§1). */
+// "auto" (Phase 4): no min-height class at all -- the section's own content drives its height.
+// "custom" (Phase 4): also no class -- HeroFrame applies `heroHeightCustomValue` via inline
+// `style.minHeight` instead (an arbitrary admin-entered value like "600px"/"70vh" can't be a literal
+// JIT-scannable class).
 const HERO_HEIGHT_CLASSES: Record<HeroHeight, string> = {
   compact: "min-h-[520px] sm:min-h-[580px] lg:min-h-[620px]",
   standard: "min-h-[600px] sm:min-h-[680px] lg:min-h-[780px]",
   tall: "min-h-[650px] sm:min-h-[760px] lg:min-h-[max(780px,85vh)]",
   viewport: "min-h-[650px] sm:min-h-[760px] lg:min-h-[100svh]",
+  auto: "",
+  custom: "",
 };
 
 const CONTENT_MAX_WIDTH_CLASSES: Record<HeroContentMaxWidth, string> = { sm: "max-w-md", md: "max-w-xl", lg: "max-w-2xl", xl: "max-w-3xl" };
@@ -139,6 +201,8 @@ function resolveOverlayGradient(direction: HeroOverlayDirection, contentPosition
 
 export interface HeroFullBleedOptions {
   height: HeroHeight;
+  /** Only read when `height === "custom"` -- an arbitrary CSS length (e.g. "600px", "70vh"). */
+  heightCustomValue?: string;
   contentPosition: HeroContentPosition;
   verticalAlign: HeroVerticalAlign;
   contentMaxWidth: HeroContentMaxWidth;
@@ -184,6 +248,8 @@ export function HeroFrame({
 
   if (isFullBleed) {
     const height = fullBleed?.height ?? "tall";
+    const customHeightStyle: React.CSSProperties | undefined =
+      height === "custom" && fullBleed?.heightCustomValue ? { minHeight: fullBleed.heightCustomValue } : undefined;
     const contentPosition = fullBleed?.contentPosition ?? "start";
     const verticalAlign = fullBleed?.verticalAlign ?? "center";
     const contentMaxWidth = fullBleed?.contentMaxWidth ?? "lg";
@@ -197,7 +263,7 @@ export function HeroFrame({
       // on the HERO registry entry), so `w-full` here really does span the true page width on the
       // public site, and the admin canvas's own device-preview frame on the builder (which is the
       // correct WYSIWYG behavior in both places -- no viewport-escaping transform trick needed).
-      <div className={`relative w-full overflow-hidden ${HERO_HEIGHT_CLASSES[height]}`}>
+      <div className={`relative w-full overflow-hidden ${HERO_HEIGHT_CLASSES[height]}`} style={customHeightStyle}>
         {media}
         {media && gradient ? <div className="pointer-events-none absolute inset-0" style={{ backgroundImage: gradient }} /> : null}
         <div
@@ -232,11 +298,20 @@ export function HeroFrame({
   );
 }
 
-/** Wraps the media frame in the chosen entrance/ambient animation. No-ops under prefers-reduced-motion. `delay` staggers this layer's entrance relative to the rest of the composition (brief §16). */
+/**
+ * Wraps the media frame in the chosen entrance/ambient animation. No-ops under prefers-reduced-motion.
+ * `delay` staggers this layer's entrance relative to the rest of the composition (brief §16).
+ * `durationSec` (Phase 4) overrides that animation's own hardcoded duration/cycle-length when set
+ * (an admin-configured `animationDurationMs` schema field, converted to seconds by the caller) --
+ * every branch below falls back to its pre-existing hardcoded value when it's omitted, so no
+ * already-published Hero/slide's animation speed changes. Ignored by "parallax"/"reveal" (both are
+ * scroll/viewport-triggered wipes, not time-duration-driven) and "none".
+ */
 export function HeroMediaMotion({
   animation,
   className,
   delay = 0,
+  durationSec,
   zoomAmount = 4,
   speedSec = 20,
   children,
@@ -244,13 +319,17 @@ export function HeroMediaMotion({
   animation: HeroAnimation;
   className?: string;
   delay?: number;
+  durationSec?: number;
   /** "cinematic-loop" only: percent scale increase per breath (e.g. 4 => 1.00 -> 1.04 -> 1.00). Ignored by every other animation value. */
   zoomAmount?: number;
-  /** "cinematic-loop" only: seconds for one full out-and-back cycle. Ignored by every other animation value. */
+  /** "cinematic-loop" only: seconds for one full out-and-back cycle, overridden by `durationSec` when set. Ignored by every other animation value. */
   speedSec?: number;
   children: React.ReactNode;
 }) {
   const reduce = useReducedMotion();
+  // Called unconditionally (before any branch below) -- only the "slide" branch actually reads
+  // this, but React's rules of hooks require every hook to run on every render regardless.
+  const isRtl = useIsRtl();
   if (reduce || animation === "none") return <div className={className}>{children}</div>;
 
   if (animation === "cinematic-loop") {
@@ -262,7 +341,7 @@ export function HeroMediaMotion({
         <motion.div
           className="h-full w-full"
           animate={{ scale: [1, 1 + zoomAmount / 100, 1] }}
-          transition={{ duration: speedSec, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: durationSec ?? speedSec, repeat: Infinity, ease: "easeInOut" }}
         >
           {children}
         </motion.div>
@@ -274,7 +353,7 @@ export function HeroMediaMotion({
     // "morph" gets its shape-interpolation animation from HeroFrameShape itself -- here it just
     // needs a plain fade-in like any other layer, not a second, competing motion treatment.
     return (
-      <motion.div className={className} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: DURATION.large, delay, ease: EASE_PREMIUM }}>
+      <motion.div className={className} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: durationSec ?? DURATION.large, delay, ease: EASE_PREMIUM }}>
         {children}
       </motion.div>
     );
@@ -285,7 +364,7 @@ export function HeroMediaMotion({
         className={className}
         initial={{ opacity: 0, scale: 0.88 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: DURATION.large, delay, ease: EASE_PREMIUM }}
+        transition={{ duration: durationSec ?? DURATION.large, delay, ease: EASE_PREMIUM }}
       >
         {children}
       </motion.div>
@@ -294,7 +373,7 @@ export function HeroMediaMotion({
   if (animation === "float") {
     // Cinematic idle drift (brief §15) -- 0 to -8px to 0, 5-7s, ease-in-out, never a bounce.
     return (
-      <motion.div className={className} animate={{ y: [0, -8, 0] }} transition={{ duration: 6, delay, repeat: Infinity, ease: "easeInOut" }}>
+      <motion.div className={className} animate={{ y: [0, -8, 0] }} transition={{ duration: durationSec ?? 6, delay, repeat: Infinity, ease: "easeInOut" }}>
         {children}
       </motion.div>
     );
@@ -314,16 +393,48 @@ export function HeroMediaMotion({
   if (animation === "cinematic") {
     return (
       <ClipReveal className={className}>
-        <motion.div className="h-full w-full" initial={{ scale: 1 }} animate={{ scale: 1.06 }} transition={{ duration: 22, ease: "linear" }}>
+        <motion.div className="h-full w-full" initial={{ scale: 1 }} animate={{ scale: 1.06 }} transition={{ duration: durationSec ?? 22, ease: "linear" }}>
           {children}
         </motion.div>
       </ClipReveal>
     );
   }
-  // "slow-zoom" (default) — a subtle continuous Ken Burns drift, the brief's requested default.
+  if (animation === "slide") {
+    // Phase 4 -- one-shot slide-in from the reading-start edge, mirrored under RTL (same convention
+    // as the shared ScrollReveal's "slide-start" variant in lib/motion/primitives.tsx).
+    const startX = isRtl ? 32 : -32;
+    return (
+      <motion.div
+        className={className}
+        initial={{ opacity: 0, x: startX }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: durationSec ?? DURATION.large, delay, ease: EASE_PREMIUM }}
+      >
+        {children}
+      </motion.div>
+    );
+  }
+  if (animation === "pan") {
+    // Phase 4 -- continuous horizontal drift, no zoom (distinct from slow-zoom/cinematic-loop,
+    // which are zoom-only/zoom+breathe). A fixed slight overscale gives the pan safe room to move
+    // within the frame's own overflow-hidden bounds without ever revealing empty space at the edges.
+    return (
+      <div className={className}>
+        <motion.div
+          className="h-full w-full scale-[1.08]"
+          animate={{ x: ["-2%", "2%", "-2%"] }}
+          transition={{ duration: durationSec ?? 18, repeat: Infinity, ease: "easeInOut" }}
+        >
+          {children}
+        </motion.div>
+      </div>
+    );
+  }
+  // "slow-zoom" (default) — a subtle continuous Ken Burns drift, the brief's requested default
+  // (presented in the admin UI as "Ken Burns" -- it already is one).
   return (
     <div className={className}>
-      <motion.div className="h-full w-full" initial={{ scale: 1 }} animate={{ scale: 1.08 }} transition={{ duration: 20, ease: "linear" }}>
+      <motion.div className="h-full w-full" initial={{ scale: 1 }} animate={{ scale: 1.08 }} transition={{ duration: durationSec ?? 20, ease: "linear" }}>
         {children}
       </motion.div>
     </div>

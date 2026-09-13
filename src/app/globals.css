@@ -30,6 +30,27 @@
   --color-coral-strong: #d8503f;
   --color-coral-soft: #fbe2de;
 
+  /* Phase 8 "Global Visual Control Center": a real color, not derived from --color-ink via a
+     Tailwind opacity modifier the way most "muted text" on this site is today (text-ink/60,
+     text-ink/70, ...) -- those existing usages already scale proportionally whenever an admin
+     overrides Text (--color-ink) globally, so this variable exists for admin override + any new
+     component that wants an independent muted-text color, not as a retrofit of every /NN usage. */
+  --color-muted-text: color-mix(in srgb, var(--color-ink) 60%, transparent);
+
+  /* Seven Eleven Premium Design System (Phase 1) semantic aliases. The brief's four named colors
+     (Primary #07564E, Premium Gold #D5B45C, Warm Off White #F7F8F5, Charcoal #18302D) are not new
+     hex values -- they're an exact match for the palette already live above (petrol/wheat/paper/ink
+     respectively, confirmed by comparing hex codes). Rather than introduce a second, competing name
+     for the same value (a real drift risk: two names for one color invites the two being edited out
+     of sync later), these are `var()` aliases onto the single source of truth already defined above.
+     Every existing `bg-petrol`/`text-wheat`/`bg-paper`/`text-ink` usage across the app is completely
+     unaffected; these four new names (`bg-primary`, `text-gold`, `bg-warm-white`, `text-charcoal`)
+     are simply additional, more brief-literal spellings of the same tokens for new work to use. */
+  --color-primary: var(--color-petrol);
+  --color-gold: var(--color-wheat);
+  --color-warm-white: var(--color-paper);
+  --color-charcoal: var(--color-ink);
+
   /* Three-step elevation: flat (resting cards) -> card (default) -> lifted (hover/active). */
   --shadow-flat: 0 1px 2px rgba(24, 48, 45, 0.05);
   --shadow-card: 0 1px 2px rgba(24, 48, 45, 0.07), 0 10px 28px -14px rgba(24, 48, 45, 0.22);
@@ -39,19 +60,88 @@
   --radius-sm: 2px;
   --radius-md: 4px;
   --radius-lg: 8px;
+  /* New for the Seven Eleven Premium Design System (Phase 1): additive, nothing below already used
+     these two -- existing radius usage (buttons, cards, frames) is untouched. -xl is for premium
+     card/panel treatments that want more visual softness than -lg; -full is the standard
+     pill/badge/circular-avatar radius, spelled as a token so it isn't re-typed as "9999px" ad hoc. */
+  --radius-xl: 16px;
+  --radius-full: 9999px;
 
   --container-max: 1400px;
 
+  /* Phase 8 "Global Visual Control Center" -- dedicated indirection variables so a global
+     Layout/Button override touches exactly these surfaces (Button, Card's default variant, the
+     generic IMAGE block's radius, and grid/section spacing) without disturbing the *other* radius
+     values (--radius-sm/md/lg/xl) that many unrelated components (inputs, badges, per-variant Card
+     radii, frame shapes, ...) still read directly. Every one of these defaults to today's existing
+     effective value, so defining them here changes nothing until an admin's override redefines
+     them (see resolve-css.ts). */
+  --button-radius: var(--radius-sm);
+  --button-padding-scale: 1;
+  --button-shadow: var(--shadow-flat);
+  --card-radius: var(--radius-md);
+  --image-radius: var(--radius-md);
+  --grid-gap: 1.25rem; /* matches the gap-5 already used by the commerce grids below */
+  --card-gap: 1.5rem; /* matches the gap-6 already used by card-based grids below */
+  --section-spacing-scale: 1;
+
+  /* Reusable spacing scale (Phase 1) for the new Stack/Grid layout primitives below --
+     intentionally separate from the Page Builder's own PADDING_Y and MARGIN_Y literal-class tables
+     in style-tokens.ts (those resolve responsive per-section Tailwind classes for published
+     PageSection content and must stay exactly as they are -- see AGENTS/HANDOFF notes on that
+     system). This scale is for new, not-yet-wired-up components only. */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+
+  /* Phase 8 "Global Visual Control Center": per-tier multipliers, defaulting to 1 (no change).
+     Wrapping each clamp() in calc(... * var(--scale-X)) preserves its exact responsive floor/
+     ceiling *shape* at any scale, rather than an admin having to pick a single fixed rem value that
+     would lose the fluid mobile->desktop behavior these clamps were specifically tuned for. */
+  --scale-display: 1;
+  --scale-h1: 1;
+  --scale-h2: 1;
+  --scale-h3: 1;
+  --scale-body: 1;
+
   /* Responsive type scale (clamp: mobile floor -> viewport-fluid -> desktop ceiling). */
-  --text-display: clamp(2.75rem, 2rem + 3.2vw, 5rem);
+  --text-display: calc(clamp(2.75rem, 2rem + 3.2vw, 5rem) * var(--scale-display));
   /* Lower mobile floor than the desktop-driven slope would otherwise give: at 375px, Archivo
      Expanded's 133% stretch made a full sentence wrap 5+ lines and dominate the first screen. */
   --text-hero: clamp(2rem, 1.4rem + 3vw, 4.5rem);
-  --text-h1: clamp(2.25rem, 1.85rem + 1.9vw, 3.75rem);
-  --text-h2: clamp(1.75rem, 1.5rem + 1.15vw, 3rem);
-  --text-h3: clamp(1.375rem, 1.2rem + 0.7vw, 2.125rem);
+  --text-h1: calc(clamp(2.25rem, 1.85rem + 1.9vw, 3.75rem) * var(--scale-h1));
+  --text-h2: calc(clamp(1.75rem, 1.5rem + 1.15vw, 3rem) * var(--scale-h2));
+  --text-h3: calc(clamp(1.375rem, 1.2rem + 0.7vw, 2.125rem) * var(--scale-h3));
+  /* New for Phase 1 -- H4 plus the remaining named scale steps the brief asks for (Body/Small/
+     Caption/Button/Nav). Values are chosen to match sizes already in real use across the site
+     (e.g. BODY_SIZE_BASE.md in style-tokens.ts is text-base = 1rem, header.tsx's nav links are
+     text-sm = 0.875rem) so formalizing them as tokens doesn't shift anything that already renders
+     via a plain Tailwind size utility today -- these are additive names for the same values, not a
+     resize. */
+  --text-h4: clamp(1.125rem, 1rem + 0.5vw, 1.5rem);
+  --text-body: calc(1rem * var(--scale-body));
+  --text-small: 0.875rem;
+  --text-caption: 0.75rem;
+  --text-button: 0.875rem;
+  --text-nav: 0.875rem;
 
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Phase 8 "Global Visual Control Center": --font-body/--font-arabic are the variables everything
+     else in this file actually consumes (see html[dir] rules and .font-display below) -- each
+     option next/font loads now gets its OWN dedicated variable name (--font-body-public-sans,
+     --font-body-inter, ...; --font-arabic-plex-arabic, --font-arabic-cairo, ...) instead of binding
+     directly to --font-body/--font-arabic, so these two lines are what actually select "Public
+     Sans"/"Plex Arabic" as today's defaults. An admin's Typography override (resolve-css.ts)
+     simply redefines these same two variables to point at a different option's variable instead. */
+  --font-body: var(--font-body-public-sans);
+  --font-arabic: var(--font-arabic-plex-arabic);
 }
 
 @theme inline {
@@ -73,6 +163,11 @@
   --color-coral: var(--color-coral);
   --color-coral-strong: var(--color-coral-strong);
   --color-coral-soft: var(--color-coral-soft);
+  /* Phase 1 semantic aliases -- see the :root comment above these four for why they're aliases, not new colors. */
+  --color-primary: var(--color-primary);
+  --color-gold: var(--color-gold);
+  --color-warm-white: var(--color-warm-white);
+  --color-charcoal: var(--color-charcoal);
 
   --font-display: var(--font-display);
   --font-body: var(--font-body);
@@ -82,11 +177,26 @@
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
 
   --shadow-flat: var(--shadow-flat);
   --shadow-card: var(--shadow-card);
   --shadow-lifted: var(--shadow-lifted);
   --shadow-focus: var(--shadow-focus);
+
+  /* Phase 1 spacing scale -- generates spacing utilities (p-*, gap-*, m-*, etc. via arbitrary
+     "space-md" isn't a thing; these are consumed directly by Stack/Grid below via inline style,
+     Tailwind's own scale is untouched) and is also usable as e.g. `gap-(--space-md)`. */
+  --space-3xs: var(--space-3xs);
+  --space-2xs: var(--space-2xs);
+  --space-xs: var(--space-xs);
+  --space-sm: var(--space-sm);
+  --space-md: var(--space-md);
+  --space-lg: var(--space-lg);
+  --space-xl: var(--space-xl);
+  --space-2xl: var(--space-2xl);
+  --space-3xl: var(--space-3xl);
 }
 
 html[dir="rtl"] {
@@ -151,6 +261,36 @@ html[dir="rtl"] .font-display {
   font-size: var(--text-h3);
   line-height: 1.2;
 }
+/* Phase 1 additions -- the remaining named steps the design system brief asks for
+   (H4/Body/Small/Caption/Button/Nav). Not yet applied to any existing component (nothing here
+   changes what's already on screen); available for new work to reach for by name instead of a
+   bare Tailwind text-* utility. */
+.text-h4 {
+  font-size: var(--text-h4);
+  line-height: 1.3;
+}
+.text-body {
+  font-size: var(--text-body);
+  line-height: 1.6;
+}
+.text-small {
+  font-size: var(--text-small);
+  line-height: 1.5;
+}
+.text-caption {
+  font-size: var(--text-caption);
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+.text-button {
+  font-size: var(--text-button);
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+.text-nav {
+  font-size: var(--text-nav);
+  line-height: 1.2;
+}
 
 /* Arabic headings need more breathing room than the tight Latin display leading,
    and long Arabic words wrap less gracefully — never blindly mirror Latin metrics. */
@@ -164,9 +304,17 @@ html[dir="rtl"] .text-h2 {
   line-height: 1.3;
   letter-spacing: 0;
 }
-html[dir="rtl"] .text-h3 {
+html[dir="rtl"] .text-h3,
+html[dir="rtl"] .text-h4 {
   line-height: 1.4;
   letter-spacing: 0;
+}
+/* Arabic body copy reads more comfortably with extra leading, same reasoning as the display
+   scale above; caption/button/nav are short single-line labels where the font swap alone
+   (no wrapping to worry about) is already sufficient, so they're deliberately left alone here. */
+html[dir="rtl"] .text-body,
+html[dir="rtl"] .text-small {
+  line-height: 1.9;
 }
 
 /* Comfortable reading measure for Arabic body copy — narrower than a bare max-width
@@ -189,6 +337,22 @@ html[dir="rtl"] .measure-ar {
 /* Mirrors directional icons (arrows) for RTL without swapping characters. */
 html[dir="rtl"] .flip-rtl {
   transform: scaleX(-1);
+}
+
+/* Phase 1 motion token: a reusable hover-lift for the new Card variants below (and any future
+   clickable surface) -- transform+shadow only (GPU-friendly), automatically frozen by the
+   prefers-reduced-motion kill-switch above since it's a plain CSS transition. Mirrors the exact
+   lift the existing Card component already does inline (hover:-translate-y-0.5 + shadow-card ->
+   shadow-lifted on hover), formalized as a named, reusable class instead of being re-typed at
+   every new call site. */
+.hover-lift {
+  transition:
+    transform 0.3s var(--ease-premium),
+    box-shadow 0.3s var(--ease-premium);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lifted);
 }
 
 /* Premium background textures — apply to a decorative layer (an absolutely-positioned
@@ -218,7 +382,10 @@ html[dir="rtl"] .flip-rtl {
   }
 }
 .animate-marquee {
-  animation: marquee-scroll 28s linear infinite;
+  /* Phase 10: reads a --marquee-duration custom property so the reusable <Marquee> primitive
+     (src/components/ui/marquee.tsx) can offer a configurable speed -- defaults to the exact same
+     28s every already-published Marquee section already animates at. */
+  animation: marquee-scroll var(--marquee-duration, 28s) linear infinite;
 }
 .animate-marquee:hover {
   animation-play-state: paused;

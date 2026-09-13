@@ -86,6 +86,19 @@ interface NumberFieldProps {
 }
 
 export function NumberField({ label, value, onChange, min, max, className }: NumberFieldProps) {
+  // Phase 11 QA fix: the `min`/`max` attributes below only constrain the spinner arrows and native
+  // validity state -- they do NOT stop a typed value from exceeding the range (e.g. a focal-point
+  // field with min=0/max=100 happily accepted "5015", which is a valid CSS percentage but pushes an
+  // image's object-position entirely out of its visible box, silently "disappearing" it with no
+  // error shown anywhere). Clamped on blur, not on every keystroke, so typing multi-digit numbers
+  // (e.g. "1" then "5" to reach "15") is never interrupted mid-entry.
+  function handleBlur() {
+    if (min === undefined && max === undefined) return;
+    let clamped = value;
+    if (min !== undefined) clamped = Math.max(min, clamped);
+    if (max !== undefined) clamped = Math.min(max, clamped);
+    if (clamped !== value) onChange(clamped);
+  }
   return (
     <FieldWrap label={label} className={className}>
       <input
@@ -94,6 +107,7 @@ export function NumberField({ label, value, onChange, min, max, className }: Num
         min={min}
         max={max}
         onChange={(e) => onChange(Number(e.target.value))}
+        onBlur={handleBlur}
         className={inputClass}
       />
     </FieldWrap>

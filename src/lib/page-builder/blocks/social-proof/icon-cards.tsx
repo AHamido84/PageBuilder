@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { TextField, TextareaField, SelectField } from "@/components/admin/ui/field";
 import { IconButton } from "@/components/admin/ui/icon-button";
+import { ScrollReveal } from "@/lib/motion/primitives";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveColumnsClasses } from "../../style-tokens";
 import { resolveHref } from "../../href";
@@ -59,26 +60,30 @@ export function IconCardsEdit({ data, onChange, locale }: BlockEditProps<IconCar
 export function IconCardsRender({ data, settings, locale }: BlockRenderProps<IconCardsData>) {
   return (
     <div>
-      {data.heading ? <h2 className="mb-8 font-display text-3xl">{data.heading}</h2> : null}
-      <div className={`grid gap-6 ${resolveColumnsClasses(settings)}`}>
+      {data.heading ? <h2 className="mb-10 font-display text-h2">{data.heading}</h2> : null}
+      <div className={`grid gap-[var(--card-gap,1.5rem)] lg:gap-[calc(var(--card-gap,1.5rem)*1.333)] ${resolveColumnsClasses(settings)}`}>
         {data.items.map((item, i) => {
           const Icon = ICON_OPTIONS[item.icon] ?? Star;
           const cardContent = (
             <>
-              <Icon size={24} className="opacity-70" />
-              <p className="mt-3 font-display text-lg">{item.title}</p>
-              <p className="mt-1 text-sm opacity-65">{item.body}</p>
+              <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-harbor-soft">
+                <Icon size={26} strokeWidth={1.5} className="text-harbor" />
+              </span>
+              <p className="mt-5 font-display text-h4">{item.title}</p>
+              <p className="mt-2 text-sm leading-relaxed opacity-65">{item.body}</p>
             </>
           );
-          const cardClasses = "rounded-[var(--radius-md)] border border-current/10 p-6";
+          const cardClasses = "hover-lift rounded-[var(--radius-lg)] border border-current/10 p-8";
+          // Phase 10: reveals in place on scroll -- `as` picks Link or a plain div per item, same
+          // element as before (no extra wrapper), so the grid's column/gap sizing is untouched.
           return item.link ? (
-            <Link key={i} href={resolveHref(item.link, locale)} className={`${cardClasses} block transition-shadow hover:shadow-[var(--shadow-card)]`}>
+            <ScrollReveal key={i} as={Link} href={resolveHref(item.link, locale)} variant="fade-up" className={`${cardClasses} block`}>
               {cardContent}
-            </Link>
+            </ScrollReveal>
           ) : (
-            <div key={i} className={cardClasses}>
+            <ScrollReveal key={i} variant="fade-up" className={cardClasses}>
               {cardContent}
-            </div>
+            </ScrollReveal>
           );
         })}
       </div>

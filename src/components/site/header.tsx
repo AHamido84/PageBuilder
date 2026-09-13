@@ -191,7 +191,7 @@ export function SiteHeader({
               <Link
                 key={item.id}
                 href={item.href ?? `/${locale}`}
-                className="rounded-[var(--radius-sm)] px-4 py-2.5 text-sm font-medium text-ink/75 transition-colors hover:text-ink"
+                className="rounded-full px-5 py-2.5 text-sm font-medium text-ink/75 transition-colors hover:bg-ink/5 hover:text-ink"
               >
                 {item.label}
               </Link>
@@ -199,9 +199,9 @@ export function SiteHeader({
           )}
         </nav>
 
-        <div className="hidden items-center gap-5 lg:flex">
+        <div className="hidden items-center gap-6 lg:flex">
           <LocaleLinks locale={locale} pathWithoutLocale={pathWithoutLocale} />
-          <Link href={`/${locale}/contact`} className={buttonClasses("primary", "sm")}>
+          <Link href={`/${locale}/contact`} className={buttonClasses("primary", "md")}>
             {t("requestQuote")}
           </Link>
         </div>
@@ -372,7 +372,7 @@ function MegaButton({
         onToggle();
       }}
       onMouseEnter={() => onHover(megaKey)}
-      className={cn("relative rounded-[var(--radius-sm)] px-4 py-2.5 text-sm font-medium transition-colors", open ? "text-ink" : "text-ink/75 hover:text-ink")}
+      className={cn("relative rounded-full px-5 py-2.5 text-sm font-medium transition-colors", open ? "bg-ink/5 text-ink" : "text-ink/75 hover:bg-ink/5 hover:text-ink")}
       aria-expanded={open}
     >
       {label}

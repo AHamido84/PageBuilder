@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/admin/ui/pagination";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { SectionRenderer } from "@/components/site/section-renderer";
+import { loadPageHeaderSections } from "@/lib/page-builder/page-headers";
 
 export const dynamic = "force-dynamic";
 
@@ -53,8 +55,8 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
     return `?${sp.toString()}`;
   }
 
-  return (
-    <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
+  const results = (
+    <>
       <div className="mb-8 flex flex-wrap gap-2">
         <Link
           href={`/${locale}/blog`}
@@ -104,6 +106,25 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
       ) : (
         <EmptyState title={t("empty")} />
       )}
-    </Section>
+    </>
+  );
+
+  // Phase 7: the page's own generic header/intro is now a real, admin-editable Page Builder
+  // section (see src/lib/page-builder/page-headers.ts) -- falls back to the exact original
+  // hardcoded text if the one-time seed script hasn't been run in this environment yet.
+  const headerSections = await loadPageHeaderSections("blog");
+  if (!headerSections) {
+    return (
+      <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
+        {results}
+      </Section>
+    );
+  }
+
+  return (
+    <>
+      <SectionRenderer sections={headerSections} locale={locale} />
+      <Section tone="paper">{results}</Section>
+    </>
   );
 }

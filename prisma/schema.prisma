@@ -677,6 +677,12 @@ model SiteSetting {
 
   defaultOgImageId String?
   defaultOgImage   Media?  @relation("SiteSettingOgImage", fields: [defaultOgImageId], references: [id], onDelete: SetNull)
+
+  /** Phase 8 "Global Visual Control Center" -- admin-editable site-wide design-token overrides
+   * (colors/typography/layout/buttons/animation/responsive). Every field inside is optional; see
+   * src/lib/design-tokens/schema.ts. Null/malformed rows resolve to "no overrides" (today's exact
+   * existing appearance), same safe-default pattern as headerLogo/businessHours above. */
+  designTokens Json?
 }
 
 model SEO {

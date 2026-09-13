@@ -72,15 +72,15 @@ export function StatisticsEdit({ data, onChange, locale }: BlockEditProps<Statis
 export function StatisticsRender({ data, settings }: BlockRenderProps<StatisticsData>) {
   return (
     <div>
-      {data.heading ? <h2 className="mb-8 font-display text-3xl">{data.heading}</h2> : null}
-      <div className={`grid gap-x-8 gap-y-10 text-center divide-ink/10 sm:divide-x rtl:sm:divide-x-reverse ${resolveColumnsClasses(settings)}`}>
+      {data.heading ? <h2 className="mb-10 font-display text-h2">{data.heading}</h2> : null}
+      <div className={`grid gap-x-8 gap-y-12 text-center divide-ink/10 sm:divide-x rtl:sm:divide-x-reverse ${resolveColumnsClasses(settings)}`}>
         {data.items.map((item, i) => {
           const Icon = item.icon && item.icon !== "none" ? STAT_ICONS[item.icon] : null;
           return (
             <div key={i} className="px-2">
-              {Icon ? <Icon className="mx-auto mb-3 h-6 w-6 text-wheat" strokeWidth={1.5} aria-hidden /> : null}
-              <p className="font-display text-4xl text-wheat-strong">{item.value}</p>
-              <p className="mt-1 text-sm opacity-60">{item.label}</p>
+              {Icon ? <Icon className="mx-auto mb-4 h-7 w-7 text-wheat" strokeWidth={1.5} aria-hidden /> : null}
+              <p className="font-display text-display leading-none text-wheat-strong">{item.value}</p>
+              <p className="mt-3 text-sm opacity-60">{item.label}</p>
             </div>
           );
         })}

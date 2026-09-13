@@ -25,10 +25,13 @@ const leadFormSchema = z.object({
 });
 export type LeadFormData = z.infer<typeof leadFormSchema>;
 
+// Phase 3 premium redesign: `layout` is additive + defaulted -- every already-published Newsletter
+// section (no layout set) keeps rendering the original compact centered bar exactly as before.
 const newsletterSchema = z.object({
   heading: z.string().max(200).optional().default(""),
   body: z.string().max(300).optional().default(""),
   submitLabel: z.string().max(60).optional().default(""),
+  layout: z.enum(["compact", "panel"]).optional().default("compact"),
 });
 export type NewsletterData = z.infer<typeof newsletterSchema>;
 
@@ -73,8 +76,8 @@ export const formsBlocks: BlockDefinition<any>[] = [
     icon: Mail,
     dataSchema: newsletterSchema,
     defaultData: {
-      en: { heading: "Stay in the loop", body: "", submitLabel: "Subscribe" },
-      ar: { heading: "ابق على اطلاع", body: "", submitLabel: "اشترك" },
+      en: { heading: "Stay in the loop", body: "", submitLabel: "Subscribe", layout: "compact" },
+      ar: { heading: "ابق على اطلاع", body: "", submitLabel: "اشترك", layout: "compact" },
     },
     defaultSettings: defaultSectionSettings({ background: "ink" }),
     Edit: NewsletterEdit,

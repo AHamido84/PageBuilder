@@ -4,6 +4,14 @@ import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { CreatePageForm } from "./create-page-form";
 import { PageRowActions } from "./page-row-actions";
 import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
+import { PAGE_HEADER_SLUGS } from "@/lib/page-builder/page-headers";
+
+const PAGE_HEADER_LABELS: Record<string, string> = {
+  [PAGE_HEADER_SLUGS.products]: "Products page header",
+  [PAGE_HEADER_SLUGS.brands]: "Brands page header",
+  [PAGE_HEADER_SLUGS.blog]: "Blog page header",
+  [PAGE_HEADER_SLUGS.solutionsIndex]: "Solutions index page header",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +53,7 @@ export default async function PagesListPage() {
               <tr key={page.id} className="border-t border-neutral-800">
                 <td className="px-4 py-2">
                   <Link href={`/admin/pages/${page.id}`} className="hover:underline">
-                    {page.slug === HOMEPAGE_SLUG ? "Homepage (/)" : `/${page.slug}`}
+                    {page.slug === HOMEPAGE_SLUG ? "Homepage (/)" : (PAGE_HEADER_LABELS[page.slug] ?? `/${page.slug}`)}
                   </Link>
                 </td>
                 <td className="px-4 py-2 text-neutral-400">{page._count.sections}</td>

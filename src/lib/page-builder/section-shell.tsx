@@ -1,12 +1,35 @@
 import { cn } from "@/lib/cn";
+import { sanitizeAdvancedToken } from "./types";
 import type { SectionSettings } from "./types";
-import { resolveBackgroundFilter, resolveBackgroundImageStyle, resolveOverlayStyle, resolveSectionClasses } from "./style-tokens";
+import {
+  BORDER_RADIUS_CLASSES,
+  CONTAINER_WIDTH_CLASSES,
+  SHADOW_CLASSES,
+  resolveBackgroundFilter,
+  resolveBackgroundImageStyle,
+  resolveBorderClasses,
+  resolveBorderStyle,
+  resolveButtonsIconClass,
+  resolveButtonsStyle,
+  resolveGapStyle,
+  resolveOverlayStyle,
+  resolveSectionClasses,
+  resolveTypographyClasses,
+} from "./style-tokens";
 import { Reveal } from "./reveal";
 
 /**
  * Shared wrapper applying a section's responsive style settings + entrance animation.
  * Used by BOTH the public SectionRenderer and the admin canvas, so a section looks
  * identical in both places by construction.
+ *
+ * Phase 2 note: `settings.containerWidth`/`borderRadius`/`height` (the design system's generic
+ * "Container Width"/"Border Radius"/"Height" section settings) are resolved entirely inside this
+ * function and apply to every block type for free -- they're deliberately independent of the
+ * `bleed` prop below, which remains the older, heavier "this specific block instance owns an
+ * edge-to-edge composition, skip section chrome entirely" escape hatch. A bleeding block ignores
+ * containerWidth/borderRadius/height completely (it already renders unconstrained); a non-bleeding
+ * block gets all three without any per-block code changes.
  */
 export function SectionShell({
   settings,
@@ -43,8 +66,34 @@ export function SectionShell({
   const hasVideo = Boolean(bg?.video?.url);
   const hasBackgroundLayer = hasBackgroundImage || hasVideo;
 
-  return (
-    <div className={cn("border-t border-ink/10", resolveSectionClasses(settings), hasBackgroundLayer && "relative overflow-hidden", className)}>
+  // Phase 2: a rounded section needs overflow-hidden too, independent of hasBackgroundLayer --
+  // otherwise the absolutely-positioned background/overlay layers above would visually poke out
+  // past the rounded corners of their (radius-having) parent.
+  const radiusClass = BORDER_RADIUS_CLASSES[settings.borderRadius];
+  const needsClipping = hasBackgroundLayer || Boolean(radiusClass);
+
+  // Phase 9 "Style > Shadow": a box-shadow must NOT sit on an overflow-hidden element, or its own
+  // blur/spread gets clipped at the element's own edge -- invisible whenever Shadow is combined with
+  // either Border Radius or a background image/video (a very common combo: a rounded, shadowed
+  // "card" section). Fixed by wrapping the ORIGINAL padded/overflow-hidden/background element (below,
+  // unchanged) in one more outer element that owns Shadow/Border/Typography/Buttons/Gap and is never
+  // itself clipped -- both share the same `radiusClass` so their corners align pixel-for-pixel, and
+  // the outer wrapper has no padding of its own, so it's exactly the same size as its one child.
+  const shadowClass = SHADOW_CLASSES[settings.shadow];
+  const borderClasses = resolveBorderClasses(settings.border);
+  const gapStyle = resolveGapStyle(settings.gap);
+  const buttonsStyle = resolveButtonsStyle(settings.buttons);
+  const buttonsIconClass = resolveButtonsIconClass(settings.buttons);
+  const typographyClasses = resolveTypographyClasses(settings.typography);
+  const advanced = settings.advanced;
+  const customClass = advanced?.customClass ? sanitizeAdvancedToken(advanced.customClass, true) : "";
+  const anchorId = advanced?.anchorId ? sanitizeAdvancedToken(advanced.anchorId, false) : undefined;
+
+  const outerStyle: React.CSSProperties = { ...gapStyle, ...buttonsStyle, ...resolveBorderStyle(settings.border) };
+  const hasOuterStyle = Object.keys(outerStyle).length > 0;
+
+  const section = (
+    <div className={cn("border-t border-ink/10", resolveSectionClasses(settings), radiusClass, needsClipping && "relative overflow-hidden")}>
       {hasBackgroundLayer ? (
         <>
           {hasDistinctMobileImage && hasDesktopImage ? (
@@ -71,9 +120,33 @@ export function SectionShell({
           {overlayStyle ? <div aria-hidden className="pointer-events-none absolute inset-0 z-[1]" style={overlayStyle} /> : null}
         </>
       ) : null}
-      <div className={cn("mx-auto w-full max-w-[1400px] px-5 sm:px-8 lg:px-12", hasBackgroundLayer && "relative z-[2]")}>
-        <Reveal animation={settings.animation}>{children}</Reveal>
+      <div className={cn(CONTAINER_WIDTH_CLASSES[settings.containerWidth], hasBackgroundLayer && "relative z-[2]")}>
+        <Reveal
+          animation={settings.animation}
+          durationMs={settings.animationDurationMs}
+          delayMs={settings.animationDelayMs}
+          trigger={settings.animationTrigger}
+          intensity={settings.animationIntensity}
+        >
+          {children}
+        </Reveal>
       </div>
+    </div>
+  );
+
+  // Skip the extra wrapper entirely when nothing Phase 9-specific is actually set -- an unedited
+  // section renders the exact same single-`<div>` DOM as before this phase (zero-visual-change
+  // default; `className` is currently unused by both callers, SectionRenderer and the admin canvas).
+  const needsOuterWrapper = Boolean(shadowClass || borderClasses || typographyClasses || buttonsIconClass || hasOuterStyle || anchorId || customClass);
+  if (!needsOuterWrapper) return className ? <div className={className}>{section}</div> : section;
+
+  return (
+    <div
+      id={anchorId || undefined}
+      style={hasOuterStyle ? outerStyle : undefined}
+      className={cn(radiusClass, borderClasses, shadowClass, typographyClasses, buttonsIconClass, className, customClass)}
+    >
+      {section}
     </div>
   );
 }

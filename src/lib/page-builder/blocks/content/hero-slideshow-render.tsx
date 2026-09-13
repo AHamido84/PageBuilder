@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
 import { KineticText, Stagger, StaggerItem } from "@/lib/motion/primitives";
 import { DURATION, EASE_PREMIUM } from "@/lib/motion/motionTokens";
-import { HeroFrame, HeroMediaMotion, HeroVideoLayer, HeroCtaOverlay, heroButtonVariant, heroImageFitClass } from "./hero-shared";
+import { HeroFrame, HeroMediaMotion, HeroVideoLayer, HeroCtaOverlay, heroButtonVariant, heroImageFitClass, resolveTier } from "./hero-shared";
 import type { BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
 import type { HeroRenderData } from "../content-blocks";
@@ -84,16 +84,27 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
 
   const media = data.slideMedia?.[slide.id];
   const desktopUrl = media?.desktopUrl;
+  // Tablet has no media of its own (only Desktop/Mobile images are ever uploaded, matching the
+  // brief's own per-slide field list) -- it always shows the desktop photo, just with its own
+  // independent fit/focal point (Phase 4).
+  const tabletUrl = media?.desktopUrl;
   const mobileUrl = media?.mobileUrl || media?.desktopUrl;
   // "" / null on the slide means "not set" -- fall back to the Hero-level shared value, which is
   // exactly what this slideshow always read before per-slide overrides existed (so an
   // already-published slideshow with no slide-level values keeps rendering identically).
-  const focalX = slide.focalX ?? data.focalX;
-  const focalY = slide.focalY ?? data.focalY;
-  const imagePositionStyle = { objectPosition: `${focalX}% ${focalY}%` };
-  const desktopFitClass = heroImageFitClass(slide.imageFit || "cover");
-  const mobileFitClass = heroImageFitClass((slide.imageFitMobile || slide.imageFit) || "cover");
+  const focalXBase = slide.focalX ?? data.focalX;
+  const focalYBase = slide.focalY ?? data.focalY;
+  // Phase 4 -- desktop/tablet/mobile independence. Base (desktop) resolution above is unchanged;
+  // resolveTier only adds the tablet/mobile override on top, falling back to that same base value.
+  const focalXTier = resolveTier(focalXBase, slide.focalXTablet, slide.focalXMobile);
+  const focalYTier = resolveTier(focalYBase, slide.focalYTablet, slide.focalYMobile);
+  const fitBase = slide.imageFit || "cover";
+  const fitTier = resolveTier(fitBase, slide.imageFitTablet, slide.imageFitMobile || slide.imageFit);
+  const positionStyle = (tier: "desktop" | "tablet" | "mobile") => ({ objectPosition: `${focalXTier[tier]}% ${focalYTier[tier]}%` });
+  const fitClass = (tier: "desktop" | "tablet" | "mobile") => heroImageFitClass(fitTier[tier]);
   const overlayOpacity = slide.overlayOpacity ?? data.overlayOpacity;
+  const animationDurationSec = slide.animationDurationMs != null ? slide.animationDurationMs / 1000 : undefined;
+  const animationDelaySec = slide.animationDelayMs != null ? slide.animationDelayMs / 1000 : 0;
 
   const hasPrimaryCta = Boolean(slide.ctaLabel && slide.ctaUrl);
   const hasSecondaryCta = Boolean(slide.ctaLabel2 && slide.ctaUrl2);
@@ -124,9 +135,18 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
   const ctaY = slide.ctaY ?? 80;
   // Reuses the Hero-level mirror toggle -- each locale's slides array is already fully independent
   // (dataEn/dataAr), this only matters for an admin who wants one physical X to read as mirrored.
-  const effectiveCtaX = locale === "ar" && data.ctaMirrorForRtl ? 100 - ctaX : ctaX;
+  // Applied per breakpoint tier (Phase 4) -- each tier's own X value is mirrored independently.
+  const mirrorX = (x: number) => (locale === "ar" && data.ctaMirrorForRtl ? 100 - x : x);
+  const ctaXTier = resolveTier(ctaX, slide.ctaXTablet, slide.ctaXMobile);
+  const ctaYTier = resolveTier(ctaY, slide.ctaYTablet, slide.ctaYMobile);
   const ctaOverlay = ctaIsCustom ? (
-    <HeroCtaOverlay x={effectiveCtaX} y={ctaY}>
+    <HeroCtaOverlay
+      position={{
+        desktop: { x: mirrorX(ctaXTier.desktop), y: ctaYTier.desktop },
+        tablet: { x: mirrorX(ctaXTier.tablet), y: ctaYTier.tablet },
+        mobile: { x: mirrorX(ctaXTier.mobile), y: ctaYTier.mobile },
+      }}
+    >
       {ctaButtons}
     </HeroCtaOverlay>
   ) : null;
@@ -169,18 +189,24 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
         exit={crossfade ? { opacity: 0 } : undefined}
         transition={{ duration: crossfade ? DURATION.large : 0, ease: EASE_PREMIUM }}
       >
-        <HeroMediaMotion animation={slide.animation} className="absolute inset-0">
+        <HeroMediaMotion animation={slide.animation} durationSec={animationDurationSec} delay={animationDelaySec} className="absolute inset-0">
           {slide.mediaType === "video" ? (
             <>
-              <HeroVideoLayer src={desktopUrl} poster={media?.posterUrl} autoPlay muted loop className={`hidden h-full w-full lg:block ${desktopFitClass}`} style={imagePositionStyle} />
+              <HeroVideoLayer src={desktopUrl} poster={media?.posterUrl} autoPlay muted loop className={`hidden h-full w-full lg:block ${fitClass("desktop")}`} style={positionStyle("desktop")} />
+              {tabletUrl ? (
+                <HeroVideoLayer src={tabletUrl} poster={media?.posterUrl} autoPlay muted loop className={`hidden h-full w-full sm:block lg:hidden ${fitClass("tablet")}`} style={positionStyle("tablet")} />
+              ) : null}
               {mobileUrl ? (
-                <HeroVideoLayer src={mobileUrl} poster={media?.posterUrl} autoPlay muted loop className={`h-full w-full lg:hidden ${mobileFitClass}`} style={imagePositionStyle} />
+                <HeroVideoLayer src={mobileUrl} poster={media?.posterUrl} autoPlay muted loop className={`block h-full w-full sm:hidden ${fitClass("mobile")}`} style={positionStyle("mobile")} />
               ) : null}
             </>
           ) : (
             <>
-              <Image src={desktopUrl} alt="" fill sizes="(min-width: 1024px) 50vw, 100vw" className={`hidden lg:block ${desktopFitClass}`} style={imagePositionStyle} />
-              {mobileUrl ? <Image src={mobileUrl} alt="" fill sizes="100vw" className={`lg:hidden ${mobileFitClass}`} style={imagePositionStyle} /> : null}
+              <Image src={desktopUrl} alt="" fill sizes="(min-width: 1024px) 50vw, 100vw" className={`hidden lg:block ${fitClass("desktop")}`} style={positionStyle("desktop")} />
+              {tabletUrl ? (
+                <Image src={tabletUrl} alt="" fill sizes="100vw" className={`hidden sm:block lg:hidden ${fitClass("tablet")}`} style={positionStyle("tablet")} />
+              ) : null}
+              {mobileUrl ? <Image src={mobileUrl} alt="" fill sizes="100vw" className={`block sm:hidden ${fitClass("mobile")}`} style={positionStyle("mobile")} /> : null}
             </>
           )}
         </HeroMediaMotion>
@@ -233,6 +259,7 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
           data.layout === "full-bleed"
             ? {
                 height: data.heroHeight,
+                heightCustomValue: data.heroHeightCustomValue,
                 contentPosition: data.contentPosition,
                 verticalAlign: data.verticalAlign,
                 contentMaxWidth: data.contentMaxWidth,

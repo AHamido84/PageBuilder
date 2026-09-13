@@ -7,6 +7,8 @@ import { Section } from "@/components/ui/section";
 import { Card } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { SectionRenderer } from "@/components/site/section-renderer";
+import { loadPageHeaderSections } from "@/lib/page-builder/page-headers";
 
 export const dynamic = "force-dynamic";
 
@@ -34,25 +36,42 @@ export default async function SolutionsIndexPage() {
     include: { translations: true },
   });
 
+  const results = (
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {solutions.map((solution) => {
+        const translation = solution.translations.find((tr) => tr.locale === locale.toUpperCase());
+        const Icon = resolveIcon(solution.icon);
+        return (
+          <Link key={solution.id} href={`/${locale}/solutions/${solution.slug}`}>
+            <Card className="h-full p-6">
+              <Icon size={22} strokeWidth={1.75} className="mb-3 text-harbor" aria-hidden="true" />
+              <p className="font-display text-xl">{translation?.name ?? solution.slug}</p>
+              {translation?.shortDescription ? (
+                <p className="mt-2 text-sm leading-relaxed text-ink/60">{translation.shortDescription}</p>
+              ) : null}
+            </Card>
+          </Link>
+        );
+      })}
+    </div>
+  );
+
+  // Phase 7: the page's own generic header/intro is now a real, admin-editable Page Builder
+  // section (see src/lib/page-builder/page-headers.ts) -- falls back to the exact original
+  // hardcoded text if the one-time seed script hasn't been run in this environment yet.
+  const headerSections = await loadPageHeaderSections("solutionsIndex");
+  if (!headerSections) {
+    return (
+      <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")} description={t("body")}>
+        {results}
+      </Section>
+    );
+  }
+
   return (
-    <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")} description={t("body")}>
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {solutions.map((solution) => {
-          const translation = solution.translations.find((tr) => tr.locale === locale.toUpperCase());
-          const Icon = resolveIcon(solution.icon);
-          return (
-            <Link key={solution.id} href={`/${locale}/solutions/${solution.slug}`}>
-              <Card className="h-full p-6">
-                <Icon size={22} strokeWidth={1.75} className="mb-3 text-harbor" aria-hidden="true" />
-                <p className="font-display text-xl">{translation?.name ?? solution.slug}</p>
-                {translation?.shortDescription ? (
-                  <p className="mt-2 text-sm leading-relaxed text-ink/60">{translation.shortDescription}</p>
-                ) : null}
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
-    </Section>
+    <>
+      <SectionRenderer sections={headerSections} locale={locale} />
+      <Section tone="paper">{results}</Section>
+    </>
   );
 }

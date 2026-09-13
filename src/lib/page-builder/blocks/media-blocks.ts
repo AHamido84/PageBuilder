@@ -9,11 +9,23 @@ import { LogoCloudEdit, LogoCloudRender } from "./media/logo-cloud";
 
 const mediaRefSchema = z.object({ id: z.string(), url: z.string() });
 
+// Phase 7 "Image Control": aspectRatio/imageFit/focalX/focalY/overlayOpacity/mobileImage are all
+// additive + defaulted so every already-published IMAGE section (pre-fix data has none of these
+// fields) keeps rendering through the exact original plain-<img>-intrinsic-size path -- see the
+// `aspectRatio === "auto"` guard in ImageRender. The fixed-box/fit/focal/overlay path only ever
+// activates once an admin explicitly picks a ratio, a distinct mobile image, or an overlay.
 const imageSchema = z.object({
   image: mediaRefSchema.nullable().default(null),
+  /** Optional distinct mobile crop/asset -- falls back to `image` on narrow viewports when unset. */
+  mobileImage: mediaRefSchema.nullable().optional().default(null),
   altEn: z.string().max(200).optional().default(""),
   altAr: z.string().max(200).optional().default(""),
   linkUrl: z.string().max(300).optional().default(""),
+  aspectRatio: z.enum(["auto", "16/9", "4/3", "3/2", "1/1", "21/9"]).optional().default("auto"),
+  imageFit: z.enum(["cover", "contain"]).optional().default("cover"),
+  focalX: z.number().min(0).max(100).optional().default(50),
+  focalY: z.number().min(0).max(100).optional().default(50),
+  overlayOpacity: z.number().min(0).max(100).optional().default(0),
 });
 export type ImageData = z.infer<typeof imageSchema>;
 
@@ -71,7 +83,10 @@ export const mediaBlocks: BlockDefinition<any>[] = [
     category: "media",
     icon: ImageIcon,
     dataSchema: imageSchema,
-    defaultData: { en: { image: null, altEn: "", altAr: "", linkUrl: "" }, ar: { image: null, altEn: "", altAr: "", linkUrl: "" } },
+    defaultData: {
+      en: { image: null, mobileImage: null, altEn: "", altAr: "", linkUrl: "", aspectRatio: "auto", imageFit: "cover", focalX: 50, focalY: 50, overlayOpacity: 0 },
+      ar: { image: null, mobileImage: null, altEn: "", altAr: "", linkUrl: "", aspectRatio: "auto", imageFit: "cover", focalX: 50, focalY: 50, overlayOpacity: 0 },
+    },
     defaultSettings: defaultSectionSettings(),
     Edit: ImageEdit,
     Render: ImageRender,

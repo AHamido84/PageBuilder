@@ -6,6 +6,8 @@ import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { SectionRenderer } from "@/components/site/section-renderer";
+import { loadPageHeaderSections } from "@/lib/page-builder/page-headers";
 
 export const dynamic = "force-dynamic";
 
@@ -38,27 +40,42 @@ export default async function BrandsPage() {
   const tCommon = await getTranslations("common");
   const brands = await getBrands(locale);
 
+  const results = brands.length > 0 ? (
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {brands.map((brand) => (
+        <Link key={brand.id} href={`/${locale}/brands/${brand.slug}`}>
+          <Card className="flex h-full flex-col p-6">
+            {brand.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={brand.logoUrl} alt={brand.name} className="mb-4 h-10 max-w-[140px] object-contain" />
+            ) : null}
+            <p className="font-display text-xl">{brand.name}</p>
+            {brand.description ? <p className="mt-2 text-sm leading-relaxed text-ink/60">{brand.description}</p> : null}
+            <p className="font-mono-data mt-auto pt-4 text-xs text-ink/40">{tCommon("skuCount", { count: brand.productCount })}</p>
+          </Card>
+        </Link>
+      ))}
+    </div>
+  ) : (
+    <EmptyState title={t("title")} description={t("empty")} />
+  );
+
+  // Phase 7: the page's own generic header/intro is now a real, admin-editable Page Builder
+  // section (see src/lib/page-builder/page-headers.ts) -- falls back to the exact original
+  // hardcoded text if the one-time seed script hasn't been run in this environment yet.
+  const headerSections = await loadPageHeaderSections("brands");
+  if (!headerSections) {
+    return (
+      <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
+        {results}
+      </Section>
+    );
+  }
+
   return (
-    <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
-      {brands.length > 0 ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {brands.map((brand) => (
-            <Link key={brand.id} href={`/${locale}/brands/${brand.slug}`}>
-              <Card className="flex h-full flex-col p-6">
-                {brand.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={brand.logoUrl} alt={brand.name} className="mb-4 h-10 max-w-[140px] object-contain" />
-                ) : null}
-                <p className="font-display text-xl">{brand.name}</p>
-                {brand.description ? <p className="mt-2 text-sm leading-relaxed text-ink/60">{brand.description}</p> : null}
-                <p className="font-mono-data mt-auto pt-4 text-xs text-ink/40">{tCommon("skuCount", { count: brand.productCount })}</p>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <EmptyState title={t("title")} description={t("empty")} />
-      )}
-    </Section>
+    <>
+      <SectionRenderer sections={headerSections} locale={locale} />
+      <Section tone="paper">{results}</Section>
+    </>
   );
 }

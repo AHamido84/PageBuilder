@@ -9,6 +9,7 @@ import { FRAME_STYLES, FRAME_BORDER_STYLES, FRAME_GLOWS } from "./content/frame-
 import { HeadingEdit, HeadingRender } from "./content/heading";
 import { RichTextEdit, RichTextRender } from "./content/rich-text";
 import { CtaEdit, CtaRender } from "./content/cta";
+import { PageIntroEdit, PageIntroRender } from "./content/page-intro";
 
 // "secondary"/"ghost" are the two original values -- kept exactly as-is (still mapped by
 // heroButtonVariant in hero-shared.tsx the same way they always were: secondary->ghost-light,
@@ -16,7 +17,9 @@ import { CtaEdit, CtaRender } from "./content/cta";
 // let an admin pick either of those two button-kit variants directly and explicitly; "gold"/
 // "gold-outline" are new CTA colors for a Hero button that wants to stand out (advanced hero
 // CTA controls brief).
-const heroButtonStyleSchema = z.enum(["primary", "secondary", "ghost", "ghost-light", "ghost-dark", "gold", "gold-outline"]);
+// "ghost-gold" added for Phase 4 -- the Button component (and its "gold-outline" twin) already
+// supported it; Hero's own style enum just never exposed it as a selectable CTA color.
+const heroButtonStyleSchema = z.enum(["primary", "secondary", "ghost", "ghost-light", "ghost-dark", "gold", "gold-outline", "ghost-gold"]);
 export type HeroButtonStyle = z.infer<typeof heroButtonStyleSchema>;
 
 // object-fit for the Hero's own image/video, real (not decorative) -- "contain" is the one that
@@ -37,15 +40,23 @@ export type HeroCtaPositionMode = z.infer<typeof heroCtaPositionModeSchema>;
 // three organic/blob frame styles; float/scale apply to any frame). "cinematic-loop" added for the
 // full-bleed cinematic Hero background: unlike every other value here (which plays once on mount
 // and stops), it's a genuinely infinite alternating breathing zoom -- see HeroMediaMotion in
-// hero-shared.tsx. Same field, still just "the media/frame's entrance-and-ambient treatment" --
-// not a second parallel animation field.
-const heroAnimationSchema = z.enum(["none", "fade", "slow-zoom", "parallax", "reveal", "cinematic", "scale", "morph", "float", "cinematic-loop"]);
+// hero-shared.tsx. "slide"/"pan" added for Phase 4: "slide" is a one-shot slide-in-from-the-reading-
+// start-edge entrance (direction-aware, same mirroring convention as the shared motion primitives'
+// slide-start/slide-end); "pan" is a continuous horizontal drift with no zoom, distinct from
+// slow-zoom/cinematic-loop (zoom-only/zoom+breathe). "slow-zoom" is presented in the admin UI as
+// "Ken Burns" (it already is one) rather than adding a redundant near-duplicate animation value.
+// Same field throughout, still just "the media/frame's entrance-and-ambient treatment."
+const heroAnimationSchema = z.enum(["none", "fade", "slow-zoom", "parallax", "reveal", "cinematic", "scale", "morph", "float", "cinematic-loop", "slide", "pan"]);
 export type HeroAnimation = z.infer<typeof heroAnimationSchema>;
 
 const heroImagePositionSchema = z.enum(["center", "top", "bottom", "left", "right", "custom"]);
 export type HeroImagePosition = z.infer<typeof heroImagePositionSchema>;
 
-const heroHeightSchema = z.enum(["compact", "standard", "tall", "viewport"]);
+// "auto"/"custom" added for Phase 4 (admin-facing labels: Auto/Small/Medium/Large/Full Viewport/
+// Custom, mapping compact->Small, standard->Medium, tall->Large) -- additive, every pre-existing
+// stored value stays valid. "auto" emits no min-height class at all (content drives height);
+// "custom" reads `heroHeightCustomValue` instead of a token class (see HERO_HEIGHT_CLASSES).
+const heroHeightSchema = z.enum(["compact", "standard", "tall", "viewport", "auto", "custom"]);
 export type HeroHeight = z.infer<typeof heroHeightSchema>;
 
 const heroContentPositionSchema = z.enum(["start", "center", "end"]);
@@ -120,6 +131,29 @@ const heroSlideSchema = z.object({
   ctaX: z.number().min(0).max(100).nullable().default(null), // null => 75 (only read when ctaPositionMode is "custom")
   ctaY: z.number().min(0).max(100).nullable().default(null), // null => 80
   overlayOpacity: z.number().min(0).max(100).nullable().default(null), // null => the Hero-level overlayOpacity
+
+  // Phase 4 -- true desktop/tablet/mobile independence for Image Fit, Focal Point, and CTA Position
+  // (previously only a single desktop/mobile split existed, at one breakpoint, and CTA position had
+  // no responsive variation at all). Same "" / null = inherit convention as every field above:
+  // an unset tier falls back to this slide's own desktop value (imageFit/focalX/focalY/ctaX/ctaY),
+  // which itself falls back further per the comments above -- so an already-published slide with no
+  // tier overrides renders identically to before these fields existed.
+  imageFitTablet: z.union([heroImageFitSchema, z.literal("")]).default(""), // "" => this slide's imageFit
+  focalXTablet: z.number().min(0).max(100).nullable().default(null),
+  focalYTablet: z.number().min(0).max(100).nullable().default(null),
+  focalXMobile: z.number().min(0).max(100).nullable().default(null), // null => this slide's focalX (imageFitMobile already existed; a mobile focal override did not)
+  focalYMobile: z.number().min(0).max(100).nullable().default(null),
+  ctaXTablet: z.number().min(0).max(100).nullable().default(null),
+  ctaYTablet: z.number().min(0).max(100).nullable().default(null),
+  ctaXMobile: z.number().min(0).max(100).nullable().default(null),
+  ctaYMobile: z.number().min(0).max(100).nullable().default(null),
+
+  // Phase 4 -- per-slide override of the entrance animation's own duration/delay. Every
+  // HeroMediaMotion animation branch previously hardcoded its own timing; null on either field here
+  // means "use that animation's existing hardcoded default," so no already-published slide's
+  // animation speed changes until an admin deliberately sets one of these.
+  animationDurationMs: z.number().int().min(200).max(30000).nullable().default(null),
+  animationDelayMs: z.number().int().min(0).max(5000).nullable().default(null),
 });
 export type HeroSlide = z.infer<typeof heroSlideSchema>;
 
@@ -207,6 +241,12 @@ const heroSchema = z.object({
   // of re-entering the mirrored number by hand. Physical (un-mirrored) is the safe, unsurprising
   // default matching how every other physical value on this schema (frameX, decorativeRotation...) already behaves.
   ctaMirrorForRtl: z.boolean().default(false),
+  // Phase 4 -- CTA position gets the same tablet/mobile independence as slideshow slides (cheap:
+  // HeroCtaOverlay is one small absolutely-positioned component). null => this Hero's own ctaX/ctaY.
+  ctaXTablet: z.number().min(0).max(100).nullable().default(null),
+  ctaYTablet: z.number().min(0).max(100).nullable().default(null),
+  ctaXMobile: z.number().min(0).max(100).nullable().default(null),
+  ctaYMobile: z.number().min(0).max(100).nullable().default(null),
 
   // Media
   mediaType: z.enum(["image", "video", "slideshow", "product-composition", "3d-composition"]).default("image"),
@@ -224,8 +264,19 @@ const heroSchema = z.object({
   // "object-cover" before this field existed). "contain" is the one that matters most: guarantees
   // the complete photo stays visible with no cropping of a product/logo/baked-in text.
   imageFit: heroImageFitSchema.default("cover"),
+  // Phase 4 -- the single image/video mode's own mobile <Image>/<video> element previously always
+  // reused the desktop imageFit/focalX/focalY verbatim (no independent mobile control existed at
+  // this level at all, unlike slideshow slides which already had imageFitMobile). "" / null =>
+  // fall back to imageFit/focalX/focalY, reproducing today's exact behavior.
+  imageFitMobile: z.union([heroImageFitSchema, z.literal("")]).default(""),
+  focalXMobile: z.number().min(0).max(100).nullable().default(null),
+  focalYMobile: z.number().min(0).max(100).nullable().default(null),
   overlayOpacity: z.number().min(0).max(100).default(35),
   animation: heroAnimationSchema.default("slow-zoom"),
+  // Phase 4 -- overrides the active animation's own hardcoded duration/delay (see HeroMediaMotion).
+  // null on either => that animation's existing default timing, unchanged.
+  animationDurationMs: z.number().int().min(200).max(30000).nullable().default(null),
+  animationDelayMs: z.number().int().min(0).max(5000).nullable().default(null),
   videoAutoplay: z.boolean().default(true),
   videoMuted: z.boolean().default(true),
   videoLoop: z.boolean().default(true),
@@ -271,6 +322,9 @@ const heroSchema = z.object({
   // above are untouched by these. All additive/defaulted so every pre-existing Hero (split or
   // full-bleed) renders exactly as before until an admin deliberately touches one of these.
   heroHeight: heroHeightSchema.default("tall"),
+  // Phase 4 -- only read when heroHeight === "custom" (e.g. "600px", "70vh"). Empty until an admin
+  // deliberately picks Custom, so no pre-existing Hero is affected.
+  heroHeightCustomValue: z.string().max(20).optional().default(""),
   contentPosition: heroContentPositionSchema.default("start"),
   verticalAlign: heroVerticalAlignSchema.default("center"),
   contentMaxWidth: heroContentMaxWidthSchema.default("lg"),
@@ -355,11 +409,26 @@ const richTextSchema = z.object({
 });
 export type RichTextData = z.infer<typeof richTextSchema>;
 
+// Phase 7: header/intro zone for otherwise-hardcoded catalog listing pages (Products/Brands/Blog/
+// Solutions index) -- see page-intro.tsx's doc comment for why this is its own block rather than
+// reusing HEADING/RICH_TEXT.
+const pageIntroSchema = z.object({
+  eyebrow: z.string().max(80).optional().default(""),
+  title: z.string().max(200).optional().default(""),
+  description: z.string().max(500).optional().default(""),
+});
+export type PageIntroData = z.infer<typeof pageIntroSchema>;
+
+// Phase 3 premium redesign: `layout`/`image` are additive + defaulted -- every already-published
+// CTA (no layout, no image) keeps rendering the original centered text-only treatment exactly as
+// before. "banner" is a new full-bleed option only meaningful once an image is actually set.
 const ctaSchema = z.object({
   heading: z.string().max(200).optional().default(""),
   body: z.string().max(500).optional().default(""),
   ctaLabel: z.string().max(60),
   ctaUrl: z.string().max(300),
+  layout: z.enum(["centered", "banner"]).optional().default("centered"),
+  image: z.object({ id: z.string(), url: z.string() }).nullable().optional().default(null),
 });
 export type CtaData = z.infer<typeof ctaSchema>;
 
@@ -381,15 +450,18 @@ export const contentBlocks: BlockDefinition<any>[] = [
         ctaLabel: "", ctaUrl: "", ctaVisible: true, ctaStyle: "primary", ctaExternal: false,
         ctaLabel2: "", ctaUrl2: "", ctaVisible2: true, ctaStyle2: "secondary", ctaExternal2: false,
         ctaPositionMode: "flow", ctaX: 75, ctaY: 80, ctaMirrorForRtl: false,
+        ctaXTablet: null, ctaYTablet: null, ctaXMobile: null, ctaYMobile: null,
         mediaType: "image", layout: "split", desktopMediaId: "", mobileMediaId: "", posterId: "",
-        imagePosition: "center", focalX: 50, focalY: 50, imageFit: "cover", overlayOpacity: 35, animation: "slow-zoom",
+        imagePosition: "center", focalX: 50, focalY: 50, imageFit: "cover",
+        imageFitMobile: "", focalXMobile: null, focalYMobile: null,
+        overlayOpacity: 35, animation: "slow-zoom", animationDurationMs: null, animationDelayMs: null,
         videoAutoplay: true, videoMuted: true, videoLoop: true,
         frameStyle: "full-bleed", mobileFrameStyle: "", framePreset: "", framePosition: "center", frameX: 0, frameY: 0,
         frameWidth: 100, frameHeight: 100, frameScale: 1, frameRotation: 0, frameOverflow: false,
         frameBorderStyle: "none", frameBorderWidth: 2, frameBorderOpacity: 60, frameBorderColor: "wheat",
         frameGlow: "none", decorativeText: "", decorativeOpacity: 8, decorativePosition: "behind",
         decorativeRotation: 0, parallaxEnabled: true,
-        heroHeight: "tall", contentPosition: "start", verticalAlign: "center", contentMaxWidth: "lg",
+        heroHeight: "tall", heroHeightCustomValue: "", contentPosition: "start", verticalAlign: "center", contentMaxWidth: "lg",
         textColorMode: "auto", accentColor: "wheat", overlayDirection: "auto", zoomAmount: 4, animationSpeedSec: 20,
         primaryProductId: "", secondaryProductId: "", supportingProductId: "",
         productsClickable: true, showProductBadges: true, slides: [], slideTransition: "crossfade",
@@ -400,15 +472,18 @@ export const contentBlocks: BlockDefinition<any>[] = [
         ctaLabel: "", ctaUrl: "", ctaVisible: true, ctaStyle: "primary", ctaExternal: false,
         ctaLabel2: "", ctaUrl2: "", ctaVisible2: true, ctaStyle2: "secondary", ctaExternal2: false,
         ctaPositionMode: "flow", ctaX: 75, ctaY: 80, ctaMirrorForRtl: false,
+        ctaXTablet: null, ctaYTablet: null, ctaXMobile: null, ctaYMobile: null,
         mediaType: "image", layout: "split", desktopMediaId: "", mobileMediaId: "", posterId: "",
-        imagePosition: "center", focalX: 50, focalY: 50, imageFit: "cover", overlayOpacity: 35, animation: "slow-zoom",
+        imagePosition: "center", focalX: 50, focalY: 50, imageFit: "cover",
+        imageFitMobile: "", focalXMobile: null, focalYMobile: null,
+        overlayOpacity: 35, animation: "slow-zoom", animationDurationMs: null, animationDelayMs: null,
         videoAutoplay: true, videoMuted: true, videoLoop: true,
         frameStyle: "full-bleed", mobileFrameStyle: "", framePreset: "", framePosition: "center", frameX: 0, frameY: 0,
         frameWidth: 100, frameHeight: 100, frameScale: 1, frameRotation: 0, frameOverflow: false,
         frameBorderStyle: "none", frameBorderWidth: 2, frameBorderOpacity: 60, frameBorderColor: "wheat",
         frameGlow: "none", decorativeText: "", decorativeOpacity: 8, decorativePosition: "behind",
         decorativeRotation: 0, parallaxEnabled: true,
-        heroHeight: "tall", contentPosition: "start", verticalAlign: "center", contentMaxWidth: "lg",
+        heroHeight: "tall", heroHeightCustomValue: "", contentPosition: "start", verticalAlign: "center", contentMaxWidth: "lg",
         textColorMode: "auto", accentColor: "wheat", overlayDirection: "auto", zoomAmount: 4, animationSpeedSec: 20,
         primaryProductId: "", secondaryProductId: "", supportingProductId: "",
         productsClickable: true, showProductBadges: true, slides: [], slideTransition: "crossfade",
@@ -446,14 +521,25 @@ export const contentBlocks: BlockDefinition<any>[] = [
     Render: RichTextRender,
   } as BlockDefinition<RichTextData>,
   {
+    type: "PAGE_INTRO",
+    label: "Page Intro (eyebrow/title/description)",
+    category: "content",
+    icon: Heading1,
+    dataSchema: pageIntroSchema,
+    defaultData: { en: { eyebrow: "", title: "Page title", description: "" }, ar: { eyebrow: "", title: "عنوان الصفحة", description: "" } },
+    defaultSettings: defaultSectionSettings({ background: "paper", desktop: { paddingY: "xl", marginY: "none", align: "left", columns: "1", headingSize: "2xl", bodySize: "md", visible: true } }),
+    Edit: PageIntroEdit,
+    Render: PageIntroRender,
+  } as BlockDefinition<PageIntroData>,
+  {
     type: "CTA",
     label: "CTA",
     category: "content",
     icon: MousePointerClick,
     dataSchema: ctaSchema,
     defaultData: {
-      en: { heading: "Ready to get started?", body: "", ctaLabel: "Contact us", ctaUrl: "/contact" },
-      ar: { heading: "هل أنت مستعد للبدء؟", body: "", ctaLabel: "تواصل معنا", ctaUrl: "/contact" },
+      en: { heading: "Ready to get started?", body: "", ctaLabel: "Contact us", ctaUrl: "/contact", layout: "centered", image: null },
+      ar: { heading: "هل أنت مستعد للبدء؟", body: "", ctaLabel: "تواصل معنا", ctaUrl: "/contact", layout: "centered", image: null },
     },
     defaultSettings: defaultSectionSettings({ background: "ink", desktop: { paddingY: "lg", marginY: "none", align: "center", columns: "1", headingSize: "xl", bodySize: "md", visible: true } }),
     Edit: CtaEdit,
