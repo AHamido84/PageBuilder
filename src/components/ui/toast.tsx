@@ -44,7 +44,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             role="status"
             className={cn(
               "pointer-events-auto w-full max-w-sm rounded-[var(--radius-md)] border px-4 py-3 shadow-[var(--shadow-lifted)]",
-              toast.tone === "error" ? "border-signal/30 bg-signal-soft text-signal" : "border-ink/10 bg-ink text-paper"
+              toast.tone === "error" ? "border-signal/30 bg-signal-soft text-signal" : "border-line bg-ink text-paper"
             )}
           >
             <p className="text-sm font-medium">{toast.title}</p>

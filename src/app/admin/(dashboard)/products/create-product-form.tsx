@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { createProductAction, type FormActionState } from "./actions";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function CreateProductForm({ categories, brands }: Props) {
-  const [state, formAction, pending] = useActionState(createProductAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(createProductAction, initialState);
   const router = useRouter();
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export function CreateProductForm({ categories, brands }: Props) {
   }, [state.success, state.id, router]);
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div>
         <label className="mb-1 block text-xs text-neutral-400">SKU</label>
         <input name="sku" required className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />

@@ -14,7 +14,7 @@ import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
 import { useReferenceData } from "../../reference-data-context";
 import type { HeroData, HeroRenderData, HeroResolvedMedia, HeroImagePosition, HeroFramePosition, HeroCompositionData } from "../content-blocks";
-import { HeroFrame, HeroMediaMotion, HeroVideoLayer, HeroCtaOverlay, heroButtonVariant, heroImageFitClass, resolveTier, CTA_STYLE_OPTIONS, type HeroFullBleedOptions } from "./hero-shared";
+import { HeroFrame, HeroMediaMotion, HeroVideoLayer, HeroCtaOverlay, heroButtonVariant, heroImageFitClass, resolveTier, CTA_STYLE_OPTIONS, HERO_ANIMATION_OPTIONS, type HeroFullBleedOptions } from "./hero-shared";
 import { HeroFrameShape } from "./hero-frame-shape";
 import { HeroDecorativeTypography } from "./hero-decorative-typography";
 import { HeroProductComposition } from "./hero-product-composition-render";
@@ -125,7 +125,7 @@ function HeroCompositionImageList({
           ))}
         </div>
       ) : null}
-      {ids.length < max ? <MultiMediaPickerButton label={`Add ${label.toLowerCase()}...`} accept="IMAGE" onConfirm={addItems} /> : null}
+      {ids.length < max ? <MultiMediaPickerButton uploadFolderName="Hero" label={`Add ${label.toLowerCase()}...`} accept="IMAGE" onConfirm={addItems} /> : null}
     </div>
   );
 }
@@ -164,7 +164,7 @@ function HeroCompositionEditor({
     <div className="space-y-4">
       <div className="space-y-3 rounded-md border border-neutral-800 p-3">
         <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">3D Composition — Content</p>
-        <MediaPickerControlled
+        <MediaPickerControlled uploadFolderName="Hero"
           label="Background image"
           accept="IMAGE"
           mediaId={c.backgroundId}
@@ -173,7 +173,7 @@ function HeroCompositionEditor({
             onChange({ ...data, composition: { ...c, backgroundId }, compositionMedia: { ...media, backgroundUrl, productUrls: media?.productUrls ?? {}, decorativeUrls: media?.decorativeUrls ?? {} } })
           }
         />
-        <MediaPickerControlled
+        <MediaPickerControlled uploadFolderName="Hero"
           label="Mobile background (optional — falls back to desktop)"
           accept="IMAGE"
           mediaId={c.mobileBackgroundId}
@@ -182,7 +182,7 @@ function HeroCompositionEditor({
             onChange({ ...data, composition: { ...c, mobileBackgroundId }, compositionMedia: { ...media, mobileBackgroundUrl, productUrls: media?.productUrls ?? {}, decorativeUrls: media?.decorativeUrls ?? {} } })
           }
         />
-        <MediaPickerControlled
+        <MediaPickerControlled uploadFolderName="Hero"
           label="Main image"
           accept="IMAGE"
           mediaId={c.mainImageId}
@@ -191,7 +191,7 @@ function HeroCompositionEditor({
             onChange({ ...data, composition: { ...c, mainImageId }, compositionMedia: { ...media, mainUrl, productUrls: media?.productUrls ?? {}, decorativeUrls: media?.decorativeUrls ?? {} } })
           }
         />
-        <MediaPickerControlled
+        <MediaPickerControlled uploadFolderName="Hero"
           label="Secondary image (optional)"
           accept="IMAGE"
           mediaId={c.secondaryImageId}
@@ -360,6 +360,7 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
             { value: "image", label: "Image" },
             { value: "video", label: "Video" },
             { value: "slideshow", label: "Slideshow" },
+            { value: "carousel", label: "Carousel" },
             { value: "product-composition", label: "Product Composition" },
             { value: "3d-composition", label: "3D Composition" },
           ]}
@@ -388,14 +389,14 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
 
         {data.mediaType === "image" ? (
           <>
-            <MediaPickerControlled
+            <MediaPickerControlled uploadFolderName="Hero"
               label="Desktop image"
               accept="IMAGE"
               mediaId={data.desktopMediaId}
               previewUrl={data.desktopMediaUrl}
               onChange={(desktopMediaId, desktopMediaUrl) => onChange({ ...data, desktopMediaId, desktopMediaUrl })}
             />
-            <MediaPickerControlled
+            <MediaPickerControlled uploadFolderName="Hero"
               label="Mobile image (optional — falls back to desktop)"
               accept="IMAGE"
               mediaId={data.mobileMediaId}
@@ -404,7 +405,7 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
             />
           </>
         ) : null}
-        {data.mediaType === "image" || data.mediaType === "video" || data.mediaType === "slideshow" ? (
+        {data.mediaType === "image" || data.mediaType === "video" || data.mediaType === "slideshow" || data.mediaType === "carousel" ? (
           <>
             <SelectField
               label="Image / video fit"
@@ -432,7 +433,7 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
             />
           </>
         ) : null}
-        {data.mediaType === "image" || data.mediaType === "slideshow" ? (
+        {data.mediaType === "image" || data.mediaType === "slideshow" || data.mediaType === "carousel" ? (
           // Slideshow mode falls back to this shared focal point for any slide that hasn't set its
           // own (HeroSlideshow reads slide.focalX ?? data.focalX) -- it needs this control just as
           // much as plain image mode does, e.g. for a banner with baked-in text sitting off-center
@@ -700,21 +701,21 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
 
         {data.mediaType === "video" ? (
           <>
-            <MediaPickerControlled
+            <MediaPickerControlled uploadFolderName="Hero"
               label="Desktop video"
               accept="VIDEO"
               mediaId={data.desktopMediaId}
               previewUrl={data.desktopMediaUrl}
               onChange={(desktopMediaId, desktopMediaUrl) => onChange({ ...data, desktopMediaId, desktopMediaUrl })}
             />
-            <MediaPickerControlled
+            <MediaPickerControlled uploadFolderName="Hero"
               label="Mobile video (optional — falls back to desktop)"
               accept="VIDEO"
               mediaId={data.mobileMediaId}
               previewUrl={data.mobileMediaUrl}
               onChange={(mobileMediaId, mobileMediaUrl) => onChange({ ...data, mobileMediaId, mobileMediaUrl })}
             />
-            <MediaPickerControlled
+            <MediaPickerControlled uploadFolderName="Hero"
               label="Poster image (shown while loading, and if the video fails)"
               accept="IMAGE"
               mediaId={data.posterId}
@@ -737,28 +738,15 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
             onChange={(overlayOpacity) => onChange({ ...data, overlayOpacity })}
           />
         ) : null}
-        {data.mediaType !== "slideshow" && data.mediaType !== "product-composition" && data.mediaType !== "3d-composition" ? (
+        {data.mediaType !== "slideshow" && data.mediaType !== "carousel" && data.mediaType !== "product-composition" && data.mediaType !== "3d-composition" ? (
           <SelectField
             label="Animation"
             value={data.animation}
             onChange={(animation) => onChange({ ...data, animation })}
-            options={[
-              { value: "none", label: "None" },
-              { value: "fade", label: "Fade" },
-              { value: "slide", label: "Slide" },
-              { value: "slow-zoom", label: "Ken Burns / Slow Zoom" },
-              { value: "pan", label: "Pan" },
-              { value: "cinematic-loop", label: "Cinematic Loop — infinite breathing zoom (full-bleed)" },
-              { value: "parallax", label: "Parallax" },
-              { value: "reveal", label: "Reveal" },
-              { value: "cinematic", label: "Cinematic" },
-              { value: "scale", label: "Scale" },
-              { value: "morph", label: "Morph (organic frame shapes only)" },
-              { value: "float", label: "Float" },
-            ]}
+            options={[...HERO_ANIMATION_OPTIONS, { value: "morph", label: "Morph (organic frame shapes only)" }]}
           />
         ) : null}
-        {data.mediaType !== "slideshow" && data.mediaType !== "product-composition" && data.mediaType !== "3d-composition" ? (
+        {data.mediaType !== "slideshow" && data.mediaType !== "carousel" && data.mediaType !== "product-composition" && data.mediaType !== "3d-composition" ? (
           <div className="grid grid-cols-2 gap-3">
             <NumberField
               label="Animation duration (ms, optional)"
@@ -793,7 +781,7 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
         <HeroCompositionEditor data={data} onChange={onChange} />
       ) : null}
 
-      {data.mediaType === "slideshow" ? (
+      {data.mediaType === "slideshow" || data.mediaType === "carousel" ? (
         <HeroSlidesEditor data={data} onChange={onChange} locale={locale} />
       ) : (
         <div className="space-y-3">
@@ -905,7 +893,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
   // slideshow) live in the builder, re-rendering this same component instance.
   const { ref: heroRef, x: parallaxX, y: parallaxY, enabled: parallaxSupported } = usePointerParallaxContainer<HTMLDivElement>();
 
-  if (data.mediaType === "slideshow") {
+  if (data.mediaType === "slideshow" || data.mediaType === "carousel") {
     return <HeroSlideshow {...props} />;
   }
 

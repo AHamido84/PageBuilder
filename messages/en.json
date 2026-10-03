@@ -194,7 +194,8 @@
     "eyebrow": "Sourcing",
     "title": "Brands we distribute",
     "empty": "Brand profiles will appear here once they're added in the admin dashboard.",
-    "productsFrom": "Products from"
+    "productsFrom": "Products from",
+    "visitWebsite": "Visit official website"
   },
   "products": {
     "eyebrow": "Catalog",
@@ -323,5 +324,11 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "cookies": "Cookie Policy"
+  },
+  "formErrors": {
+    "nameRequired": "Please enter your name.",
+    "invalidEmail": "Please enter a valid email address.",
+    "invalidInput": "Please check the form and try again.",
+    "tooManyRequests": "Too many requests. Please try again in a minute."
   }
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useRef, useEffect, useTransition } from "react";
+import { useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addLeadNoteAction, deleteLeadNoteAction, type FormActionState } from "../actions";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
@@ -14,7 +15,7 @@ interface Note {
 }
 
 export function LeadNotes({ leadId, notes }: { leadId: string; notes: Note[] }) {
-  const [state, formAction, pending] = useActionState(addLeadNoteAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(addLeadNoteAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -49,7 +50,7 @@ export function LeadNotes({ leadId, notes }: { leadId: string; notes: Note[] }) 
         ))}
         {notes.length === 0 ? <p className="text-sm text-neutral-500">No notes yet.</p> : null}
       </div>
-      <form ref={formRef} action={formAction} className="space-y-2">
+      <form ref={formRef} action={formAction} onSubmit={submitKeepingInput} className="space-y-2">
         <input type="hidden" name="leadId" value={leadId} />
         <textarea name="body" required rows={3} placeholder="Add a note..." className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
         {state.error ? <p className="text-sm text-red-400">{state.error}</p> : null}

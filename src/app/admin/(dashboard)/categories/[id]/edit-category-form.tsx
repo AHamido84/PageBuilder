@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
 import { updateCategoryAction, type FormActionState } from "../actions";
-import { ImageUploadField } from "@/components/admin/image-upload-field";
+import { MediaPickerField } from "@/components/admin/ui/media-picker-field";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
@@ -18,18 +18,20 @@ interface Props {
     parentId: string | null;
     imageId: string | null;
     image: { url: string } | null;
+    bannerId: string | null;
+    banner: { url: string } | null;
     translations: { locale: "EN" | "AR"; name: string; description: string | null }[];
   };
   categories: { id: string; slug: string }[];
 }
 
 export function EditCategoryForm({ category, categories }: Props) {
-  const [state, formAction, pending] = useActionState(updateCategoryAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(updateCategoryAction, initialState);
   const en = category.translations.find((t) => t.locale === "EN");
   const ar = category.translations.find((t) => t.locale === "AR");
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <input type="hidden" name="id" value={category.id} />
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Slug</label>
@@ -72,7 +74,15 @@ export function EditCategoryForm({ category, categories }: Props) {
         <label className="mb-1 block text-xs text-neutral-400">Order</label>
         <input name="order" type="number" defaultValue={category.order} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
       </div>
-      <ImageUploadField name="imageId" label="Image" defaultMediaId={category.imageId} defaultUrl={category.image?.url} />
+      <MediaPickerField name="imageId" label="Image" accept="IMAGE" uploadFolderName="Categories" defaultMediaId={category.imageId} defaultUrl={category.image?.url} />
+      <MediaPickerField
+        name="bannerId"
+        label="Banner (wide header on this category's product listing)"
+        accept="IMAGE"
+        uploadFolderName="Banners"
+        defaultMediaId={category.bannerId}
+        defaultUrl={category.banner?.url}
+      />
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Featured order (optional)</label>
         <input

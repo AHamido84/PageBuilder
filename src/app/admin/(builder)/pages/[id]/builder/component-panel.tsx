@@ -1,19 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, Layers, Search, SquarePlus } from "lucide-react";
+import { Layers, Search, SquarePlus } from "lucide-react";
 import { BLOCK_CATEGORIES, BLOCK_REGISTRY, getBlock } from "@/lib/page-builder/registry";
-import type { BuilderSection } from "@/lib/page-builder/types";
+import { SECTION_TYPES } from "@/lib/page-builder/section-types";
+import type { BuilderSection, EditorLocale } from "@/lib/page-builder/types";
+import { LayersList } from "./layers-list";
 
 interface Props {
   sections: BuilderSection[];
   selectedId: string | null;
-  onAdd: (type: string) => void;
+  onAdd: (type: string, preset?: Record<string, unknown>) => void;
   onSelect: (id: string) => void;
   onToggleVisible: (id: string) => void;
+  /** PHASE 10: the Layers tab is a full section navigator (drag to reorder, duplicate, delete). */
+  locale: EditorLocale;
+  onReorder: (nextOrderIds: string[]) => void;
+  onDuplicate: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
-export function ComponentPanel({ sections, selectedId, onAdd, onSelect, onToggleVisible }: Props) {
+export function ComponentPanel({ sections, selectedId, onAdd, onSelect, onToggleVisible, locale, onReorder, onDuplicate, onDelete }: Props) {
   const [tab, setTab] = useState<"add" | "layers">("add");
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
@@ -58,6 +65,33 @@ export function ComponentPanel({ sections, selectedId, onAdd, onSelect, onToggle
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-3">
+            {(() => {
+              // The named homepage section types (Hero, Slideshow, Logo Marquee, ...) -- shortcuts onto
+              // the blocks below, some with a preset. See src/lib/page-builder/section-types.ts.
+              const types = SECTION_TYPES.filter((t) => !q || `${t.label} ${t.keywords ?? ""}`.toLowerCase().includes(q));
+              if (types.length === 0) return null;
+              return (
+                <div className="mb-4">
+                  <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-600">Section types</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {types.map((t) => {
+                      const Icon = getBlock(t.type)?.icon;
+                      return (
+                        <button
+                          key={t.key}
+                          type="button"
+                          onClick={() => onAdd(t.type, t.preset)}
+                          className="flex flex-col items-center gap-1.5 rounded-md border border-neutral-800 bg-neutral-900 px-2 py-3 text-center text-[11px] text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800 hover:text-neutral-100"
+                        >
+                          {Icon ? <Icon size={16} /> : null}
+                          <span className="leading-tight">{t.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
             {BLOCK_CATEGORIES.map((cat) => {
               const blocks = Object.values(BLOCK_REGISTRY).filter((b) => b.category === cat.key && (!q || b.label.toLowerCase().includes(q)));
               if (blocks.length === 0) return null;
@@ -88,38 +122,16 @@ export function ComponentPanel({ sections, selectedId, onAdd, onSelect, onToggle
         // there first. Selecting an item here scrolls the canvas to it (see the `useEffect` in
         // canvas.tsx keyed off `selectedId`) and opens its settings, same as clicking it directly.
         <div className="flex-1 overflow-y-auto p-2">
-          {sections.length === 0 ? (
-            <p className="p-2 text-xs text-neutral-500">No sections yet.</p>
-          ) : (
-            <ol className="space-y-1">
-              {sections.map((section, i) => {
-                const block = getBlock(section.type);
-                return (
-                  <li key={section.id}>
-                    <div
-                      className={`group flex items-center gap-2 rounded-md border px-2 py-2 text-xs ${
-                        section.id === selectedId ? "border-blue-500 bg-blue-500/10 text-neutral-100" : "border-neutral-800 bg-neutral-900 text-neutral-300 hover:border-neutral-700"
-                      }`}
-                    >
-                      <button type="button" onClick={() => onSelect(section.id)} className="flex flex-1 items-center gap-2 text-start">
-                        <span className="text-[10px] tabular-nums text-neutral-600">{i + 1}</span>
-                        {block?.icon ? <block.icon size={13} className="shrink-0 text-neutral-500" /> : null}
-                        <span className={`truncate ${section.isVisible ? "" : "opacity-50"}`}>{block?.label ?? section.type}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onToggleVisible(section.id)}
-                        className="shrink-0 text-neutral-600 hover:text-neutral-200"
-                        title={section.isVisible ? "Hide" : "Show"}
-                      >
-                        {section.isVisible ? <Eye size={13} /> : <EyeOff size={13} />}
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
+          <LayersList
+            sections={sections}
+            selectedId={selectedId}
+            locale={locale}
+            onSelect={onSelect}
+            onToggleVisible={onToggleVisible}
+            onReorder={onReorder}
+            onDuplicate={onDuplicate}
+            onDelete={onDelete}
+          />
         </div>
       )}
     </div>

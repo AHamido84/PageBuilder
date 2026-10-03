@@ -8,6 +8,7 @@ import { TemperatureBadge } from "@/components/ui/badge";
 import { BackArrow } from "@/components/ui/arrow";
 import { ProductCard, type ProductCardData } from "@/components/site/product-card";
 import { ProductGallery } from "./product-gallery";
+import { orderProductGallery, productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
 import { InquiryForm } from "./inquiry-form";
 import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
 import { productSchema, breadcrumbSchema } from "@/lib/seo/structured-data";
@@ -58,7 +59,9 @@ async function getProduct(slug: string, locale: string) {
       translations: true,
       category: { include: { translations: true } },
       brand: { include: { translations: true } },
-      images: { select: { id: true, url: true } },
+      images: { orderBy: { createdAt: "asc" }, select: { id: true, url: true } },
+      mainImage: { select: { id: true, url: true } },
+      mobileImage: { select: { url: true } },
       videos: { select: { id: true, url: true } },
       documents: { select: { id: true, url: true, originalName: true } },
       certifications: { where: { isPublished: true }, include: { image: { select: { url: true } } } },
@@ -74,7 +77,7 @@ async function getProduct(slug: string, locale: string) {
     product.relatedProductIds.length > 0
       ? await prisma.product.findMany({
           where: { id: { in: product.relatedProductIds }, isPublished: true },
-          include: { translations: true, category: { include: { translations: true } }, images: { take: 1, select: { url: true } } },
+          include: { translations: true, category: { include: { translations: true } }, ...productCardImageInclude },
         })
       : [];
 
@@ -89,7 +92,9 @@ async function getProduct(slug: string, locale: string) {
     categoryId: product.categoryId,
     categoryName: product.category.translations.find((t) => t.locale === upperLocale)?.name ?? product.category.slug,
     brandName: product.brand?.translations.find((t) => t.locale === upperLocale)?.name ?? product.brand?.slug ?? null,
-    images: product.images,
+    // Main image first (PHASE 7), then the rest of the gallery in upload order.
+    images: orderProductGallery(product.mainImage, product.images),
+    mobileImageUrl: product.mobileImage?.url ?? null,
     videos: product.videos,
     documents: product.documents,
     certifications: product.certifications.map((c) => ({
@@ -113,7 +118,7 @@ async function getRelated(categoryId: string, excludeId: string, locale: string)
   const products = await prisma.product.findMany({
     where: { categoryId, isPublished: true, NOT: { id: excludeId } },
     take: 4,
-    include: { translations: true, category: { include: { translations: true } }, images: { take: 1, select: { url: true } } },
+    include: { translations: true, category: { include: { translations: true } }, ...productCardImageInclude },
   });
 
   return products.map((product) => ({
@@ -123,7 +128,7 @@ async function getRelated(categoryId: string, excludeId: string, locale: string)
     temperatureClass: product.temperatureClass,
     name: product.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.sku,
     categoryName: product.category.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.category.slug,
-    imageUrl: product.images[0]?.url ?? null,
+    ...resolveProductCardImage(product),
     isFeatured: product.isFeatured,
     createdAt: product.createdAt,
   }));
@@ -145,7 +150,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     temperatureClass: p.temperatureClass,
     name: p.translations.find((t2) => t2.locale === locale.toUpperCase())?.name ?? p.sku,
     categoryName: p.category.translations.find((t2) => t2.locale === locale.toUpperCase())?.name ?? p.category.slug,
-    imageUrl: p.images[0]?.url ?? null,
+    ...resolveProductCardImage(p),
     isFeatured: p.isFeatured,
     createdAt: p.createdAt,
   }));
@@ -188,14 +193,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         <div className="mt-6 grid gap-10 lg:grid-cols-2 lg:gap-16">
           {/* Gallery */}
           <div>
-            <ProductGallery images={product.images} videos={product.videos} productName={product.name} />
+            <ProductGallery images={product.images} mobileMainUrl={product.mobileImageUrl} videos={product.videos} productName={product.name} />
 
             {product.certifications.length > 0 ? (
               <div className="mt-6">
                 <p className="mb-2 text-sm font-medium">{t("certifications")}</p>
                 <div className="flex flex-wrap gap-3">
                   {product.certifications.map((cert) => (
-                    <div key={cert.id} className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-ink/10 px-3 py-2">
+                    <div key={cert.id} className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-line px-3 py-2">
                       {cert.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={cert.imageUrl} alt="" className="h-8 w-8 object-contain" />
@@ -231,8 +236,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             {product.description ? <p className="mt-4 text-base leading-relaxed text-ink/70">{product.description}</p> : null}
 
             {/* Specifications */}
-            <div className="mt-8 rounded-[var(--radius-md)] border border-ink/10">
-              <p className="border-b border-ink/10 px-5 py-3 text-sm font-medium">{t("specifications")}</p>
+            <div className="mt-8 rounded-[var(--card-radius)] border border-line">
+              <p className="border-b border-line px-5 py-3 text-sm font-medium">{t("specifications")}</p>
               <dl className="divide-y divide-ink/10">
                 <SpecRow label={t("sku")} value={<span className="font-mono-data">{product.sku}</span>} />
                 <SpecRow label={t("category")} value={product.categoryName} />
@@ -256,8 +261,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             ) : null}
 
             {additionalInfo.length > 0 ? (
-              <div className="mt-6 rounded-[var(--radius-md)] border border-ink/10">
-                <p className="border-b border-ink/10 px-5 py-3 text-sm font-medium">{t("additionalInfo")}</p>
+              <div className="mt-6 rounded-[var(--card-radius)] border border-line">
+                <p className="border-b border-line px-5 py-3 text-sm font-medium">{t("additionalInfo")}</p>
                 <dl className="divide-y divide-ink/10">
                   {additionalInfo.map((row) => (
                     <SpecRow key={row.label} label={row.label} value={row.value!} />

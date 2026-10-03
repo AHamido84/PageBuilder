@@ -1,16 +1,17 @@
 "use client";
 
-import { useActionState, useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { submitLeadAction, type LeadFormState } from "./lead-actions";
 import { buttonClasses } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: LeadFormState = {};
 
 const inputClasses =
-  "w-full rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 py-2.5 text-sm text-ink placeholder:text-ink/35 transition-[border-color,box-shadow] duration-200 focus:border-harbor focus:shadow-[var(--shadow-focus)] focus:outline-none";
+  "w-full rounded-[var(--radius-sm)] border border-line-strong bg-paper px-3 py-2.5 text-sm text-ink placeholder:text-ink/35 transition-[border-color,box-shadow] duration-200 focus:border-harbor focus:shadow-[var(--shadow-focus)] focus:outline-none";
 
 const INQUIRY_TYPES = ["GENERAL", "QUOTE", "BECOME_CUSTOMER", "SALES_INQUIRY"] as const;
 type InquiryType = (typeof INQUIRY_TYPES)[number];
@@ -27,7 +28,7 @@ export function ContactForm({ productId, showTypeSelector }: ContactFormProps) {
   const tDetail = useTranslations("productDetail");
   const locale = useLocale();
   const toast = useToast();
-  const [state, formAction, pending] = useActionState(submitLeadAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(submitLeadAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const [inquiryType, setInquiryType] = useState<InquiryType>("GENERAL");
 
@@ -47,7 +48,7 @@ export function ContactForm({ productId, showTypeSelector }: ContactFormProps) {
   }, [state]);
 
   return (
-    <form ref={formRef} action={formAction} className="mx-auto grid max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
+    <form ref={formRef} action={formAction} onSubmit={submitKeepingInput} className="mx-auto grid max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
       <input type="hidden" name="locale" value={locale.toUpperCase()} />
       {productId ? <input type="hidden" name="productId" value={productId} /> : null}
       {showTypeSelector ? <input type="hidden" name="inquiryType" value={inquiryType} /> : null}
@@ -65,7 +66,7 @@ export function ContactForm({ productId, showTypeSelector }: ContactFormProps) {
               type="button"
               onClick={() => setInquiryType(type)}
               className={`rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
-                inquiryType === type ? "border-ink bg-ink text-paper" : "border-ink/15 text-ink/60 hover:border-ink/40"
+                inquiryType === type ? "border-ink bg-ink text-paper" : "border-line-strong text-ink/60 hover:border-ink/40"
               }`}
             >
               {t(`inquiryType.${type}`)}

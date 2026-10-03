@@ -30,7 +30,7 @@ export function Section({
   ...props
 }: SectionProps) {
   return (
-    <section className={cn("border-t border-ink/10 py-14 sm:py-20 lg:py-32", toneClasses[tone], className)} {...props}>
+    <section className={cn("border-t border-line py-14 sm:py-20 lg:py-32", toneClasses[tone], className)} {...props}>
       <Container className={containerClassName}>
         {(eyebrow || title || description) && (
           <ScrollReveal variant="fade-up" className="mb-12 max-w-2xl sm:mb-16">

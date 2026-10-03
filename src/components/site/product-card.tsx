@@ -18,6 +18,8 @@ export interface ProductCardData {
   imageUrl: string | null;
   imageWidth?: number | null;
   imageHeight?: number | null;
+  /** PHASE 7: optional phone-only image (Product.mobileImage); shown below `sm` instead of imageUrl. */
+  mobileImageUrl?: string | null;
   shortDescription?: string | null;
   isFeatured?: boolean;
   createdAt?: string | Date;
@@ -100,13 +102,24 @@ export function ProductCard({
                 className={`h-auto w-full transition-transform duration-500 ease-[var(--ease-premium)] ${hoverImageClass}`}
               />
             ) : (
-              <Image
-                src={product.imageUrl}
-                alt=""
-                fill
-                sizes="(min-width: 1024px) 23vw, (min-width: 640px) 33vw, 50vw"
-                className={`transition-transform duration-500 ease-[var(--ease-premium)] ${imageFit === "contain" ? "object-contain" : "object-cover"} ${OBJECT_POSITION_CLASS[imagePosition]} ${hoverImageClass}`}
-              />
+              <>
+                <Image
+                  src={product.imageUrl}
+                  alt=""
+                  fill
+                  sizes="(min-width: 1024px) 23vw, (min-width: 640px) 33vw, 50vw"
+                  className={`transition-transform duration-500 ease-[var(--ease-premium)] ${imageFit === "contain" ? "object-contain" : "object-cover"} ${OBJECT_POSITION_CLASS[imagePosition]} ${hoverImageClass} ${product.mobileImageUrl ? "hidden sm:block" : ""}`}
+                />
+                {product.mobileImageUrl ? (
+                  <Image
+                    src={product.mobileImageUrl}
+                    alt=""
+                    fill
+                    sizes="50vw"
+                    className={`transition-transform duration-500 ease-[var(--ease-premium)] sm:hidden ${imageFit === "contain" ? "object-contain" : "object-cover"} ${OBJECT_POSITION_CLASS[imagePosition]} ${hoverImageClass}`}
+                  />
+                ) : null}
+              </>
             )
           ) : (
             <div className="flex h-full min-h-40 w-full items-center justify-center">
@@ -119,7 +132,7 @@ export function ProductCard({
           <p className="mb-1 font-display text-lg leading-snug transition-colors group-hover:text-harbor">{product.name}</p>
           {product.shortDescription ? <p className="mb-2 line-clamp-2 text-sm text-ink/55">{product.shortDescription}</p> : null}
           {showSpecs && spec ? <p className="font-mono-data mb-2 text-[11px] uppercase tracking-[0.08em] text-ink/45">{spec}</p> : null}
-          <div className="mt-3 flex items-center justify-between border-t border-ink/10 pt-3">
+          <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
             <span className="font-mono-data text-xs text-ink/40">{product.sku}</span>
             <TemperatureBadge value={product.temperatureClass} locale={locale} />
           </div>

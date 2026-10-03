@@ -1,13 +1,14 @@
 "use client";
 
-import { useActionState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { createBrandAction, type FormActionState } from "./actions";
 import { MediaPickerField } from "@/components/admin/ui/media-picker-field";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
 export function CreateBrandForm() {
-  const [state, formAction, pending] = useActionState(createBrandAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(createBrandAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -15,7 +16,7 @@ export function CreateBrandForm() {
   }, [state.success]);
 
   return (
-    <form ref={formRef} action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form ref={formRef} action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Slug</label>
         <input name="slug" required placeholder="acme-foods" className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
@@ -44,8 +45,8 @@ export function CreateBrandForm() {
         <label className="mb-1 block text-xs text-neutral-400">Order</label>
         <input name="order" type="number" defaultValue={0} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
       </div>
-      <MediaPickerField name="logoId" label="Logo" accept="IMAGE" />
-      <MediaPickerField name="bannerId" label="Banner" accept="IMAGE" />
+      <MediaPickerField name="logoId" label="Logo" accept="IMAGE" uploadFolderName="Brands" />
+      <MediaPickerField name="bannerId" label="Banner" accept="IMAGE" uploadFolderName="Banners" />
       <label className="col-span-full flex items-center gap-2 text-sm text-neutral-300">
         <input type="checkbox" name="isFeatured" value="true" />
         Featured brand — show in the dynamic Brand Grid section

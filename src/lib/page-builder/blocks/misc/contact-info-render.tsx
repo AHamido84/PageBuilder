@@ -78,7 +78,7 @@ export async function ContactInfoRender({ data, locale }: BlockRenderProps<Conta
       </Card>
 
       {settings?.mapEmbedUrl ? (
-        <div className="mt-6 overflow-hidden rounded-[var(--radius-lg)] border border-ink/10 shadow-[var(--shadow-flat)]">
+        <div className="mt-6 overflow-hidden rounded-[var(--card-radius-lg)] border border-line shadow-[var(--shadow-flat)]">
           <iframe src={settings.mapEmbedUrl} className="h-80 w-full" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title={t("locationLabel")} />
         </div>
       ) : null}

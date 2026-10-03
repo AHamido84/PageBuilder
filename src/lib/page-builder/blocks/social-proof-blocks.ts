@@ -52,7 +52,16 @@ const featureCardItemSchema = z.object({ title: z.string().max(150), body: z.str
 const featureCardsSchema = z.object({ heading: z.string().max(200).optional().default(""), items: z.array(featureCardItemSchema).max(6).default([]) });
 export type FeatureCardsData = z.infer<typeof featureCardsSchema>;
 
-const iconCardItemSchema = z.object({ icon: z.string().max(40), title: z.string().max(150), body: z.string().max(500), link: z.string().max(300).optional().default("") });
+const iconCardItemSchema = z.object({
+  icon: z.string().max(40),
+  title: z.string().max(150),
+  body: z.string().max(500),
+  link: z.string().max(300).optional().default(""),
+  /** Optional photo shown at the top of the card instead of the icon (e.g. Business Segments). */
+  image: mediaRefSchema.nullable().optional().default(null),
+  /** Optional button-style label at the bottom of a linked card ("Learn more"). */
+  ctaLabel: z.string().max(60).optional().default(""),
+});
 const iconCardsSchema = z.object({ heading: z.string().max(200).optional().default(""), items: z.array(iconCardItemSchema).default([]) });
 export type IconCardsData = z.infer<typeof iconCardsSchema>;
 

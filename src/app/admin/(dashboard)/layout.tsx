@@ -53,6 +53,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/users", label: "Users", resource: "users" },
       { href: "/admin/roles", label: "Roles", resource: "roles" },
       { href: "/admin/settings", label: "Settings", resource: "settings" },
+      { href: "/admin/appearance", label: "Appearance", resource: "settings" },
       { href: "/admin/activity", label: "Activity Log", resource: "activityLogs" },
     ],
   },
@@ -95,7 +96,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             ))}
           </nav>
         </aside>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <header className="flex items-center justify-between border-b border-neutral-800 px-6 py-3">
             <div className="text-sm text-neutral-400">
               {user.name} <span className="text-neutral-600">·</span> {user.roleName}

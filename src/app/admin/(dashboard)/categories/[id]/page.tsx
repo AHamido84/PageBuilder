@@ -16,7 +16,7 @@ export default async function EditCategoryPage({ params }: { params: Promise<{ i
   const [category, categories] = await Promise.all([
     prisma.category.findUnique({
       where: { id },
-      include: { translations: true, image: { select: { url: true } }, seo: true },
+      include: { translations: true, image: { select: { url: true } }, banner: { select: { url: true } }, seo: { include: { ogImage: { select: { url: true } } } } },
     }),
     prisma.category.findMany({ select: { id: true, slug: true }, orderBy: { slug: "asc" } }),
   ]);

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { createMenuItemAction, updateMenuItemAction, type FormActionState } from "./actions";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
@@ -41,7 +42,7 @@ export function MenuItemForm({
   onDone,
 }: MenuItemFormProps) {
   const action = mode === "create" ? createMenuItemAction : updateMenuItemAction;
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(action, initialState);
   const [linkType, setLinkType] = useState(defaultValues?.linkType ?? "URL");
 
   const targetOptions = linkType === "PAGE" ? pageOptions : linkType === "CATEGORY" ? categoryOptions : linkType === "PRODUCT" ? productOptions : [];
@@ -51,7 +52,7 @@ export function MenuItemForm({
   }
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form action={formAction} onSubmit={submitKeepingInput} className="space-y-3">
       <input type="hidden" name="menuLocation" value={menuLocation} />
       {itemId ? <input type="hidden" name="id" value={itemId} /> : null}
 

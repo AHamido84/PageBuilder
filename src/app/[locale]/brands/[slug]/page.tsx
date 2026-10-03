@@ -4,12 +4,14 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { Section } from "@/components/ui/section";
 import { Container } from "@/components/ui/container";
+import { safeExternalUrl } from "@/lib/safe-url";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ProductCard, type ProductCardData } from "@/components/site/product-card";
 import { ScrollReveal } from "@/lib/motion/primitives";
 import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
 import { breadcrumbSchema } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
+import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +57,7 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ sl
 
   const products = await prisma.product.findMany({
     where: { brandId: brand.id, isPublished: true },
-    include: { translations: true, category: { include: { translations: true } }, images: { take: 1, select: { url: true } } },
+    include: { translations: true, category: { include: { translations: true } }, ...productCardImageInclude },
   });
 
   const productCards: ProductCardData[] = products.map((product) => ({
@@ -65,7 +67,7 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ sl
     temperatureClass: product.temperatureClass,
     name: product.translations.find((tr) => tr.locale === upperLocale)?.name ?? product.sku,
     categoryName: product.category.translations.find((tr) => tr.locale === upperLocale)?.name ?? product.category.slug,
-    imageUrl: product.images[0]?.url ?? null,
+    ...resolveProductCardImage(product),
     isFeatured: product.isFeatured,
     createdAt: product.createdAt,
   }));
@@ -94,6 +96,12 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ sl
               <h1 className="font-display text-hero">{name}</h1>
             </div>
             {description ? <p className="measure-ar mt-6 max-w-2xl text-lg leading-relaxed opacity-75">{description}</p> : null}
+            {/* PHASE 7: the brand's admin-managed link (Brand.website). */}
+            {safeExternalUrl(brand.website) ? (
+              <a href={safeExternalUrl(brand.website)!} target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex items-center gap-2 text-sm text-wheat underline-offset-4 hover:underline">
+                {t("visitWebsite")} <span aria-hidden className="flip-rtl">↗</span>
+              </a>
+            ) : null}
           </ScrollReveal>
         </Container>
       </div>

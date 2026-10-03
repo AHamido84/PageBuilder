@@ -20,7 +20,7 @@ export default async function EditBrandPage({ params }: { params: Promise<{ id: 
       translations: true,
       logo: { select: { url: true } },
       banner: { select: { url: true } },
-      seo: true,
+      seo: { include: { ogImage: { select: { url: true } } } },
       products: { include: { translations: { where: { locale: "EN" } } }, take: 50 },
     },
   });

@@ -9,14 +9,18 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/admin/ui/pagination";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { SectionRenderer } from "@/components/site/section-renderer";
-import { loadPageHeaderSections } from "@/lib/page-builder/page-headers";
+import { loadPageHeaderSections, loadPageHeaderMeta } from "@/lib/page-builder/page-headers";
+import { isDraftPreviewRequest } from "@/lib/page-builder/render-page";
+import { DraftPreviewBanner } from "@/components/site/draft-preview-banner";
+import { pageTitle } from "@/lib/page-builder/page-title";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "blog" });
-  return buildMetadata({ locale, path: "/blog", fallbackTitle: t("title") });
+  const header = await loadPageHeaderMeta("blog");
+  return buildMetadata({ locale, path: "/blog", seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title") });
 }
 
 const PAGE_SIZE = 9;
@@ -60,7 +64,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
       <div className="mb-8 flex flex-wrap gap-2">
         <Link
           href={`/${locale}/blog`}
-          className={`rounded-full border px-3 py-1.5 text-sm ${!params.category ? "border-ink bg-ink text-paper" : "border-ink/15 text-ink/60 hover:border-ink/40"}`}
+          className={`rounded-full border px-3 py-1.5 text-sm ${!params.category ? "border-ink bg-ink text-paper" : "border-line-strong text-ink/60 hover:border-ink/40"}`}
         >
           {t("allCategories")}
         </Link>
@@ -68,7 +72,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
           <Link
             key={c.id}
             href={`/${locale}/blog?category=${c.slug}`}
-            className={`rounded-full border px-3 py-1.5 text-sm ${params.category === c.slug ? "border-ink bg-ink text-paper" : "border-ink/15 text-ink/60 hover:border-ink/40"}`}
+            className={`rounded-full border px-3 py-1.5 text-sm ${params.category === c.slug ? "border-ink bg-ink text-paper" : "border-line-strong text-ink/60 hover:border-ink/40"}`}
           >
             {locale === "ar" ? c.nameAr : c.nameEn}
           </Link>
@@ -112,7 +116,8 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   // Phase 7: the page's own generic header/intro is now a real, admin-editable Page Builder
   // section (see src/lib/page-builder/page-headers.ts) -- falls back to the exact original
   // hardcoded text if the one-time seed script hasn't been run in this environment yet.
-  const headerSections = await loadPageHeaderSections("blog");
+  const draftPreview = await isDraftPreviewRequest(params);
+  const headerSections = await loadPageHeaderSections("blog", draftPreview);
   if (!headerSections) {
     return (
       <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
@@ -124,6 +129,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   return (
     <>
       <SectionRenderer sections={headerSections} locale={locale} />
+      {draftPreview ? <DraftPreviewBanner /> : null}
       <Section tone="paper">{results}</Section>
     </>
   );

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
-import { usePointerParallaxContainer, pointerParallaxStyle } from "@/lib/motion/primitives";
+import { usePointerParallaxContainer, pointerParallaxStyle, useIsMobileViewport } from "@/lib/motion/primitives";
 import { EASE_PREMIUM } from "@/lib/motion/motionTokens";
 import { HeroMediaMotion } from "./hero-shared";
 import { FRAME_SHAPE_CSS } from "./frame-shapes";
@@ -133,6 +133,8 @@ export function HeroComposition({ data }: { data: HeroRenderData; locale: string
   const c = data.composition;
   const media = data.compositionMedia;
   const reduce = Boolean(useReducedMotion());
+  // PHASE 9 mobile rule: no endless floating loops on phones (hook called before the early return below).
+  const isMobile = useIsMobileViewport();
   const { ref: parallaxRef, x: parallaxX, y: parallaxY, enabled: parallaxSupported } = usePointerParallaxContainer<HTMLDivElement>();
 
   // Ordered arrays derived from the id-keyed maps, preserving the admin's chosen order and
@@ -144,7 +146,7 @@ export function HeroComposition({ data }: { data: HeroRenderData; locale: string
   const hasAny = media && (media.backgroundUrl || media.mainUrl || media.secondaryUrl || productUrls.length > 0 || decorativeUrls.length > 0);
   if (!media || !hasAny) return null;
 
-  const floatingActive = !reduce && c.animationEnabled && c.floating;
+  const floatingActive = !reduce && !isMobile && c.animationEnabled && c.floating;
   const parallaxActive = !reduce && c.animationEnabled && c.hoverInteraction && parallaxSupported;
   // 50 is the slider's own default/neutral point -> 1x; 0 -> 0.4x (barely moving), 100 -> 1.6x.
   const intensityScale = 0.4 + (c.intensity / 100) * 1.2;

@@ -82,15 +82,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         {post.coverImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={post.coverImage.url} alt="" className="mt-8 aspect-[16/9] w-full rounded-[var(--radius-md)] object-cover" />
+          <img src={post.coverImage.url} alt="" className="mt-8 aspect-[16/9] w-full rounded-[var(--image-radius)] object-cover" />
         ) : null}
 
         <div className="mt-8 whitespace-pre-line text-base leading-relaxed text-ink/75">{content}</div>
 
         {post.tags.length > 0 ? (
-          <div className="mt-10 flex flex-wrap gap-2 border-t border-ink/10 pt-6">
+          <div className="mt-10 flex flex-wrap gap-2 border-t border-line pt-6">
             {post.tags.map((tag) => (
-              <span key={tag.id} className="rounded-full border border-ink/15 px-3 py-1 text-xs text-ink/60">
+              <span key={tag.id} className="rounded-full border border-line-strong px-3 py-1 text-xs text-ink/60">
                 {locale === "ar" ? tag.nameAr : tag.nameEn}
               </span>
             ))}

@@ -51,12 +51,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     prisma.solution.findMany({ where: { isPublished: true, page: { status: "PUBLISHED" } }, select: { slug: true, updatedAt: true } }),
   ]);
 
-  const entries: MetadataRoute.Sitemap = STATIC_PATHS.flatMap((path) => entriesForPath(path));
+  // A Page whose slug is also a route-owned path (about, contact, privacy, ...) is listed once, under
+  // that path, with the page's own last-modified date -- previously it appeared twice (PHASE 8 fix).
+  const pageUpdatedAt = new Map(pages.map((page) => [`/${page.slug}`, page.updatedAt]));
+  const entries: MetadataRoute.Sitemap = STATIC_PATHS.flatMap((path) => entriesForPath(path, pageUpdatedAt.get(path)));
 
   for (const product of products) entries.push(...entriesForPath(`/products/${product.slug}`, product.updatedAt));
   for (const brand of brands) entries.push(...entriesForPath(`/brands/${brand.slug}`));
   for (const post of blogPosts) entries.push(...entriesForPath(`/blog/${post.slug}`, post.updatedAt));
-  for (const page of pages) if (!isReservedPageSlug(page.slug)) entries.push(...entriesForPath(`/${page.slug}`, page.updatedAt));
+  for (const page of pages) {
+    const path = `/${page.slug}`;
+    if (isReservedPageSlug(page.slug) || STATIC_PATHS.includes(path)) continue;
+    entries.push(...entriesForPath(path, page.updatedAt));
+  }
   for (const solution of solutions) entries.push(...entriesForPath(`/solutions/${solution.slug}`, solution.updatedAt));
 
   return entries;

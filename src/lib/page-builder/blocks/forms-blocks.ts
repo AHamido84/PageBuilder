@@ -22,6 +22,18 @@ const leadFormSchema = z.object({
   emailLabel: z.string().max(60).optional().default(""),
   phoneLabel: z.string().max(60).optional().default(""),
   messageLabel: z.string().max(60).optional().default(""),
+  /** Presentation only (fields and submission are unchanged): "centered" (default, the original
+   * look) or "split" -- form on one side, an image/text panel on the other. */
+  layout: z.enum(["centered", "split"]).optional().default("centered"),
+  aside: z
+    .object({
+      image: z.object({ id: z.string(), url: z.string() }).nullable().optional().default(null),
+      eyebrow: z.string().max(80).optional().default(""),
+      heading: z.string().max(200).optional().default(""),
+      body: z.string().max(400).optional().default(""),
+    })
+    .optional(),
+  buttonStyle: z.enum(["primary", "secondary", "gold"]).optional().default("primary"),
 });
 export type LeadFormData = z.infer<typeof leadFormSchema>;
 
@@ -48,8 +60,8 @@ export const formsBlocks: BlockDefinition<any>[] = [
     icon: MessageCircle,
     dataSchema: leadFormSchema,
     defaultData: {
-      en: { heading: "Get in touch", body: "Tell us what your business needs.", submitLabel: "Send message", showMessage: true, inquiryType: "GENERAL", showTypeSelector: false, nameLabel: "", companyLabel: "", emailLabel: "", phoneLabel: "", messageLabel: "" },
-      ar: { heading: "تواصل معنا", body: "أخبرنا بما تحتاجه شركتك.", submitLabel: "إرسال الرسالة", showMessage: true, inquiryType: "GENERAL", showTypeSelector: false, nameLabel: "", companyLabel: "", emailLabel: "", phoneLabel: "", messageLabel: "" },
+      en: { heading: "Get in touch", body: "Tell us what your business needs.", submitLabel: "Send message", showMessage: true, inquiryType: "GENERAL", showTypeSelector: false, nameLabel: "", companyLabel: "", emailLabel: "", phoneLabel: "", messageLabel: "", layout: "centered", buttonStyle: "primary" },
+      ar: { heading: "تواصل معنا", body: "أخبرنا بما تحتاجه شركتك.", submitLabel: "إرسال الرسالة", showMessage: true, inquiryType: "GENERAL", showTypeSelector: false, nameLabel: "", companyLabel: "", emailLabel: "", phoneLabel: "", messageLabel: "", layout: "centered", buttonStyle: "primary" },
     },
     defaultSettings: defaultSectionSettings({ background: "frost" }),
     Edit: LeadFormEdit,
@@ -62,8 +74,8 @@ export const formsBlocks: BlockDefinition<any>[] = [
     icon: PackageSearch,
     dataSchema: leadFormSchema,
     defaultData: {
-      en: { heading: "Request a quote", body: "Send us your product categories and order volumes.", submitLabel: "Request a quote", showMessage: true, inquiryType: "QUOTE", showTypeSelector: false, nameLabel: "", companyLabel: "", emailLabel: "", phoneLabel: "", messageLabel: "" },
-      ar: { heading: "اطلب عرض سعر", body: "أرسل لنا فئات المنتجات وأحجام الطلب.", submitLabel: "طلب عرض سعر", showMessage: true, inquiryType: "QUOTE", showTypeSelector: false, nameLabel: "", companyLabel: "", emailLabel: "", phoneLabel: "", messageLabel: "" },
+      en: { heading: "Request a quote", body: "Send us your product categories and order volumes.", submitLabel: "Request a quote", showMessage: true, inquiryType: "QUOTE", showTypeSelector: false, nameLabel: "", companyLabel: "", emailLabel: "", phoneLabel: "", messageLabel: "", layout: "centered", buttonStyle: "primary" },
+      ar: { heading: "اطلب عرض سعر", body: "أرسل لنا فئات المنتجات وأحجام الطلب.", submitLabel: "طلب عرض سعر", showMessage: true, inquiryType: "QUOTE", showTypeSelector: false, nameLabel: "", companyLabel: "", emailLabel: "", phoneLabel: "", messageLabel: "", layout: "centered", buttonStyle: "primary" },
     },
     defaultSettings: defaultSectionSettings({ background: "frost" }),
     Edit: LeadFormEdit,

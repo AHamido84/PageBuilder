@@ -11,6 +11,7 @@ import { getBlock } from "@/lib/page-builder/registry";
 import type { BuilderSection } from "@/lib/page-builder/types";
 import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
 import { brandGridSchema } from "@/lib/page-builder/blocks/commerce-blocks";
+import { getDraftFingerprint, getDraftState } from "@/lib/page-builder/draft-state";
 
 const sectionInputSchema = z.object({
   id: z.string().min(1),
@@ -25,7 +26,14 @@ export interface SaveDraftResult {
   success: boolean;
   error?: string;
   savedAt?: string;
+  /** PHASE 10: fingerprint of the draft as now stored -- the editor's base for its next save. */
+  draftHash?: string;
+  hasUnpublishedChanges?: boolean;
+  /** PHASE 10: the stored draft changed since this editor last loaded/saved it (another tab or editor). Nothing was written. */
+  conflict?: boolean;
 }
+
+class DraftConflictError extends Error {}
 
 const RICH_TEXT_ALLOWLIST: sanitizeHtml.IOptions = {
   allowedTags: ["b", "i", "u", "s", "strong", "em", "p", "h2", "h3", "h4", "ul", "ol", "li", "a", "br"],
@@ -40,7 +48,7 @@ function sanitizeSectionData(type: string, data: unknown): unknown {
 }
 
 /** Bulk-replaces a page's sections in one transaction. No unique(pageId,order) constraint exists anymore — order is always derived from array position, never trusted from the client beyond ordering. */
-export async function saveDraftAction(pageId: string, sections: unknown[]): Promise<SaveDraftResult> {
+export async function saveDraftAction(pageId: string, sections: unknown[], baseDraftHash?: string): Promise<SaveDraftResult> {
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "pages", "update");
 
@@ -77,51 +85,62 @@ export async function saveDraftAction(pageId: string, sections: unknown[]): Prom
   // transaction timeout (P2028, "Transaction already closed"); createMany is one
   // round trip regardless of row count, and the explicit timeout below is a safety
   // margin for the remaining per-row updates.
-  await prisma.$transaction(async (tx) => {
-    const existing = await tx.pageSection.findMany({ where: { pageId }, select: { id: true } });
-    const existingIds = new Set(existing.map((e) => e.id));
-    const incomingIds = new Set(sanitized.map((s) => s.id));
-    const toDelete = existing.filter((e) => !incomingIds.has(e.id)).map((e) => e.id);
-    if (toDelete.length) await tx.pageSection.deleteMany({ where: { id: { in: toDelete } } });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // PHASE 10 safe autosave: refuse to overwrite a draft someone else changed since this editor's
+      // last load/save (checked inside the transaction, right before writing).
+      if (baseDraftHash && (await getDraftFingerprint(pageId, tx)) !== baseDraftHash) throw new DraftConflictError();
+      const existing = await tx.pageSection.findMany({ where: { pageId }, select: { id: true } });
+      const existingIds = new Set(existing.map((e) => e.id));
+      const incomingIds = new Set(sanitized.map((s) => s.id));
+      const toDelete = existing.filter((e) => !incomingIds.has(e.id)).map((e) => e.id);
+      if (toDelete.length) await tx.pageSection.deleteMany({ where: { id: { in: toDelete } } });
 
-    const toCreate = sanitized
-      .map((s, order) => ({ s, order }))
-      .filter(({ s }) => !existingIds.has(s.id));
-    if (toCreate.length) {
-      await tx.pageSection.createMany({
-        data: toCreate.map(({ s, order }) => ({
-          id: s.id,
-          pageId,
-          type: s.type,
-          order,
-          dataEn: s.dataEn as Prisma.InputJsonValue,
-          dataAr: s.dataAr as Prisma.InputJsonValue,
-          settings: s.settings as unknown as Prisma.InputJsonValue,
-          isVisible: s.isVisible,
-        })),
-      });
-    }
+      const toCreate = sanitized
+        .map((s, order) => ({ s, order }))
+        .filter(({ s }) => !existingIds.has(s.id));
+      if (toCreate.length) {
+        await tx.pageSection.createMany({
+          data: toCreate.map(({ s, order }) => ({
+            id: s.id,
+            pageId,
+            type: s.type,
+            order,
+            dataEn: s.dataEn as Prisma.InputJsonValue,
+            dataAr: s.dataAr as Prisma.InputJsonValue,
+            settings: s.settings as unknown as Prisma.InputJsonValue,
+            isVisible: s.isVisible,
+          })),
+        });
+      }
 
-    for (let i = 0; i < sanitized.length; i++) {
-      const s = sanitized[i];
-      if (!existingIds.has(s.id)) continue;
-      await tx.pageSection.update({
-        where: { id: s.id },
-        data: {
-          type: s.type,
-          order: i,
-          dataEn: s.dataEn as Prisma.InputJsonValue,
-          dataAr: s.dataAr as Prisma.InputJsonValue,
-          settings: s.settings as unknown as Prisma.InputJsonValue,
-          isVisible: s.isVisible,
-        },
-      });
+      for (let i = 0; i < sanitized.length; i++) {
+        const s = sanitized[i];
+        if (!existingIds.has(s.id)) continue;
+        await tx.pageSection.update({
+          where: { id: s.id },
+          data: {
+            type: s.type,
+            order: i,
+            dataEn: s.dataEn as Prisma.InputJsonValue,
+            dataAr: s.dataAr as Prisma.InputJsonValue,
+            settings: s.settings as unknown as Prisma.InputJsonValue,
+            isVisible: s.isVisible,
+          },
+        });
+      }
+    }, { timeout: 20000 });
+  } catch (err) {
+    if (err instanceof DraftConflictError) {
+      return { success: false, conflict: true, error: "This page was changed in another tab or by another editor. Reload to get the latest version before editing." };
     }
-  }, { timeout: 20000 });
+    throw err;
+  }
 
   await logActivity({ userId: currentUser.id, action: "pageSection.saveDraft", entityType: "Page", entityId: pageId });
   revalidatePath(`/admin/pages/${pageId}/builder`);
-  return { success: true, savedAt: new Date().toISOString() };
+  const state = await getDraftState(pageId);
+  return { success: true, savedAt: new Date().toISOString(), draftHash: state.draftHash, hasUnpublishedChanges: state.hasUnpublishedChanges };
 }
 
 /** Freezes a BRAND_GRID section's selected brands' name/logo/product-count into `resolvedBrands`,
@@ -141,7 +160,8 @@ async function freezeBrandGridSection(rawData: unknown, locale: "en" | "ar"): Pr
           include: { translations: true, logo: { select: { url: true } }, _count: { select: { products: true } } },
         })
       : await prisma.brand.findMany({
-          where: { isActive: true, isFeatured: true },
+          // "all": every active brand; "dynamic": only those marked Featured.
+          where: mode === "all" ? { isActive: true } : { isActive: true, isFeatured: true },
           orderBy: { order: "asc" },
           take: parsed.data.limit,
           include: { translations: true, logo: { select: { url: true } }, _count: { select: { products: true } } },
@@ -163,7 +183,7 @@ async function freezeBrandGridSection(rawData: unknown, locale: "en" | "ar"): Pr
 }
 
 /** Snapshots the current working draft into a new published PageRevision and flips Page.status. */
-export async function publishPageAction(pageId: string): Promise<{ success: boolean; error?: string }> {
+export async function publishPageAction(pageId: string): Promise<{ success: boolean; error?: string; draftHash?: string; hasUnpublishedChanges?: boolean }> {
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "pages", "publish");
 
@@ -195,7 +215,8 @@ export async function publishPageAction(pageId: string): Promise<{ success: bool
   revalidatePath(`/en${publicPath}`);
   revalidatePath(`/ar${publicPath}`);
   revalidatePath(`/admin/pages/${pageId}/builder`);
-  return { success: true };
+  const state = await getDraftState(pageId);
+  return { success: true, draftHash: state.draftHash, hasUnpublishedChanges: state.hasUnpublishedChanges };
 }
 
 /**

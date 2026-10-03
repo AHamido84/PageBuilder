@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { updateFaqAction, type FormActionState } from "../actions";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 const inputClass = "w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm";
@@ -20,10 +20,10 @@ interface Props {
 }
 
 export function EditFaqForm({ faq }: Props) {
-  const [state, formAction, pending] = useActionState(updateFaqAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(updateFaqAction, initialState);
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <input type="hidden" name="id" value={faq.id} />
       <div>
         <label className={labelClass}>Question (English)</label>

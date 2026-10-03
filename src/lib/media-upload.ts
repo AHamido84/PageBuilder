@@ -102,7 +102,11 @@ export async function saveUploadedFile(file: File): Promise<SavedFile> {
     buffer = Buffer.from(sanitized, "utf-8");
   } else if (RASTER_MIME_TYPES.has(file.type)) {
     const image = sharp(buffer, { failOn: "error" });
-    const metadata = await image.metadata();
+    // sharp throws on bytes that aren't really an image (e.g. a renamed text file) -- that's bad
+    // input, not a server fault, so it surfaces as a 400 with a readable reason.
+    const metadata = await image.metadata().catch(() => {
+      throw new MediaUploadError(`File content isn't a valid ${file.type.replace("image/", "").toUpperCase()} image.`);
+    });
     if (metadata.width && metadata.height) {
       if (metadata.width > MAX_DIMENSION) {
         image.resize({ width: MAX_DIMENSION, withoutEnlargement: true });

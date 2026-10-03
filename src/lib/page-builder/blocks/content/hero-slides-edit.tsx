@@ -5,7 +5,7 @@ import { TextField, TextareaField, SelectField, NumberField, CheckboxField } fro
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { MultiMediaPickerButton, type MediaListItem } from "@/components/admin/ui/media-library-modal";
 import { IconButton } from "@/components/admin/ui/icon-button";
-import { CTA_STYLE_OPTIONS } from "./hero-shared";
+import { CTA_STYLE_OPTIONS, HERO_ANIMATION_OPTIONS } from "./hero-shared";
 import type { BlockEditProps } from "../../types";
 import type { HeroData, HeroResolvedMedia, HeroSlide } from "../content-blocks";
 
@@ -50,6 +50,7 @@ function newSlide(): HeroSlide {
     ctaYMobile: null,
     animationDurationMs: null,
     animationDelayMs: null,
+    overlayDirection: "",
   };
 }
 
@@ -113,15 +114,24 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
         <p className="text-xs text-neutral-600">{slides.length} / 12</p>
       </div>
 
-      <SelectField
-        label="Transition between slides"
-        value={data.slideTransition}
-        onChange={(slideTransition) => onChange({ ...data, slideTransition })}
-        options={[
-          { value: "crossfade", label: "Crossfade" },
-          { value: "cut", label: "Instant cut" },
-        ]}
-      />
+      {data.mediaType === "carousel" ? (
+        // Carousel always slides along its track; the only choice is whether it advances by itself.
+        <CheckboxField
+          label="Autoplay — advance using each slide's display duration (off = manual arrows/swipe only)"
+          checked={data.carouselAutoplay}
+          onChange={(carouselAutoplay) => onChange({ ...data, carouselAutoplay })}
+        />
+      ) : (
+        <SelectField
+          label="Transition between slides"
+          value={data.slideTransition}
+          onChange={(slideTransition) => onChange({ ...data, slideTransition })}
+          options={[
+            { value: "crossfade", label: "Crossfade" },
+            { value: "cut", label: "Instant cut" },
+          ]}
+        />
+      )}
 
       {/* Phase 4 fix: a genuine pre-existing gap -- HeroSlideshow's render already read
           data.ctaMirrorForRtl for every slide's custom CTA position (this is a single Hero-level
@@ -181,14 +191,14 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
                   { value: "video", label: "Video" },
                 ]}
               />
-              <MediaPickerControlled
+              <MediaPickerControlled uploadFolderName="Hero"
                 label={slide.mediaType === "video" ? "Desktop video" : "Desktop image"}
                 accept={slide.mediaType === "video" ? "VIDEO" : "IMAGE"}
                 mediaId={slide.desktopMediaId}
                 previewUrl={media?.desktopUrl}
                 onChange={(id, url) => setSlideMedia(i, "desktopMediaId", "desktopUrl", id, url)}
               />
-              <MediaPickerControlled
+              <MediaPickerControlled uploadFolderName="Hero"
                 label={(slide.mediaType === "video" ? "Mobile video" : "Mobile image") + " (optional — falls back to desktop)"}
                 accept={slide.mediaType === "video" ? "VIDEO" : "IMAGE"}
                 mediaId={slide.mobileMediaId}
@@ -196,7 +206,7 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
                 onChange={(id, url) => setSlideMedia(i, "mobileMediaId", "mobileUrl", id, url)}
               />
               {slide.mediaType === "video" ? (
-                <MediaPickerControlled
+                <MediaPickerControlled uploadFolderName="Hero"
                   label="Poster image (shown while loading, and if the video fails)"
                   accept="IMAGE"
                   mediaId={slide.posterId}
@@ -365,6 +375,21 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
                 ) : null}
               </div>
 
+              <SelectField
+                label="Overlay (this slide)"
+                value={slide.overlayDirection}
+                onChange={(overlayDirection) => updateSlide(i, { overlayDirection })}
+                options={[
+                  { value: "", label: "Use Hero default" },
+                  { value: "auto", label: "Gradient — behind the text" },
+                  { value: "start", label: "Gradient — from reading start" },
+                  { value: "end", label: "Gradient — from reading end" },
+                  { value: "bottom", label: "Gradient — from bottom" },
+                  { value: "top", label: "Gradient — from top" },
+                  { value: "center", label: "Gradient — centered" },
+                  { value: "none", label: "No overlay" },
+                ]}
+              />
               <div className="flex items-center gap-4">
                 <CheckboxField
                   label="Override overlay opacity for this slide"
@@ -394,19 +419,7 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
                   label="Animation"
                   value={slide.animation}
                   onChange={(animation) => updateSlide(i, { animation })}
-                  options={[
-                    { value: "none", label: "None" },
-                    { value: "fade", label: "Fade" },
-                    { value: "slide", label: "Slide" },
-                    { value: "slow-zoom", label: "Ken Burns / Slow Zoom" },
-                    { value: "pan", label: "Pan" },
-                    { value: "cinematic-loop", label: "Cinematic Loop — infinite breathing zoom" },
-                    { value: "parallax", label: "Parallax" },
-                    { value: "reveal", label: "Reveal" },
-                    { value: "cinematic", label: "Cinematic" },
-                    { value: "scale", label: "Scale" },
-                    { value: "float", label: "Float" },
-                  ]}
+                  options={HERO_ANIMATION_OPTIONS}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -439,7 +452,7 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
           >
             <Plus size={14} /> Add slide
           </button>
-          <MultiMediaPickerButton label="Bulk add images as slides..." accept="IMAGE" onConfirm={bulkAddSlides} />
+          <MultiMediaPickerButton uploadFolderName="Hero" label="Bulk add images as slides..." accept="IMAGE" onConfirm={bulkAddSlides} />
         </div>
       ) : null}
     </div>

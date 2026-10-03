@@ -57,7 +57,7 @@ export function ProductCarouselTrack({
           disabled={!canPrev}
           onClick={() => emblaApi?.scrollPrev()}
           className={cn(
-            "flex h-11 w-11 items-center justify-center rounded-full border border-ink/15 transition-colors",
+            "flex h-11 w-11 items-center justify-center rounded-full border border-line-strong transition-colors",
             canPrev ? "hover:bg-ink hover:text-paper" : "opacity-30"
           )}
         >
@@ -69,7 +69,7 @@ export function ProductCarouselTrack({
           disabled={!canNext}
           onClick={() => emblaApi?.scrollNext()}
           className={cn(
-            "flex h-11 w-11 items-center justify-center rounded-full border border-ink/15 transition-colors",
+            "flex h-11 w-11 items-center justify-center rounded-full border border-line-strong transition-colors",
             canNext ? "hover:bg-ink hover:text-paper" : "opacity-30"
           )}
         >

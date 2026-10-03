@@ -285,7 +285,7 @@ const BORDER_STYLE_CLASSES: Record<BorderStyleToken, string> = {
 // "custom" resolves to no color class -- the caller applies `borderColor` via inline style instead
 // (see resolveBorderStyle), since an admin-picked hex can't be a literal Tailwind class.
 const BORDER_COLOR_CLASSES: Record<BorderColorToken, string> = {
-  ink: "border-ink/15",
+  ink: "border-line-strong",
   petrol: "border-petrol",
   coral: "border-coral",
   wheat: "border-wheat",
@@ -525,5 +525,5 @@ export const TEXT_COLOR_OPTIONS: TextColorToken[] = ["inherit", "ink", "petrol",
 export const BUTTON_RADIUS_OPTIONS: ButtonRadiusToken[] = ["inherit", "none", "sm", "md", "lg", "full"];
 export const BUTTON_SHADOW_OPTIONS: ButtonShadowToken[] = ["inherit", "none", "flat", "card", "lifted"];
 export const BUTTON_PADDING_OPTIONS: ButtonPaddingToken[] = ["inherit", "compact", "default", "spacious"];
-export const ANIMATION_TRIGGER_OPTIONS: AnimationTriggerToken[] = ["onScroll", "onLoad"];
+export const ANIMATION_TRIGGER_OPTIONS: AnimationTriggerToken[] = ["onScroll", "onScrollRepeat", "onLoad"];
 export const ANIMATION_INTENSITY_OPTIONS: AnimationIntensityToken[] = ["subtle", "normal", "strong"];

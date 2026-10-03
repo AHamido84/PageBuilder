@@ -1,20 +1,23 @@
 "use client";
 
-import { useActionState, useRef, useEffect, useState, useContext } from "react";
+import { useRef, useEffect, useState, useContext } from "react";
 import { Loader2 } from "lucide-react";
 import { TextField, TextareaField, CheckboxField, SelectField } from "@/components/admin/ui/field";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ToastContext } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
+import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
+import { CmsFillImage } from "@/components/media/cms-image";
 import { submitBlockLeadAction } from "@/app/[locale]/page-builder-lead-action";
 import type { LeadFormState } from "@/lib/leads/submit-lead";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { LeadFormData } from "../forms-blocks";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: LeadFormState = {};
 const inputClasses =
-  "w-full rounded-[var(--radius-md)] border border-ink/15 bg-paper px-4 py-3 text-sm text-ink placeholder:text-ink/35 transition-[border-color,box-shadow] duration-200 focus:border-harbor focus:shadow-[var(--shadow-focus)] focus:outline-none";
+  "w-full rounded-[var(--radius-md)] border border-line-strong bg-paper px-4 py-3 text-sm text-ink placeholder:text-ink/35 transition-[border-color,box-shadow] duration-200 focus:border-harbor focus:shadow-[var(--shadow-focus)] focus:outline-none";
 
 const INQUIRY_TYPES = ["GENERAL", "QUOTE", "BECOME_CUSTOMER", "SALES_INQUIRY"] as const;
 type InquiryType = (typeof INQUIRY_TYPES)[number];
@@ -39,6 +42,53 @@ export function LeadFormEdit({ data, onChange, locale }: BlockEditProps<LeadForm
       <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
       <TextareaField label="Body" value={data.body ?? ""} onChange={(body) => onChange({ ...data, body })} dir={dir} rows={2} />
       <TextField label="Submit button label" value={data.submitLabel ?? ""} onChange={(submitLabel) => onChange({ ...data, submitLabel })} dir={dir} />
+      <SelectField
+        label="Submit button style"
+        value={data.buttonStyle ?? "primary"}
+        onChange={(buttonStyle) => onChange({ ...data, buttonStyle: buttonStyle as LeadFormData["buttonStyle"] })}
+        options={[
+          { value: "primary", label: "Primary" },
+          { value: "secondary", label: "Secondary" },
+          { value: "gold", label: "Gold" },
+        ]}
+      />
+      <SelectField
+        label="Layout"
+        value={data.layout ?? "centered"}
+        onChange={(layout) => onChange({ ...data, layout: layout as LeadFormData["layout"] })}
+        options={[
+          { value: "centered", label: "Centered form" },
+          { value: "split", label: "Split — form + image panel" },
+        ]}
+      />
+      {data.layout === "split" ? (
+        <div className="space-y-2 rounded-md border border-neutral-800 p-3">
+          <p className="text-xs font-medium text-neutral-500">Side panel</p>
+          <MediaPickerControlled
+            label="Panel image"
+            uploadFolderName="Banners"
+            mediaId={data.aside?.image?.id ?? ""}
+            previewUrl={data.aside?.image?.url}
+            onChange={(id, url) => onChange({ ...data, aside: { eyebrow: "", heading: "", body: "", ...data.aside, image: id ? { id, url } : null } })}
+          />
+          {(["eyebrow", "heading"] as const).map((field) => (
+            <TextField
+              key={field}
+              label={field === "eyebrow" ? "Panel eyebrow" : "Panel heading"}
+              value={data.aside?.[field] ?? ""}
+              onChange={(v) => onChange({ ...data, aside: { image: null, eyebrow: "", heading: "", body: "", ...data.aside, [field]: v } })}
+              dir={dir}
+            />
+          ))}
+          <TextareaField
+            label="Panel text"
+            value={data.aside?.body ?? ""}
+            onChange={(body) => onChange({ ...data, aside: { image: null, eyebrow: "", heading: "", ...data.aside, body } })}
+            dir={dir}
+            rows={2}
+          />
+        </div>
+      ) : null}
       <CheckboxField label="Include a message field" checked={data.showMessage} onChange={(showMessage) => onChange({ ...data, showMessage })} />
       <CheckboxField
         label="Let the visitor pick the inquiry type (General / Quote / Become a customer / Sales)"
@@ -74,7 +124,7 @@ export function LeadFormEdit({ data, onChange, locale }: BlockEditProps<LeadForm
 }
 
 export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<LeadFormData>) {
-  const [state, formAction, pending] = useActionState(submitBlockLeadAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(submitBlockLeadAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const [selectedType, setSelectedType] = useState<InquiryType>("GENERAL");
   const t = locale === "ar" ? FORM_LABELS.ar : FORM_LABELS.en;
@@ -99,12 +149,10 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
 
   const submittedInquiryType = data.showTypeSelector ? selectedType : data.inquiryType;
 
-  return (
-    <div className="mx-auto max-w-xl">
-      {data.heading ? <h2 className="text-center font-display text-h2">{data.heading}</h2> : null}
-      {data.body ? <p className="mx-auto mt-4 max-w-md text-center opacity-65">{data.body}</p> : null}
-      <Card variant="default" className="mt-10 p-6 sm:p-8">
-        <form ref={formRef} action={interactive ? formAction : undefined} className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+  const split = data.layout === "split";
+  const formCard = (
+      <Card variant="default" className={split ? "mt-8 p-6 sm:p-8" : "mt-10 p-6 sm:p-8"}>
+        <form ref={formRef} action={interactive ? formAction : undefined} onSubmit={interactive ? submitKeepingInput : undefined} className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <input type="hidden" name="locale" value={locale.toUpperCase()} />
           <input type="hidden" name="inquiryType" value={submittedInquiryType} />
           <div className="hidden" aria-hidden="true">
@@ -122,7 +170,7 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
                   onClick={() => setSelectedType(type)}
                   className={cn(
                     "rounded-full border px-3.5 py-1.5 text-sm transition-colors",
-                    selectedType === type ? "border-ink bg-ink text-paper" : "border-ink/15 text-ink/60 hover:border-ink/40"
+                    selectedType === type ? "border-ink bg-ink text-paper" : "border-line-strong text-ink/60 hover:border-ink/40"
                   )}
                 >
                   {t.inquiryType[type]}
@@ -157,7 +205,7 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
             <button
               type="submit"
               disabled={pending || !interactive}
-              className={cn(buttonClasses("primary", "lg", "w-full sm:w-auto"), "inline-flex items-center justify-center gap-2")}
+              className={cn(buttonClasses(data.buttonStyle ?? "primary", "lg", "w-full sm:w-auto"), "inline-flex items-center justify-center gap-2")}
             >
               {pending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : null}
               {pending ? t.sending : data.submitLabel || t.send}
@@ -165,6 +213,39 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
           </div>
         </form>
       </Card>
+  );
+
+  if (!split) {
+    return (
+      <div className="mx-auto max-w-xl">
+        {data.heading ? <h2 className="text-center font-display text-h2">{data.heading}</h2> : null}
+        {data.body ? <p className="mx-auto mt-4 max-w-md text-center opacity-65">{data.body}</p> : null}
+        {formCard}
+      </div>
+    );
+  }
+
+  const aside = data.aside;
+  return (
+    <div className="grid items-stretch gap-8 lg:grid-cols-2 lg:gap-12">
+      <div>
+        {data.heading ? <h2 className="font-display text-h2">{data.heading}</h2> : null}
+        {data.body ? <p className="mt-4 max-w-md opacity-65">{data.body}</p> : null}
+        {formCard}
+      </div>
+      <div className="relative flex min-h-[22rem] flex-col justify-end overflow-hidden rounded-[var(--card-radius-xl)] bg-petrol p-8 text-paper sm:p-10">
+        {aside?.image?.url ? (
+          <>
+            <CmsFillImage src={aside.image.url} alt={aside.heading || ""} sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" />
+            <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-petrol via-petrol/40 to-transparent" />
+          </>
+        ) : null}
+        <div className="relative">
+          {aside?.eyebrow ? <p className="manifest-strip mb-3 text-wheat">{aside.eyebrow}</p> : null}
+          {aside?.heading ? <p className="font-display text-h2 leading-tight">{aside.heading}</p> : null}
+          {aside?.body ? <p className="mt-3 max-w-sm text-paper/80">{aside.body}</p> : null}
+        </div>
+      </div>
     </div>
   );
 }

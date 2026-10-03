@@ -218,6 +218,7 @@ const seoSchema = z.object({
   descriptionEn: z.string().max(400).optional().or(z.literal("")),
   descriptionAr: z.string().max(400).optional().or(z.literal("")),
   canonicalUrl: z.string().max(300).optional().or(z.literal("")),
+  ogImageId: z.string().max(60).optional().or(z.literal("")),
 });
 
 export async function updateBlogPostSeoAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
@@ -238,6 +239,7 @@ export async function updateBlogPostSeoAction(_prev: FormActionState, formData: 
       descriptionEn: data.descriptionEn || null,
       descriptionAr: data.descriptionAr || null,
       canonicalUrl: data.canonicalUrl || null,
+      ogImageId: data.ogImageId || null,
       noIndex,
     },
     update: {
@@ -246,6 +248,7 @@ export async function updateBlogPostSeoAction(_prev: FormActionState, formData: 
       descriptionEn: data.descriptionEn || null,
       descriptionAr: data.descriptionAr || null,
       canonicalUrl: data.canonicalUrl || null,
+      ogImageId: data.ogImageId || null,
       noIndex,
     },
   });

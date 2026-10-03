@@ -35,6 +35,26 @@ export type CategoryWithRelations = {
   _count: { products: number };
 };
 
+/** "chips" layout: one pill link per category -- a light "discover our products" strip. */
+export function CategoryChips({ categories, locale }: { categories: CategoryWithRelations[]; locale: string }) {
+  return (
+    <ScrollReveal variant="fade-up" className="flex flex-wrap gap-2.5">
+      {categories.map((category) => {
+        const name = category.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? category.slug;
+        return (
+          <Link
+            key={category.id}
+            href={`/${locale}/products?category=${category.slug}`}
+            className="rounded-full border border-line-strong px-4 py-2 text-sm transition-colors hover:border-current hover:bg-ink hover:text-paper"
+          >
+            {name}
+          </Link>
+        );
+      })}
+    </ScrollReveal>
+  );
+}
+
 /** The first category in the list, given the editorial full-width treatment (large image, name,
  * description, explicit CTA) so the section reads as curated rather than a repeating grid --
  * per the brief's "avoid repetitive grid-only layouts" direction. Everything after it stays in the
@@ -61,7 +81,8 @@ export function FeaturedCategoryCard({
       as={Link}
       href={`/${locale}/products?category=${category.slug}`}
       variant="fade-up"
-      className="group relative mb-5 flex flex-col overflow-hidden rounded-[var(--radius-md)] border border-current/10 sm:flex-row"
+      data-ui-card=""
+      className="group relative mb-5 flex flex-col overflow-hidden rounded-[var(--card-radius)] border border-current/10 sm:flex-row"
     >
       <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden sm:aspect-auto sm:w-1/2">
         {hasImage ? (
@@ -121,7 +142,8 @@ export function CategoryCard({
       as={Link}
       href={`/${locale}/products?category=${category.slug}`}
       variant="fade-up"
-      className={`group relative block overflow-hidden rounded-[var(--radius-lg)] border border-current/10 ${large ? "col-span-2 row-span-2 aspect-[4/5] sm:aspect-auto" : "aspect-[4/5]"}`}
+      data-ui-card=""
+      className={`group relative block overflow-hidden rounded-[var(--card-radius-lg)] border border-current/10 ${large ? "col-span-2 row-span-2 aspect-[4/5] sm:aspect-auto" : "aspect-[4/5]"}`}
     >
       {hasImage ? (
         <>
@@ -216,16 +238,16 @@ export function BrandCard({ brand, locale, showDescription }: { brand: DisplayBr
     </>
   );
   const className =
-    "hover-lift group relative flex min-h-[9rem] flex-col items-center justify-center gap-0 overflow-hidden rounded-[var(--radius-lg)] border border-current/10 bg-paper p-6 text-center";
+    "hover-lift group relative flex min-h-[9rem] flex-col items-center justify-center gap-0 overflow-hidden rounded-[var(--card-radius-lg)] border border-current/10 bg-paper p-6 text-center";
   if (brand.website) {
     return (
-      <ScrollReveal as="a" href={brand.website} target="_blank" rel="noreferrer" variant="fade-up" className={className}>
+      <ScrollReveal as="a" href={brand.website} target="_blank" rel="noreferrer" variant="fade-up" className={className} data-ui-card="">
         {body}
       </ScrollReveal>
     );
   }
   return (
-    <ScrollReveal variant="fade-up" className={className}>
+    <ScrollReveal variant="fade-up" className={className} data-ui-card="">
       {body}
     </ScrollReveal>
   );

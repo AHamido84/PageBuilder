@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { CategoryCard, FeaturedCategoryCard, BrandCard, type CategoryWithRelations, type DisplayBrand } from "./category-brand-cards";
+import { CategoryCard, CategoryChips, FeaturedCategoryCard, BrandCard, type CategoryWithRelations, type DisplayBrand } from "./category-brand-cards";
 import type { BlockRenderProps } from "../../types";
 import type { CategoryGridData, BrandGridData } from "../commerce-blocks";
+import { safeExternalUrl } from "@/lib/safe-url";
 
 const categoryWithRelationsInclude = {
   translations: true,
@@ -26,6 +27,11 @@ async function loadFeaturedCategories(limit: number | undefined): Promise<Catego
   return limit ? sorted.slice(0, limit) : sorted;
 }
 
+/** "all" mode: every active top-level category, in Category Management order. */
+async function loadAllCategories(limit: number | undefined): Promise<CategoryWithRelations[]> {
+  return prisma.category.findMany({ where: { isActive: true, parentId: null }, orderBy: { order: "asc" }, take: limit, include: categoryWithRelationsInclude });
+}
+
 /** Manual mode: `categoryIds`' own array order IS the editor's chosen display order (reorderable
  * via the up/down controls in CategoryGridEdit) -- Prisma's `findMany` doesn't preserve `id: {in}`
  * input order, so the result is re-sorted in JS to match. Empty `categoryIds` (nothing hand-picked
@@ -46,7 +52,12 @@ export async function CategoryGridRender({ data, locale }: BlockRenderProps<Cate
   const mode = data.mode ?? "dynamic";
   const layout = data.layout ?? "bento";
   const columns = data.columns ?? 4;
-  const categories = mode === "manual" ? await loadManualCategories(data.categoryIds ?? [], data.limit) : await loadFeaturedCategories(data.limit);
+  const categories =
+    mode === "manual"
+      ? await loadManualCategories(data.categoryIds ?? [], data.limit)
+      : mode === "all"
+        ? await loadAllCategories(data.limit)
+        : await loadFeaturedCategories(data.limit);
 
   // Dynamic mode with nothing marked Featured: hide the section on the public site rather than
   // showing an empty/broken grid -- the admin-facing warning lives in CategoryGridPreview instead.
@@ -56,6 +67,16 @@ export async function CategoryGridRender({ data, locale }: BlockRenderProps<Cate
   const gridStyle = { "--cols": columns } as React.CSSProperties;
   const heading = data.heading ? <h2 className="mb-3 font-display text-h2">{data.heading}</h2> : null;
   const description = data.description ? <p className="measure-ar mb-8 max-w-2xl text-ink/60">{data.description}</p> : null;
+
+  if (layout === "chips") {
+    return (
+      <div>
+        {heading}
+        {description}
+        <CategoryChips categories={categories} locale={locale} />
+      </div>
+    );
+  }
 
   if (layout === "grid") {
     return (
@@ -109,7 +130,29 @@ async function loadLiveBrands(brandIds: string[], locale: string): Promise<Displ
       logoUrl: brand.logo?.url ?? null,
       logoId: brand.logoId,
       description: translation?.description ?? null,
-      website: brand.website ?? null,
+      website: safeExternalUrl(brand.website),
+      count: brand._count.products,
+    };
+  });
+}
+
+/** "all" mode: every active brand, in Brand Management order. */
+async function loadAllBrands(locale: string, limit: number | undefined): Promise<DisplayBrand[]> {
+  const brands = await prisma.brand.findMany({
+    where: { isActive: true },
+    orderBy: { order: "asc" },
+    take: limit,
+    include: { translations: true, logo: { select: { url: true } }, _count: { select: { products: true } } },
+  });
+  return brands.map((brand) => {
+    const translation = brand.translations.find((t) => t.locale === locale.toUpperCase());
+    return {
+      id: brand.id,
+      name: translation?.name ?? brand.slug,
+      logoUrl: brand.logo?.url ?? null,
+      logoId: brand.logoId,
+      description: translation?.description ?? null,
+      website: safeExternalUrl(brand.website),
       count: brand._count.products,
     };
   });
@@ -132,7 +175,7 @@ export async function loadFeaturedBrands(locale: string, limit: number | undefin
       logoUrl: brand.logo?.url ?? null,
       logoId: brand.logoId,
       description: translation?.description ?? null,
-      website: brand.website ?? null,
+      website: safeExternalUrl(brand.website),
       count: brand._count.products,
     };
   });
@@ -147,12 +190,14 @@ export async function BrandGridRender({ data, locale }: BlockRenderProps<BrandGr
         logoUrl: b.logoUrl,
         logoId: b.logoId,
         description: b.description ?? null,
-        website: b.website ?? null,
+        website: safeExternalUrl(b.website),
         count: b.productCount,
       }))
     : mode === "manual"
       ? await loadLiveBrands(data.brandIds ?? [], locale)
-      : await loadFeaturedBrands(locale, data.limit);
+      : mode === "all"
+        ? await loadAllBrands(locale, data.limit)
+        : await loadFeaturedBrands(locale, data.limit);
 
   // Dynamic mode with nothing marked Featured: hide the section on the public site rather than
   // showing an empty/broken grid -- same convention as CategoryGridRender above. Applies whether

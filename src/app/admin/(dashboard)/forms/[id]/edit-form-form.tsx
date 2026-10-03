@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { updateFormAction, type FormActionState } from "../actions";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
@@ -10,10 +10,10 @@ interface Props {
 }
 
 export function EditFormForm({ form }: Props) {
-  const [state, formAction, pending] = useActionState(updateFormAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(updateFormAction, initialState);
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <input type="hidden" name="id" value={form.id} />
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Slug</label>

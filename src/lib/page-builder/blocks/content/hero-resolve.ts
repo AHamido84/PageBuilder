@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { HeroData, HeroRenderData, HeroResolvedProduct } from "../content-blocks";
+import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
 
 /**
  * Server-side hydration for the Hero block: turns the `Media` ids persisted in `heroSchema`
@@ -47,7 +48,7 @@ export async function resolveHeroData(data: HeroData, locale: string): Promise<H
             slug: true,
             sku: true,
             isFeatured: true,
-            images: { take: 1, select: { url: true } },
+            ...productCardImageInclude,
             translations: { where: { locale: locale.toUpperCase() === "AR" ? "AR" : "EN" }, select: { name: true } },
           },
         })
@@ -59,7 +60,7 @@ export async function resolveHeroData(data: HeroData, locale: string): Promise<H
   function toResolvedProduct(id: string): HeroResolvedProduct | undefined {
     const p = productById.get(id);
     if (!p) return undefined;
-    return { id: p.id, name: p.translations[0]?.name ?? p.sku, slug: p.slug, sku: p.sku, imageUrl: p.images[0]?.url ?? null, isFeatured: p.isFeatured };
+    return { id: p.id, name: p.translations[0]?.name ?? p.sku, slug: p.slug, sku: p.sku, imageUrl: resolveProductCardImage(p).imageUrl, isFeatured: p.isFeatured };
   }
 
   const desktop = data.desktopMediaId ? byId.get(data.desktopMediaId) : undefined;

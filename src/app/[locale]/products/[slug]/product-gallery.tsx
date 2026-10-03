@@ -17,7 +17,8 @@ interface MediaItem extends MediaRef {
   type: "image" | "video";
 }
 
-export function ProductGallery({ images, videos, productName }: { images: MediaRef[]; videos: MediaRef[]; productName: string }) {
+/** `mobileMainUrl` (PHASE 7): optional phone-only variant of the main (first) image. */
+export function ProductGallery({ images, mobileMainUrl, videos, productName }: { images: MediaRef[]; mobileMainUrl?: string | null; videos: MediaRef[]; productName: string }) {
   const t = useTranslations("productDetail");
   const items: MediaItem[] = [
     ...images.map((item) => ({ ...item, type: "image" as const })),
@@ -40,7 +41,7 @@ export function ProductGallery({ images, videos, productName }: { images: MediaR
 
   if (items.length === 0) {
     return (
-      <div className="flex aspect-[4/3] items-center justify-center rounded-[var(--radius-lg)] bg-frost">
+      <div className="flex aspect-[4/3] items-center justify-center rounded-[var(--image-radius-lg)] bg-frost">
         <span className="font-mono-data text-sm text-ink/30">{productName}</span>
       </div>
     );
@@ -48,7 +49,7 @@ export function ProductGallery({ images, videos, productName }: { images: MediaR
 
   return (
     <div>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-lg)] bg-frost">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--image-radius-lg)] bg-frost">
         <AnimatePresence mode="wait">
           <motion.div
             key={active.id}
@@ -71,8 +72,14 @@ export function ProductGallery({ images, videos, productName }: { images: MediaR
                   fill
                   sizes="(min-width: 1024px) 50vw, 100vw"
                   priority={activeIndex === 0}
-                  className="object-cover transition-transform duration-500 ease-[var(--ease-premium)] group-hover/gallery:scale-[1.03]"
+                  className={cn(
+                    "object-cover transition-transform duration-500 ease-[var(--ease-premium)] group-hover/gallery:scale-[1.03]",
+                    activeIndex === 0 && mobileMainUrl ? "hidden sm:block" : ""
+                  )}
                 />
+                {activeIndex === 0 && mobileMainUrl ? (
+                  <Image src={mobileMainUrl} alt={productName} fill sizes="100vw" priority className="object-cover sm:hidden" />
+                ) : null}
               </button>
             ) : (
               <video controls className="h-full w-full object-cover" src={active.url} />

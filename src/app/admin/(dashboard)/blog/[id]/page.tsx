@@ -16,7 +16,7 @@ export default async function EditBlogPostPage({ params }: { params: Promise<{ i
   const [post, categories, tags, users] = await Promise.all([
     prisma.blogPost.findUnique({
       where: { id },
-      include: { coverImage: { select: { url: true } }, tags: { select: { id: true } }, seo: true },
+      include: { coverImage: { select: { url: true } }, tags: { select: { id: true } }, seo: { include: { ogImage: { select: { url: true } } } } },
     }),
     prisma.blogCategory.findMany({ orderBy: { nameEn: "asc" } }),
     prisma.tag.findMany({ orderBy: { nameEn: "asc" } }),

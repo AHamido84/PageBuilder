@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { updateUserAction, type FormActionState } from "../actions";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
@@ -11,10 +11,10 @@ interface Props {
 }
 
 export function EditUserForm({ user, roles }: Props) {
-  const [state, formAction, pending] = useActionState(updateUserAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(updateUserAction, initialState);
 
   return (
-    <form action={formAction} className="max-w-md space-y-4">
+    <form action={formAction} onSubmit={submitKeepingInput} className="max-w-md space-y-4">
       <input type="hidden" name="id" value={user.id} />
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Name</label>

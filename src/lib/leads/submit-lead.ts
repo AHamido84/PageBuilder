@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { sendMail } from "@/lib/email";
@@ -31,9 +32,13 @@ export interface LeadFormState {
  * has no admin session, so this intentionally never calls assertCan.
  */
 export async function submitLead(formData: FormData, rateLimitKeyPrefix = "lead"): Promise<LeadFormState> {
+  // PHASE 11 fix: errors are shown to the visitor, so they follow the form's language (they were
+  // always English, also on /ar).
+  const t = await getTranslations({ locale: formData.get("locale") === "AR" ? "ar" : "en", namespace: "formErrors" });
   const parsed = leadSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+    const field = parsed.error.issues[0]?.path[0];
+    return { error: field === "contactName" ? t("nameRequired") : field === "email" ? t("invalidEmail") : t("invalidInput") };
   }
 
   // Bot filled the honeypot — pretend success, drop silently.
@@ -45,7 +50,7 @@ export async function submitLead(formData: FormData, rateLimitKeyPrefix = "lead"
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const { allowed } = rateLimit(`${rateLimitKeyPrefix}:${ip}`, 5, 60_000);
   if (!allowed) {
-    return { error: "Too many requests. Please try again in a minute." };
+    return { error: t("tooManyRequests") };
   }
 
   const referer = h.get("referer") ?? "";

@@ -3,7 +3,6 @@ import { MotionConfig } from "framer-motion";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { Archivo, Public_Sans, IBM_Plex_Mono, IBM_Plex_Sans_Arabic, Inter, Poppins, Cairo, Tajawal } from "next/font/google";
 import { routing } from "@/i18n/routing";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
@@ -19,31 +18,10 @@ import { parseDesignTokens } from "@/lib/design-tokens/schema";
 import { buildDesignTokensCss, isAnimationEnabled, isPageTransitionEnabled, isScrollRevealEnabled, resolveAnimationSpeed, resolveDefaultAnimation } from "@/lib/design-tokens/resolve-css";
 import { DesignAnimationProvider } from "@/components/site/design-animation-context";
 import { PageTransition } from "@/components/site/page-transition";
+import { fontVariableClassNames } from "@/lib/fonts";
+import { ThemePreviewReceiver } from "@/components/site/theme-preview-receiver";
 import "../globals.css";
-
-const archivo = Archivo({
-  subsets: ["latin"],
-  axes: ["wdth"],
-  variable: "--font-display",
-  display: "swap",
-});
-// Phase 8 "Global Visual Control Center": the default English/Arabic body fonts keep their
-// existing variable names (--font-body, --font-arabic) so nothing changes unless an admin
-// explicitly picks a different option -- but each is ALSO given its own dedicated
-// "--font-body-public-sans"/"--font-body-<option>" variable so the resolved CSS override
-// (resolve-css.ts) can point --font-body/--font-arabic at any of them by name.
-const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-body-public-sans", display: "swap" });
-const inter = Inter({ subsets: ["latin"], variable: "--font-body-inter", display: "swap" });
-const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-body-poppins", display: "swap" });
-const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-mono", display: "swap" });
-const plexArabic = IBM_Plex_Sans_Arabic({
-  subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-arabic-plex-arabic",
-  display: "swap",
-});
-const cairo = Cairo({ subsets: ["arabic"], weight: ["400", "500", "600", "700"], variable: "--font-arabic-cairo", display: "swap" });
-const tajawal = Tajawal({ subsets: ["arabic"], weight: ["400", "500", "700"], variable: "--font-arabic-tajawal", display: "swap" });
+import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
 
 export async function generateMetadata(): Promise<Metadata> {
   // The favicon lives at public/favicon.ico (a plain static asset), not the App Router's special
@@ -101,14 +79,14 @@ async function getMegaMenuFeatured(locale: string) {
     where: { isPublished: true, isFeatured: true },
     take: 3,
     orderBy: { createdAt: "desc" },
-    include: { translations: true, images: { take: 1, select: { url: true } } },
+    include: { translations: true, ...productCardImageInclude },
   });
 
   return products.map((product) => ({
     id: product.id,
     slug: product.slug,
     name: product.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.sku,
-    imageUrl: product.images[0]?.url ?? null,
+    imageUrl: resolveProductCardImage(product).imageUrl,
   }));
 }
 
@@ -158,9 +136,9 @@ export default async function LocaleLayout({
       lang={locale}
       dir={dir}
       data-hover-animation={hoverAnimationEnabled ? "on" : "off"}
-      className={`${archivo.variable} ${publicSans.variable} ${inter.variable} ${poppins.variable} ${plexMono.variable} ${plexArabic.variable} ${cairo.variable} ${tajawal.variable} h-full antialiased`}
+      className={`${fontVariableClassNames} h-full antialiased`}
     >
-      {overrideCss ? <head><style dangerouslySetInnerHTML={{ __html: overrideCss }} /></head> : null}
+      {overrideCss ? <head><style id="theme-overrides" dangerouslySetInnerHTML={{ __html: overrideCss }} /></head> : null}
       <body className="flex min-h-full flex-col bg-paper text-ink">
         <JsonLd data={orgSchema} />
         <AnalyticsScripts gtmId={settings?.gtmId} ga4Id={settings?.analyticsId} metaPixelId={settings?.metaPixelId} />
@@ -198,6 +176,7 @@ export default async function LocaleLayout({
           </DesignAnimationProvider>
         </MotionConfig>
         <WhatsAppCta whatsapp={settings?.whatsapp} label={tCommon("chatOnWhatsApp")} />
+        <ThemePreviewReceiver />
       </body>
     </html>
   );

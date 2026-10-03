@@ -54,7 +54,7 @@ export function GalleryRender({ data, settings, locale }: BlockRenderProps<Galle
             key={img.id}
             src={img.url}
             alt=""
-            className="aspect-square w-full rounded-[var(--radius-md)] object-cover"
+            className="aspect-square w-full rounded-[var(--image-radius)] object-cover"
             context={{ mediaId: img.id, component: "GALLERY", locale }}
           />
         ))}

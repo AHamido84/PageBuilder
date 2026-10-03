@@ -1,6 +1,5 @@
 "use client";
 
-import { useActionState } from "react";
 import { TextField } from "@/components/admin/ui/field";
 import { SegmentedControl } from "@/components/admin/ui/segmented-control";
 import { buttonClasses } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { KineticText } from "@/lib/motion/primitives";
 import { subscribeNewsletterAction, type NewsletterState } from "@/app/[locale]/newsletter-actions";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { NewsletterData } from "../forms-blocks";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: NewsletterState = {};
 
@@ -31,10 +31,10 @@ export function NewsletterEdit({ data, onChange, locale }: BlockEditProps<Newsle
 }
 
 function SubscribeForm({ data, locale, interactive, className }: BlockRenderProps<NewsletterData> & { className?: string }) {
-  const [state, formAction, pending] = useActionState(subscribeNewsletterAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(subscribeNewsletterAction, initialState);
   return (
     <div className={className}>
-      <form action={interactive ? formAction : undefined} className="flex gap-2">
+      <form action={interactive ? formAction : undefined} onSubmit={interactive ? submitKeepingInput : undefined} className="flex gap-2">
         <input type="hidden" name="locale" value={locale.toUpperCase()} />
         <input
           type="email"
@@ -42,9 +42,10 @@ function SubscribeForm({ data, locale, interactive, className }: BlockRenderProp
           required
           placeholder="you@example.com"
           disabled={!interactive}
-          className="flex-1 rounded-[var(--radius-sm)] border border-current/15 bg-transparent px-3 py-2.5 text-sm placeholder:opacity-40"
+          className="min-w-0 flex-1 rounded-[var(--radius-sm)] border border-current/15 bg-transparent px-3 py-2.5 text-sm placeholder:opacity-40"
         />
-        <button type="submit" disabled={pending || !interactive} className={buttonClasses("primary", "md")}>
+        {/* min-w-0 on the input + shrink-0 here: without them the email field kept its intrinsic width and pushed this button past the screen edge on phones (PHASE 11). */}
+        <button type="submit" disabled={pending || !interactive} className={buttonClasses("primary", "md", "shrink-0")}>
           {pending ? "…" : data.submitLabel || "Subscribe"}
         </button>
       </form>

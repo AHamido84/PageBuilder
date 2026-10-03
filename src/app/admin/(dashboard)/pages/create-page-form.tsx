@@ -1,13 +1,14 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createPageAction, type FormActionState } from "./actions";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
 export function CreatePageForm() {
-  const [state, formAction, pending] = useActionState(createPageAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(createPageAction, initialState);
   const router = useRouter();
 
   useEffect(() => {
@@ -15,10 +16,18 @@ export function CreatePageForm() {
   }, [state.success, state.id, router]);
 
   return (
-    <form action={formAction} className="flex items-end gap-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="flex flex-wrap items-end gap-2">
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Slug</label>
         <input name="slug" required placeholder="quality-food-safety" className="w-64 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-neutral-400">Title (English, optional)</label>
+        <input name="titleEn" maxLength={200} className="w-52 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+      </div>
+      <div dir="rtl">
+        <label className="mb-1 block text-xs text-neutral-400">العنوان (عربي، اختياري)</label>
+        <input name="titleAr" maxLength={200} className="w-52 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
       </div>
       <button type="submit" disabled={pending} className="rounded-md bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-900 disabled:opacity-60">
         {pending ? "Creating..." : "Create page"}

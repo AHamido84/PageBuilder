@@ -16,7 +16,7 @@ export default async function EditSolutionPage({ params }: { params: Promise<{ i
 
   const solution = await prisma.solution.findUnique({
     where: { id },
-    include: { translations: true, page: { include: { seo: true } } },
+    include: { translations: true, page: { include: { seo: { include: { ogImage: { select: { url: true } } } } } } },
   });
 
   if (!solution) notFound();

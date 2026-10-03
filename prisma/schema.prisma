@@ -140,6 +140,9 @@ model RolePermission {
 model Page {
   id          String     @id @default(cuid())
   slug        String     @unique
+  /** Redesign PHASE 8: human page title per locale (admin list, builder, metadata fallback). Null => derived from the slug. */
+  titleEn     String?
+  titleAr     String?
   status      PageStatus @default(DRAFT)
   publishedAt DateTime?
   createdAt   DateTime   @default(now())
@@ -251,7 +254,11 @@ model Category {
   children Category[] @relation("CategoryHierarchy")
 
   imageId String?
-  image   Media?  @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  image   Media?  @relation("CategoryImage", fields: [imageId], references: [id], onDelete: SetNull)
+
+  /** Redesign PHASE 7: wide header image for this category's listing (/products?category=slug). */
+  bannerId String?
+  banner   Media?  @relation("CategoryBanner", fields: [bannerId], references: [id], onDelete: SetNull)
 
   translations CategoryTranslation[]
   products     Product[]
@@ -260,6 +267,7 @@ model Category {
 
   @@index([parentId])
   @@index([isFeatured])
+  @@index([bannerId])
 }
 
 model CategoryTranslation {
@@ -334,6 +342,13 @@ model Product {
   brand   Brand?  @relation(fields: [brandId], references: [id], onDelete: SetNull)
 
   images       Media[]              @relation("ProductImages")
+  /** Redesign PHASE 7: the explicit main image (card/listing/OG). Null => first gallery image,
+   * the pre-PHASE 7 behavior. Usually also in `images`, but not required to be. */
+  mainImageId String?
+  mainImage   Media?  @relation("ProductMainImage", fields: [mainImageId], references: [id], onDelete: SetNull)
+  /** Optional phone-only variant of the main image (e.g. a tighter crop). Null => main image. */
+  mobileImageId String?
+  mobileImage   Media?  @relation("ProductMobileImage", fields: [mobileImageId], references: [id], onDelete: SetNull)
   videos       Media[]              @relation("ProductVideos")
   documents    Media[]              @relation("ProductDocuments")
   certifications Certification[]
@@ -344,6 +359,8 @@ model Product {
 
   @@index([categoryId])
   @@index([brandId])
+  @@index([mainImageId])
+  @@index([mobileImageId])
   @@index([isPublished])
   @@index([isFeatured])
 }
@@ -385,10 +402,21 @@ model Media {
   height       Int?
   createdAt    DateTime  @default(now())
 
+  /** Media Library metadata (all optional/defaulted, so pre-existing rows need no backfill). */
+  title       String?
+  description String?
+  /** Lowercased, trimmed free-form labels -- searchable via `tags: { has }`. */
+  tags        String[]  @default([])
+  folderId    String?
+  folder      MediaFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
   uploadedById String?
   uploadedBy   User?   @relation("MediaUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
 
-  categoriesUsing      Category[]
+  categoriesUsing      Category[]      @relation("CategoryImage")
+  categoryBannerOf     Category[]      @relation("CategoryBanner")
+  productMainImageOf   Product[]       @relation("ProductMainImage")
+  productMobileImageOf Product[]       @relation("ProductMobileImage")
   brandLogoOf          Brand[]         @relation("BrandLogo")
   brandBannerOf        Brand[]         @relation("BrandBanner")
   productImagesOf      Product[]       @relation("ProductImages")
@@ -399,10 +427,23 @@ model Media {
   siteSettingLogoOf    SiteSetting[]   @relation("SiteSettingLogo")
   siteSettingFaviconOf SiteSetting[]   @relation("SiteSettingFavicon")
   siteSettingOgImageOf SiteSetting[]   @relation("SiteSettingOgImage")
+  siteSettingFooterLogoOf SiteSetting[] @relation("SiteSettingFooterLogo")
   seoOgImageOf         SEO[]
 
   @@index([uploadedById])
   @@index([type])
+  @@index([folderId])
+}
+
+/** Flat (non-nested) Media Library folder. Deleting a folder never deletes files -- its media
+ * fall back to "Unfiled" via the SetNull relation above. */
+model MediaFolder {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  media Media[]
 }
 
 // ---------------------------------------------------------------------------
@@ -677,6 +718,14 @@ model SiteSetting {
 
   defaultOgImageId String?
   defaultOgImage   Media?  @relation("SiteSettingOgImage", fields: [defaultOgImageId], references: [id], onDelete: SetNull)
+
+  /** Optional footer-specific logo (e.g. a light version for the dark footer). Unset = the footer
+   * shows the site name as text, as before. */
+  footerLogoId String?
+  footerLogo   Media?  @relation("SiteSettingFooterLogo", fields: [footerLogoId], references: [id], onDelete: SetNull)
+  /** Footer layout/text options (column visibility + titles, copyright) -- see
+   * src/lib/site-settings/footer.ts. Null = today's footer exactly. */
+  footerSettings Json?
 
   /** Phase 8 "Global Visual Control Center" -- admin-editable site-wide design-token overrides
    * (colors/typography/layout/buttons/animation/responsive). Every field inside is optional; see

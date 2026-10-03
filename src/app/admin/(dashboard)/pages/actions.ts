@@ -13,6 +13,15 @@ const slugSchema = z
   .max(160)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9-]+)*$/, "Slug must be lowercase letters, numbers, hyphens, and slashes only.");
 
+// PHASE 8: optional per-locale page titles ("" => cleared, falls back to the slug-derived title).
+const titleSchema = z.string().trim().max(200).optional().or(z.literal(""));
+function readTitles(formData: FormData): { titleEn: string | null; titleAr: string | null } | { error: string } {
+  const en = titleSchema.safeParse(formData.get("titleEn") ?? "");
+  const ar = titleSchema.safeParse(formData.get("titleAr") ?? "");
+  if (!en.success || !ar.success) return { error: "Titles must be 200 characters or fewer." };
+  return { titleEn: en.data || null, titleAr: ar.data || null };
+}
+
 export interface FormActionState {
   error?: string;
   success?: boolean;
@@ -28,8 +37,10 @@ export async function createPageAction(_prev: FormActionState, formData: FormDat
 
   const existing = await prisma.page.findUnique({ where: { slug: parsed.data } });
   if (existing) return { error: "A page with that slug already exists." };
+  const titles = readTitles(formData);
+  if ("error" in titles) return { error: titles.error };
 
-  const page = await prisma.page.create({ data: { slug: parsed.data, status: "DRAFT" } });
+  const page = await prisma.page.create({ data: { slug: parsed.data, status: "DRAFT", ...titles } });
   await logActivity({ userId: currentUser.id, action: "page.create", entityType: "Page", entityId: page.id });
   revalidatePath("/admin/pages");
   return { success: true, id: page.id };
@@ -40,16 +51,22 @@ export async function updatePageSlugAction(_prev: FormActionState, formData: For
   assertCan(currentUser, "pages", "update");
 
   const id = String(formData.get("id"));
-  const parsed = slugSchema.safeParse(formData.get("slug"));
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid slug." };
+  const titles = readTitles(formData);
+  if ("error" in titles) return { error: titles.error };
 
   const current = await prisma.page.findUnique({ where: { id }, select: { slug: true } });
-  if (current?.slug === HOMEPAGE_SLUG) return { error: "The homepage's slug can't be changed." };
+  if (!current) return { error: "Page not found." };
 
-  const duplicate = await prisma.page.findFirst({ where: { slug: parsed.data, NOT: { id } } });
-  if (duplicate) return { error: "A page with that slug already exists." };
-
-  await prisma.page.update({ where: { id }, data: { slug: parsed.data } });
+  // The homepage (and the reserved header/solution pages) keep their slug; only titles change.
+  if (current.slug === HOMEPAGE_SLUG || current.slug.startsWith("__")) {
+    await prisma.page.update({ where: { id }, data: titles });
+  } else {
+    const parsed = slugSchema.safeParse(formData.get("slug"));
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid slug." };
+    const duplicate = await prisma.page.findFirst({ where: { slug: parsed.data, NOT: { id } } });
+    if (duplicate) return { error: "A page with that slug already exists." };
+    await prisma.page.update({ where: { id }, data: { slug: parsed.data, ...titles } });
+  }
   await logActivity({ userId: currentUser.id, action: "page.update", entityType: "Page", entityId: id });
   revalidatePath("/admin/pages");
   revalidatePath(`/admin/pages/${id}`);
@@ -115,6 +132,8 @@ export async function duplicatePageAction(pageId: string): Promise<{ error?: str
     data: {
       slug: newSlug,
       status: "DRAFT",
+      titleEn: source.titleEn,
+      titleAr: source.titleAr,
       sections: {
         create: source.sections.map((s) => ({
           type: s.type,
@@ -140,6 +159,7 @@ const seoSchema = z.object({
   descriptionEn: z.string().max(400).optional().or(z.literal("")),
   descriptionAr: z.string().max(400).optional().or(z.literal("")),
   canonicalUrl: z.string().max(300).optional().or(z.literal("")),
+  ogImageId: z.string().max(60).optional().or(z.literal("")),
 });
 
 export async function updatePageSeoAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
@@ -160,6 +180,7 @@ export async function updatePageSeoAction(_prev: FormActionState, formData: Form
       descriptionEn: data.descriptionEn || null,
       descriptionAr: data.descriptionAr || null,
       canonicalUrl: data.canonicalUrl || null,
+      ogImageId: data.ogImageId || null,
       noIndex,
     },
     update: {
@@ -168,6 +189,7 @@ export async function updatePageSeoAction(_prev: FormActionState, formData: Form
       descriptionEn: data.descriptionEn || null,
       descriptionAr: data.descriptionAr || null,
       canonicalUrl: data.canonicalUrl || null,
+      ogImageId: data.ogImageId || null,
       noIndex,
     },
   });

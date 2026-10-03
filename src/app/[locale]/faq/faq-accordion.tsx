@@ -15,7 +15,7 @@ export function FaqAccordion({ items, locale }: { items: FaqItem[]; locale: stri
   const [openId, setOpenId] = useState<string | null>(items[0]?.id ?? null);
 
   return (
-    <div className="divide-y divide-ink/10 border-y border-ink/10">
+    <div className="divide-y divide-ink/10 border-y border-line">
       {items.map((item) => {
         const open = openId === item.id;
         const question = locale === "ar" ? item.questionAr : item.questionEn;

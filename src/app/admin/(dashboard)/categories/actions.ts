@@ -21,6 +21,7 @@ const categorySchema = z.object({
   descriptionAr: z.string().max(2000).optional().or(z.literal("")),
   parentId: z.string().optional().or(z.literal("")),
   imageId: z.string().optional().or(z.literal("")),
+  bannerId: z.string().optional().or(z.literal("")),
   order: z.coerce.number().int().default(0),
   featuredOrder: z.string().optional().or(z.literal("")),
 });
@@ -54,6 +55,7 @@ export async function createCategoryAction(_prev: FormActionState, formData: For
       featuredOrder: data.featuredOrder ? Number(data.featuredOrder) : null,
       parentId: data.parentId || null,
       imageId: data.imageId || null,
+      bannerId: data.bannerId || null,
       translations: {
         create: [
           { locale: "EN", name: data.nameEn, description: data.descriptionEn || null },
@@ -96,6 +98,7 @@ export async function updateCategoryAction(_prev: FormActionState, formData: For
         featuredOrder: data.featuredOrder ? Number(data.featuredOrder) : null,
         parentId: data.parentId || null,
         imageId: data.imageId || null,
+        bannerId: data.bannerId || null,
         isActive: formData.has("isActive"),
       },
     }),
@@ -151,6 +154,7 @@ const categorySeoSchema = z.object({
   descriptionEn: z.string().max(400).optional().or(z.literal("")),
   descriptionAr: z.string().max(400).optional().or(z.literal("")),
   canonicalUrl: z.string().max(300).optional().or(z.literal("")),
+  ogImageId: z.string().max(60).optional().or(z.literal("")),
 });
 
 export async function updateCategorySeoAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
@@ -173,6 +177,7 @@ export async function updateCategorySeoAction(_prev: FormActionState, formData: 
       descriptionEn: data.descriptionEn || null,
       descriptionAr: data.descriptionAr || null,
       canonicalUrl: data.canonicalUrl || null,
+      ogImageId: data.ogImageId || null,
       noIndex,
     },
     update: {
@@ -181,6 +186,7 @@ export async function updateCategorySeoAction(_prev: FormActionState, formData: 
       descriptionEn: data.descriptionEn || null,
       descriptionAr: data.descriptionAr || null,
       canonicalUrl: data.canonicalUrl || null,
+      ogImageId: data.ogImageId || null,
       noIndex,
     },
   });

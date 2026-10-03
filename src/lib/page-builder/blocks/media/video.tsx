@@ -39,14 +39,14 @@ export function VideoRender({ data }: BlockRenderProps<VideoData>) {
     const embed = toEmbedUrl(data.embedUrl);
     if (!embed) return null;
     return (
-      <div className="aspect-video w-full overflow-hidden rounded-[var(--radius-md)]">
+      <div className="aspect-video w-full overflow-hidden rounded-[var(--image-radius)]">
         <iframe src={embed} className="h-full w-full" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
       </div>
     );
   }
   if (data.mode === "upload" && data.video) {
     return (
-      <video controls className="aspect-video w-full rounded-[var(--radius-md)] object-cover">
+      <video controls className="aspect-video w-full rounded-[var(--image-radius)] object-cover">
         <source src={data.video.url} />
       </video>
     );

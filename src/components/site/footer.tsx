@@ -7,6 +7,7 @@ import { RouteLine } from "./graphics/route-line";
 import { SectionDivider } from "@/components/ui/section-divider";
 import { Grid } from "@/components/ui/grid";
 import type { PublicMenuItem } from "@/lib/menus";
+import { formatCopyright, parseFooterSettings } from "@/lib/site-settings/footer";
 
 /** The footer's closing accent — a route that resolves to a single point, echoing "journey's end." */
 const FOOTER_ACCENT_PATH = "M4 24 Q 30 4 56 16 T 76 6";
@@ -32,7 +33,7 @@ interface SocialLinks {
 }
 
 async function getSiteSettings() {
-  return prisma.siteSetting.findUnique({ where: { id: "singleton" } });
+  return prisma.siteSetting.findUnique({ where: { id: "singleton" }, include: { footerLogo: { select: { url: true } } } });
 }
 
 export async function SiteFooter({ categories, menuItems = [], locale }: FooterProps) {
@@ -51,11 +52,18 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
   const newsletterTitle = (isAr ? settings?.newsletterTitleAr : settings?.newsletterTitleEn) || t("newsletterTitle");
   const newsletterBody = (isAr ? settings?.newsletterBodyAr : settings?.newsletterBodyEn) || t("newsletterBody");
   const contactLocation = settings?.address || tContact("location");
+  // Footer options from /admin/settings > Footer; every one defaults to the original footer.
+  const footerOptions = parseFooterSettings(settings?.footerSettings);
+  const siteName = (isAr ? settings?.siteNameAr : settings?.siteNameEn) || aboutTitle;
+  const copyright = formatCopyright(isAr ? footerOptions.copyrightAr : footerOptions.copyrightEn, `© {year} {siteName}. ${t("rights")}`, { year: new Date().getFullYear(), siteName });
+  const productsTitle = (isAr ? footerOptions.productsTitleAr : footerOptions.productsTitleEn) || t("productsTitle");
+  const contactTitle = (isAr ? footerOptions.contactTitleAr : footerOptions.contactTitleEn) || t("contactTitle");
 
   return (
     <footer className="border-t border-paper/10 bg-petrol text-paper">
       <SectionDivider curve="wave" className="text-petrol" />
-      {/* Tier 1 — conversion: newsletter signup, the footer's one job besides navigation. */}
+      {/* Tier 1 — conversion: newsletter signup (can be turned off when the page has its own Newsletter section). */}
+      {footerOptions.showNewsletter !== false ? (
       <div className="border-b border-paper/10 bg-petrol-elevated">
         <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20">
           <ScrollReveal variant="fade-up" className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
@@ -70,12 +78,18 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
           </ScrollReveal>
         </div>
       </div>
+      ) : null}
 
       {/* Tier 2 — navigation. */}
       <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20">
         <Grid cols={6} gap="xl">
           <div className="col-span-2 sm:col-span-3 lg:col-span-2">
-            <p className="font-display text-lg">{aboutTitle}</p>
+            {settings?.footerLogo?.url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- admin-uploaded logo of unknown aspect ratio; sized by height only
+              <img src={settings.footerLogo.url} alt={siteName} className="h-12 w-auto max-w-[220px] object-contain object-start" />
+            ) : (
+              <p className="font-display text-lg">{aboutTitle}</p>
+            )}
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-paper/60">{aboutBody}</p>
           </div>
 
@@ -102,8 +116,9 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
             </div>
           ))}
 
+          {footerOptions.showProductsColumn !== false ? (
           <div>
-            <p className="manifest-strip mb-4 text-paper/40">{t("productsTitle")}</p>
+            <p className="manifest-strip mb-4 text-paper/40">{productsTitle}</p>
             <ul className="space-y-2.5 text-sm text-paper/70">
               {categories.slice(0, 5).map((category) => (
                 <li key={category.id}>
@@ -119,9 +134,11 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
               </li>
             </ul>
           </div>
+          ) : null}
 
+          {footerOptions.showContactColumn !== false ? (
           <div>
-            <p className="manifest-strip mb-4 text-paper/40">{t("contactTitle")}</p>
+            <p className="manifest-strip mb-4 text-paper/40">{contactTitle}</p>
             <ul className="space-y-2.5 text-sm text-paper/70">
               <li>{contactLocation}</li>
               {settings?.contactEmail ? (
@@ -145,25 +162,28 @@ export async function SiteFooter({ categories, menuItems = [], locale }: FooterP
               </li>
             </ul>
           </div>
+          ) : null}
         </Grid>
       </div>
 
       {/* Tier 3 — legal, social, copyright. */}
       <div className="border-t border-paper/10">
         <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-5 py-6 text-xs text-paper/40 sm:px-8 sm:flex-row sm:items-center sm:justify-between lg:px-12">
-          <p>
-            © {new Date().getFullYear()} Seven Eleven Trading. {t("rights")}
-          </p>
+          <p>{copyright}</p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <Link href={`/${locale}/privacy`} className="transition-colors hover:text-paper/70">
-              {t("privacy")}
-            </Link>
-            <Link href={`/${locale}/terms`} className="transition-colors hover:text-paper/70">
-              {t("terms")}
-            </Link>
-            <Link href={`/${locale}/cookies`} className="transition-colors hover:text-paper/70">
-              {t("cookies")}
-            </Link>
+            {footerOptions.showLegalLinks !== false ? (
+              <>
+                <Link href={`/${locale}/privacy`} className="transition-colors hover:text-paper/70">
+                  {t("privacy")}
+                </Link>
+                <Link href={`/${locale}/terms`} className="transition-colors hover:text-paper/70">
+                  {t("terms")}
+                </Link>
+                <Link href={`/${locale}/cookies`} className="transition-colors hover:text-paper/70">
+                  {t("cookies")}
+                </Link>
+              </>
+            ) : null}
             {hasSocial ? (
               <span className="flex items-center gap-4 border-s border-paper/15 ps-5">
                 {social?.facebook ? (

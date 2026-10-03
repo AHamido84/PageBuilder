@@ -52,7 +52,7 @@ export function CtaRender({ data, locale }: BlockRenderProps<CtaData>) {
   }
 
   return (
-    <ScrollReveal variant="zoom-in" className="relative isolate flex min-h-[420px] items-center overflow-hidden rounded-[var(--radius-xl)] p-10 sm:min-h-[480px] sm:p-16">
+    <ScrollReveal variant="zoom-in" className="relative isolate flex min-h-[420px] items-center overflow-hidden rounded-[var(--card-radius-xl)] p-10 sm:min-h-[480px] sm:p-16">
       <CmsFillImage src={data.image!.url} alt="" sizes="100vw" className="object-cover" context={{ mediaId: data.image!.id, component: "CTA", locale }} />
       <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/40 to-ink/10" />
       <div className="relative max-w-xl text-paper">

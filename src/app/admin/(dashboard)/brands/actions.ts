@@ -14,7 +14,13 @@ const slugSchema = z
 
 const brandSchema = z.object({
   slug: slugSchema,
-  website: z.string().max(300).optional().or(z.literal("")),
+  // PHASE 7: rendered as a public link, so only http(s) URLs are accepted.
+  website: z
+    .string()
+    .max(300)
+    .regex(/^https?:\/\/\S+$/i,"Website must start with http:// or https://")
+    .optional()
+    .or(z.literal("")),
   nameEn: z.string().min(1).max(200),
   nameAr: z.string().min(1).max(200),
   descriptionEn: z.string().max(2000).optional().or(z.literal("")),
@@ -146,6 +152,7 @@ const seoSchema = z.object({
   descriptionEn: z.string().max(400).optional().or(z.literal("")),
   descriptionAr: z.string().max(400).optional().or(z.literal("")),
   canonicalUrl: z.string().max(300).optional().or(z.literal("")),
+  ogImageId: z.string().max(60).optional().or(z.literal("")),
 });
 
 export async function updateBrandSeoAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
@@ -168,6 +175,7 @@ export async function updateBrandSeoAction(_prev: FormActionState, formData: For
       descriptionEn: data.descriptionEn || null,
       descriptionAr: data.descriptionAr || null,
       canonicalUrl: data.canonicalUrl || null,
+      ogImageId: data.ogImageId || null,
       noIndex,
     },
     update: {
@@ -176,6 +184,7 @@ export async function updateBrandSeoAction(_prev: FormActionState, formData: For
       descriptionEn: data.descriptionEn || null,
       descriptionAr: data.descriptionAr || null,
       canonicalUrl: data.canonicalUrl || null,
+      ogImageId: data.ogImageId || null,
       noIndex,
     },
   });

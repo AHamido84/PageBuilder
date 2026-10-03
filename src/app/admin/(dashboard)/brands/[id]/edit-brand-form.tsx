@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
 import { updateBrandAction, type FormActionState } from "../actions";
 import { MediaPickerField } from "@/components/admin/ui/media-picker-field";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
@@ -23,12 +23,12 @@ interface Props {
 }
 
 export function EditBrandForm({ brand }: Props) {
-  const [state, formAction, pending] = useActionState(updateBrandAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(updateBrandAction, initialState);
   const en = brand.translations.find((t) => t.locale === "EN");
   const ar = brand.translations.find((t) => t.locale === "AR");
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <input type="hidden" name="id" value={brand.id} />
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Slug</label>
@@ -58,8 +58,8 @@ export function EditBrandForm({ brand }: Props) {
         <label className="mb-1 block text-xs text-neutral-400">Order</label>
         <input name="order" type="number" defaultValue={brand.order} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
       </div>
-      <MediaPickerField name="logoId" label="Logo" accept="IMAGE" defaultMediaId={brand.logoId} defaultUrl={brand.logo?.url} />
-      <MediaPickerField name="bannerId" label="Banner" accept="IMAGE" defaultMediaId={brand.bannerId} defaultUrl={brand.banner?.url} />
+      <MediaPickerField name="logoId" label="Logo" accept="IMAGE" uploadFolderName="Brands" defaultMediaId={brand.logoId} defaultUrl={brand.logo?.url} />
+      <MediaPickerField name="bannerId" label="Banner" accept="IMAGE" uploadFolderName="Banners" defaultMediaId={brand.bannerId} defaultUrl={brand.banner?.url} />
       <label className="col-span-full flex items-center gap-2 text-sm text-neutral-300">
         <input type="checkbox" name="isActive" value="true" defaultChecked={brand.isActive} />
         Active

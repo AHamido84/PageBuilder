@@ -17,7 +17,7 @@ export function MapRender({ data }: BlockRenderProps<MapData>) {
   if (!data.address) return null;
   const src = `https://www.google.com/maps?q=${encodeURIComponent(data.address)}&z=${data.zoom || 14}&output=embed`;
   return (
-    <div className="aspect-video w-full overflow-hidden rounded-[var(--radius-lg)]">
+    <div className="aspect-video w-full overflow-hidden rounded-[var(--image-radius-lg)]">
       <iframe src={src} className="h-full w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Map" />
     </div>
   );

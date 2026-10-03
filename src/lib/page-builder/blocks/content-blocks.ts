@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { MediaType } from "@prisma/client";
-import { Heading1, MousePointerClick, Sparkles, Type } from "lucide-react";
+import { Heading1, MousePointerClick, RectangleHorizontal, Sparkles, Type } from "lucide-react";
 import type { BlockDefinition } from "../types";
 import { defaultSectionSettings } from "../types";
 import { HeroEdit, HeroRender } from "./content/hero";
@@ -10,6 +10,7 @@ import { HeadingEdit, HeadingRender } from "./content/heading";
 import { RichTextEdit, RichTextRender } from "./content/rich-text";
 import { CtaEdit, CtaRender } from "./content/cta";
 import { PageIntroEdit, PageIntroRender } from "./content/page-intro";
+import { BannerEdit, BannerRender } from "./content/banner";
 
 // "secondary"/"ghost" are the two original values -- kept exactly as-is (still mapped by
 // heroButtonVariant in hero-shared.tsx the same way they always were: secondary->ghost-light,
@@ -46,7 +47,10 @@ export type HeroCtaPositionMode = z.infer<typeof heroCtaPositionModeSchema>;
 // slow-zoom/cinematic-loop (zoom-only/zoom+breathe). "slow-zoom" is presented in the admin UI as
 // "Ken Burns" (it already is one) rather than adding a redundant near-duplicate animation value.
 // Same field throughout, still just "the media/frame's entrance-and-ambient treatment."
-const heroAnimationSchema = z.enum(["none", "fade", "slow-zoom", "parallax", "reveal", "cinematic", "scale", "morph", "float", "cinematic-loop", "slide", "pan"]);
+// "ken-burns" added for redesign PHASE 5: zoom + a slow diagonal drift (a true Ken Burns), now
+// distinct from "slow-zoom" (zoom only), which keeps its exact existing behavior and is labelled
+// "Slow Zoom" in the admin from here on.
+const heroAnimationSchema = z.enum(["none", "fade", "slow-zoom", "parallax", "reveal", "cinematic", "scale", "morph", "float", "cinematic-loop", "slide", "pan", "ken-burns"]);
 export type HeroAnimation = z.infer<typeof heroAnimationSchema>;
 
 const heroImagePositionSchema = z.enum(["center", "top", "bottom", "left", "right", "custom"]);
@@ -154,6 +158,10 @@ const heroSlideSchema = z.object({
   // animation speed changes until an admin deliberately sets one of these.
   animationDurationMs: z.number().int().min(200).max(30000).nullable().default(null),
   animationDelayMs: z.number().int().min(0).max(5000).nullable().default(null),
+
+  // Redesign PHASE 5 -- per-slide overlay style. "" => the Hero-level overlayDirection (unchanged
+  // behavior for every existing slide); "none" turns the scrim off for this slide only.
+  overlayDirection: z.union([heroOverlayDirectionSchema, z.literal("")]).default(""),
 });
 export type HeroSlide = z.infer<typeof heroSlideSchema>;
 
@@ -249,7 +257,10 @@ const heroSchema = z.object({
   ctaYMobile: z.number().min(0).max(100).nullable().default(null),
 
   // Media
-  mediaType: z.enum(["image", "video", "slideshow", "product-composition", "3d-composition"]).default("image"),
+  // "carousel" (redesign PHASE 5) reads the same `slides` array as "slideshow" -- the difference is
+  // presentation: slides physically slide along a track (direction-aware for RTL), arrows show at
+  // every breakpoint, and a slide counter is shown. Autoplay is optional (`carouselAutoplay`).
+  mediaType: z.enum(["image", "video", "slideshow", "carousel", "product-composition", "3d-composition"]).default("image"),
   // "split": media in its own framed column beside the text (current default). "full-bleed": media
   // stretches across the whole section as a background layer, text overlays on top of it.
   layout: z.enum(["split", "full-bleed"]).default("split"),
@@ -352,6 +363,8 @@ const heroSchema = z.object({
   // hard-swap behavior for admins who prefer it. Defaults to "crossfade" for the more premium feel
   // the brief asks for; existing sections with no stored value pick this up automatically.
   slideTransition: z.enum(["cut", "crossfade"]).default("crossfade"),
+  // "carousel" mode only -- whether it advances on each slide's own durationMs timer.
+  carouselAutoplay: z.boolean().default(true),
 
   // "3d-composition" mode only -- see heroCompositionSchema above.
   composition: heroCompositionSchema.default(DEFAULT_COMPOSITION),
@@ -416,6 +429,9 @@ const pageIntroSchema = z.object({
   eyebrow: z.string().max(80).optional().default(""),
   title: z.string().max(200).optional().default(""),
   description: z.string().max(500).optional().default(""),
+  // PHASE 8: this block is the page header, so its title is the page's <h1> by default (index and
+  // legal pages had no <h1> at all). "h2" for the rare intro used further down a page.
+  headingLevel: z.enum(["h1", "h2"]).optional().default("h1"),
 });
 export type PageIntroData = z.infer<typeof pageIntroSchema>;
 
@@ -431,6 +447,67 @@ const ctaSchema = z.object({
   image: z.object({ id: z.string(), url: z.string() }).nullable().optional().default(null),
 });
 export type CtaData = z.infer<typeof ctaSchema>;
+
+// Redesign PHASE 5 -- reusable Banner section. Media are stored as {id, url} (the same convention
+// as CTA/IMAGE/GALLERY: picked through the Media Library, URL kept for rendering without a server
+// resolve step; Media "Replace" rewrites these URLs in place). Every locale's data is independent,
+// so EN and AR can position text, focal point and height differently.
+const bannerMediaRefSchema = z.object({ id: z.string(), url: z.string() }).nullable().default(null);
+const bannerHeightSchema = z.enum(["auto", "small", "medium", "large", "viewport", "custom"]);
+export type BannerHeight = z.infer<typeof bannerHeightSchema>;
+
+const bannerSchema = z.object({
+  // "background": media fills the banner, text over it. "split": a side image beside the text
+  // (optionally over a background too). "text": text + CTA only, on the section's own background.
+  layout: z.enum(["background", "split", "text"]).default("background"),
+  backgroundType: z.enum(["image", "video"]).default("image"),
+  backgroundImage: bannerMediaRefSchema,
+  backgroundImageMobile: bannerMediaRefSchema, // null => backgroundImage
+  backgroundVideo: bannerMediaRefSchema,
+  videoPoster: bannerMediaRefSchema,
+  image: bannerMediaRefSchema, // split layout's side image
+  imageSide: z.enum(["start", "end"]).default("end"), // logical -- mirrors automatically under RTL
+  imageFit: heroImageFitSchema.default("cover"),
+  focalX: z.number().min(0).max(100).default(50),
+  focalY: z.number().min(0).max(100).default(50),
+  focalXMobile: z.number().min(0).max(100).nullable().default(null), // null => focalX
+  focalYMobile: z.number().min(0).max(100).nullable().default(null),
+
+  eyebrow: z.string().max(80).optional().default(""),
+  heading: z.string().max(200).optional().default(""),
+  body: z.string().max(600).optional().default(""),
+  ctaLabel: z.string().max(60).optional().default(""),
+  ctaUrl: z.string().max(300).optional().default(""),
+  ctaStyle: heroButtonStyleSchema.default("gold"),
+  ctaLabel2: z.string().max(60).optional().default(""),
+  ctaUrl2: z.string().max(300).optional().default(""),
+  ctaStyle2: heroButtonStyleSchema.default("secondary"),
+
+  overlay: heroOverlayDirectionSchema.default("auto"),
+  overlayOpacity: z.number().min(0).max(100).default(55),
+
+  height: bannerHeightSchema.default("medium"),
+  heightCustomValue: z.string().max(20).optional().default(""), // only read when height === "custom"
+  heightMobile: z.union([bannerHeightSchema.exclude(["custom"]), z.literal("")]).default(""), // "" => same as height
+  contentPosition: heroContentPositionSchema.default("start"),
+  verticalAlign: heroVerticalAlignSchema.default("center"),
+  contentMaxWidth: heroContentMaxWidthSchema.default("md"),
+  textColorMode: heroTextColorModeSchema.default("auto"),
+  animation: heroAnimationSchema.default("none"),
+  // true => edge-to-edge (skips the section's container chrome, no rounded corners).
+  fullWidth: z.boolean().default(false),
+});
+export type BannerData = z.infer<typeof bannerSchema>;
+
+const DEFAULT_BANNER: Omit<BannerData, "eyebrow" | "heading" | "body" | "ctaLabel"> = {
+  layout: "background", backgroundType: "image",
+  backgroundImage: null, backgroundImageMobile: null, backgroundVideo: null, videoPoster: null,
+  image: null, imageSide: "end", imageFit: "cover", focalX: 50, focalY: 50, focalXMobile: null, focalYMobile: null,
+  ctaUrl: "/contact", ctaStyle: "gold", ctaLabel2: "", ctaUrl2: "", ctaStyle2: "secondary",
+  overlay: "auto", overlayOpacity: 55, height: "medium", heightCustomValue: "", heightMobile: "",
+  contentPosition: "start", verticalAlign: "center", contentMaxWidth: "md", textColorMode: "auto",
+  animation: "none", fullWidth: false,
+};
 
 // `any` is required here, not a shortcut: this array holds BlockDefinition<T> for many different T (each
 // entry individually typed via its own `as BlockDefinition<XData>` cast below), and TData's contravariant
@@ -464,7 +541,7 @@ export const contentBlocks: BlockDefinition<any>[] = [
         heroHeight: "tall", heroHeightCustomValue: "", contentPosition: "start", verticalAlign: "center", contentMaxWidth: "lg",
         textColorMode: "auto", accentColor: "wheat", overlayDirection: "auto", zoomAmount: 4, animationSpeedSec: 20,
         primaryProductId: "", secondaryProductId: "", supportingProductId: "",
-        productsClickable: true, showProductBadges: true, slides: [], slideTransition: "crossfade",
+        productsClickable: true, showProductBadges: true, slides: [], slideTransition: "crossfade", carouselAutoplay: true,
         composition: DEFAULT_COMPOSITION,
       },
       ar: {
@@ -486,7 +563,7 @@ export const contentBlocks: BlockDefinition<any>[] = [
         heroHeight: "tall", heroHeightCustomValue: "", contentPosition: "start", verticalAlign: "center", contentMaxWidth: "lg",
         textColorMode: "auto", accentColor: "wheat", overlayDirection: "auto", zoomAmount: 4, animationSpeedSec: 20,
         primaryProductId: "", secondaryProductId: "", supportingProductId: "",
-        productsClickable: true, showProductBadges: true, slides: [], slideTransition: "crossfade",
+        productsClickable: true, showProductBadges: true, slides: [], slideTransition: "crossfade", carouselAutoplay: true,
         composition: DEFAULT_COMPOSITION,
       },
     },
@@ -526,7 +603,7 @@ export const contentBlocks: BlockDefinition<any>[] = [
     category: "content",
     icon: Heading1,
     dataSchema: pageIntroSchema,
-    defaultData: { en: { eyebrow: "", title: "Page title", description: "" }, ar: { eyebrow: "", title: "عنوان الصفحة", description: "" } },
+    defaultData: { en: { eyebrow: "", title: "Page title", description: "", headingLevel: "h1" }, ar: { eyebrow: "", title: "عنوان الصفحة", description: "", headingLevel: "h1" } },
     defaultSettings: defaultSectionSettings({ background: "paper", desktop: { paddingY: "xl", marginY: "none", align: "left", columns: "1", headingSize: "2xl", bodySize: "md", visible: true } }),
     Edit: PageIntroEdit,
     Render: PageIntroRender,
@@ -545,4 +622,19 @@ export const contentBlocks: BlockDefinition<any>[] = [
     Edit: CtaEdit,
     Render: CtaRender,
   } as BlockDefinition<CtaData>,
+  {
+    type: "BANNER",
+    label: "Banner",
+    category: "content",
+    icon: RectangleHorizontal,
+    dataSchema: bannerSchema,
+    defaultData: {
+      en: { ...DEFAULT_BANNER, eyebrow: "", heading: "Banner heading", body: "", ctaLabel: "Contact us" },
+      ar: { ...DEFAULT_BANNER, eyebrow: "", heading: "عنوان البانر", body: "", ctaLabel: "تواصل معنا" },
+    },
+    defaultSettings: defaultSectionSettings({ background: "paper", desktop: { paddingY: "md", marginY: "none", align: "left", columns: "1", headingSize: "xl", bodySize: "md", visible: true } }),
+    Edit: BannerEdit,
+    Render: BannerRender,
+    bleedsWhen: (data: BannerData) => data.fullWidth,
+  } as BlockDefinition<BannerData>,
 ];

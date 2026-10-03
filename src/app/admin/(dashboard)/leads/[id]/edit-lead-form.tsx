@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { updateLeadAction, type FormActionState } from "../actions";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
@@ -22,10 +22,10 @@ interface Props {
 }
 
 export function EditLeadForm({ lead, users }: Props) {
-  const [state, formAction, pending] = useActionState(updateLeadAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(updateLeadAction, initialState);
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <input type="hidden" name="id" value={lead.id} />
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Contact name</label>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
-import { ClipReveal, Parallax, useIsRtl } from "@/lib/motion/primitives";
+import { ClipReveal, Parallax, useIsMobileViewport, useIsRtl } from "@/lib/motion/primitives";
 import { DURATION, EASE_PREMIUM } from "@/lib/motion/motionTokens";
 import type { ButtonVariant } from "@/components/ui/button";
 import type {
@@ -24,15 +24,34 @@ import type {
  * so neither of those two files needs to import from the other. "Primary"/"Secondary (light
  * ghost)"/"Ghost (dark)" are the three original values (kept first, same labels, so no existing
  * selection looks different); "Ghost Light"/"Ghost Dark"/"Gold"/"Gold Outline" are new. */
+// Redesign PHASE 5: the four headline styles (Primary / Gold / Ghost Gold / Secondary) are listed
+// first; the remaining variants stay available below them. Values are unchanged, only the order.
 export const CTA_STYLE_OPTIONS: { value: HeroButtonStyle; label: string }[] = [
   { value: "primary", label: "Primary" },
+  { value: "gold", label: "Gold" },
+  { value: "ghost-gold", label: "Ghost Gold" },
   { value: "secondary", label: "Secondary (light ghost)" },
   { value: "ghost", label: "Ghost (dark)" },
   { value: "ghost-light", label: "Ghost Light" },
   { value: "ghost-dark", label: "Ghost Dark" },
-  { value: "gold", label: "Gold" },
   { value: "gold-outline", label: "Gold Outline" },
-  { value: "ghost-gold", label: "Ghost Gold" },
+];
+
+/** Animation choices for a Hero/slide/Banner media layer. The first six are the redesign PHASE 5
+ * set; the rest are the older options, kept selectable so no saved value disappears from the list. */
+export const HERO_ANIMATION_OPTIONS: { value: HeroAnimation; label: string }[] = [
+  { value: "none", label: "None" },
+  { value: "fade", label: "Fade" },
+  { value: "slide", label: "Slide" },
+  { value: "scale", label: "Scale" },
+  { value: "ken-burns", label: "Ken Burns — zoom + drift" },
+  { value: "slow-zoom", label: "Slow Zoom" },
+  { value: "pan", label: "Pan" },
+  { value: "cinematic-loop", label: "Cinematic Loop — infinite breathing zoom" },
+  { value: "parallax", label: "Parallax" },
+  { value: "reveal", label: "Reveal" },
+  { value: "cinematic", label: "Cinematic" },
+  { value: "float", label: "Float" },
 ];
 
 /** Maps Hero's own CTA style enum onto the shared button kit's variants. "secondary"/"ghost" are
@@ -179,7 +198,7 @@ function inkRgba(alpha: number): string {
  * "auto" derives the direction from where the content itself sits so the two never disagree by
  * accident. Returns null (no overlay layer at all) for "none" or a fully-transparent opacity.
  */
-function resolveOverlayGradient(direction: HeroOverlayDirection, contentPosition: HeroContentPosition, opacityPct: number, isRtl: boolean): string | null {
+export function resolveOverlayGradient(direction: HeroOverlayDirection, contentPosition: HeroContentPosition, opacityPct: number, isRtl: boolean): string | null {
   if (direction === "none" || opacityPct <= 0) return null;
   const strong = opacityPct / 100;
   const mid = strong * 0.32;
@@ -330,7 +349,12 @@ export function HeroMediaMotion({
   // Called unconditionally (before any branch below) -- only the "slide" branch actually reads
   // this, but React's rules of hooks require every hook to run on every render regardless.
   const isRtl = useIsRtl();
-  if (reduce || animation === "none") return <div className={className}>{children}</div>;
+  // PHASE 9 mobile rule: the never-ending loops (breathing zoom, pan, float) run continuously for as
+  // long as the page is open -- on phones they're dropped in favour of a still image (one-shot
+  // entrances like fade/slide/scale/Ken Burns still play).
+  const isMobile = useIsMobileViewport();
+  const isContinuousLoop = animation === "cinematic-loop" || animation === "pan" || animation === "float";
+  if (reduce || animation === "none" || (isMobile && isContinuousLoop)) return <div className={className}>{children}</div>;
 
   if (animation === "cinematic-loop") {
     // Genuinely infinite, unlike every other case here (which plays once on mount and stops) --
@@ -414,6 +438,23 @@ export function HeroMediaMotion({
       </motion.div>
     );
   }
+  if (animation === "ken-burns") {
+    // Redesign PHASE 5 -- a true Ken Burns: slow zoom-in combined with a gentle diagonal drift
+    // toward the reading-end edge (mirrored under RTL). One-shot, like "slow-zoom".
+    const driftX = isRtl ? "2.5%" : "-2.5%";
+    return (
+      <div className={className}>
+        <motion.div
+          className="h-full w-full"
+          initial={{ scale: 1.02, x: "0%", y: "0%" }}
+          animate={{ scale: 1.14, x: driftX, y: "-2%" }}
+          transition={{ duration: durationSec ?? 16, delay, ease: "linear" }}
+        >
+          {children}
+        </motion.div>
+      </div>
+    );
+  }
   if (animation === "pan") {
     // Phase 4 -- continuous horizontal drift, no zoom (distinct from slow-zoom/cinematic-loop,
     // which are zoom-only/zoom+breathe). A fixed slight overscale gives the pan safe room to move
@@ -430,8 +471,8 @@ export function HeroMediaMotion({
       </div>
     );
   }
-  // "slow-zoom" (default) — a subtle continuous Ken Burns drift, the brief's requested default
-  // (presented in the admin UI as "Ken Burns" -- it already is one).
+  // "slow-zoom" (default) — a subtle zoom-only push-in (labelled "Slow Zoom" in the admin; the
+  // zoom + drift variant is "ken-burns" above).
   return (
     <div className={className}>
       <motion.div className="h-full w-full" initial={{ scale: 1 }} animate={{ scale: 1.08 }} transition={{ duration: durationSec ?? 20, ease: "linear" }}>

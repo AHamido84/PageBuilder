@@ -13,7 +13,7 @@ interface FilterBarProps {
 const TEMPERATURE_VALUES = ["FROZEN", "CHILLED", "AMBIENT"] as const;
 
 const selectClasses =
-  "h-11 rounded-[var(--radius-sm)] border border-ink/15 bg-paper px-3 text-sm text-ink transition-colors hover:border-ink/30";
+  "h-11 rounded-[var(--radius-sm)] border border-line-strong bg-paper px-3 text-sm text-ink transition-colors hover:border-ink/30";
 
 export function FilterBar({ categories, brands }: FilterBarProps) {
   const t = useTranslations("products");
@@ -40,7 +40,7 @@ export function FilterBar({ categories, brands }: FilterBarProps) {
           onChange={(e) => update("q", e.target.value)}
           placeholder={t("searchPlaceholder")}
           aria-label={t("searchPlaceholder")}
-          className="h-11 w-full rounded-[var(--radius-sm)] border border-ink/15 bg-paper ps-10 pe-3 text-sm placeholder:text-ink/40 transition-colors hover:border-ink/30"
+          className="h-11 w-full rounded-[var(--radius-sm)] border border-line-strong bg-paper ps-10 pe-3 text-sm placeholder:text-ink/40 transition-colors hover:border-ink/30"
         />
       </div>
       <select

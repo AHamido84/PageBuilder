@@ -99,7 +99,7 @@ export function PostFormFields({ categories, tags, authors, defaultValues = {} }
           className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm"
         />
       </div>
-      <MediaPickerField name="coverImageId" label="Cover image" accept="IMAGE" defaultMediaId={defaultValues.coverImageId ?? undefined} defaultUrl={defaultValues.coverImageUrl ?? undefined} />
+      <MediaPickerField name="coverImageId" label="Cover image" accept="IMAGE" uploadFolderName="Articles" defaultMediaId={defaultValues.coverImageId ?? undefined} defaultUrl={defaultValues.coverImageUrl ?? undefined} />
       <div className="col-span-full">
         <label className="mb-1 block text-xs text-neutral-400">Tags</label>
         <div className="flex flex-wrap gap-3">

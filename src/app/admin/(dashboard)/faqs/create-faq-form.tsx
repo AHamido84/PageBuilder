@@ -1,14 +1,15 @@
 "use client";
 
-import { useActionState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { createFaqAction, type FormActionState } from "./actions";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 const inputClass = "w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm";
 const labelClass = "mb-1 block text-xs text-neutral-400";
 
 export function CreateFaqForm() {
-  const [state, formAction, pending] = useActionState(createFaqAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(createFaqAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -16,7 +17,7 @@ export function CreateFaqForm() {
   }, [state.success]);
 
   return (
-    <form ref={formRef} action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form ref={formRef} action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div>
         <label className={labelClass}>Question (English)</label>
         <input name="questionEn" required className={inputClass} />

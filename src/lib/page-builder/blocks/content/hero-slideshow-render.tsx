@@ -27,6 +27,12 @@ const SWIPE_THRESHOLD = 40;
  */
 export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>) {
   const slides = data.slides.filter((s) => s.enabled);
+  // Redesign PHASE 5 -- "carousel" shares this component and the same slides array; it only changes
+  // the transition (a physical slide along a track), arrow visibility, autoplay and a slide counter.
+  const isCarousel = data.mediaType === "carousel";
+  const isRtl = locale === "ar";
+  // +1 = moving forward (next), -1 = backward. Only the carousel's slide transition reads it.
+  const [direction, setDirection] = useState<1 | -1>(1);
   // `index` only ever counts up -- wrapping (and correcting for a slide list that shrank while a
   // stale index was active, e.g. a slide got deleted/disabled mid-preview) happens here at render
   // time via modulo, rather than in an effect that would need its own setState-to-fix-state pass.
@@ -45,25 +51,35 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
   const activeIndex = slides.length > 0 ? ((index % slides.length) + slides.length) % slides.length : 0;
   const slide = slides[activeIndex];
 
-  const goNext = () => setIndex((i) => i + 1);
-  const goPrev = () => setIndex((i) => i - 1);
+  const goNext = () => {
+    setDirection(1);
+    setIndex((i) => i + 1);
+  };
+  const goPrev = () => {
+    setDirection(-1);
+    setIndex((i) => i - 1);
+  };
+  const autoplay = isCarousel ? data.carouselAutoplay : true;
 
   useEffect(() => {
-    if (slides.length < 2 || paused || !slide || reduceMotion) return;
+    if (slides.length < 2 || paused || !slide || reduceMotion || !autoplay) return;
     timeoutRef.current = setTimeout(goNext, slide.durationMs);
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [activeIndex, paused, slides.length, slide, reduceMotion]);
+  }, [activeIndex, paused, slides.length, slide, reduceMotion, autoplay]);
 
   if (!slide) return null;
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (slides.length < 2) return;
-    if (e.key === "ArrowLeft") {
+    // Under RTL the track runs right-to-left, so "next" is the left arrow key.
+    const nextKey = isRtl ? "ArrowLeft" : "ArrowRight";
+    const prevKey = isRtl ? "ArrowRight" : "ArrowLeft";
+    if (e.key === prevKey) {
       e.preventDefault();
       goPrev();
-    } else if (e.key === "ArrowRight") {
+    } else if (e.key === nextKey) {
       e.preventDefault();
       goNext();
     }
@@ -78,7 +94,8 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
     const delta = e.changedTouches[0].clientX - touchStartX.current;
     touchStartX.current = null;
     if (Math.abs(delta) < SWIPE_THRESHOLD) return;
-    if (delta < 0) goNext();
+    // A leftward swipe means "next" in LTR; mirrored under RTL.
+    if (delta < 0 === !isRtl) goNext();
     else goPrev();
   }
 
@@ -103,6 +120,8 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
   const positionStyle = (tier: "desktop" | "tablet" | "mobile") => ({ objectPosition: `${focalXTier[tier]}% ${focalYTier[tier]}%` });
   const fitClass = (tier: "desktop" | "tablet" | "mobile") => heroImageFitClass(fitTier[tier]);
   const overlayOpacity = slide.overlayOpacity ?? data.overlayOpacity;
+  // "" => the Hero-level overlay direction (pre-PHASE 5 behavior); "none" hides the scrim for this slide.
+  const overlayDirection = slide.overlayDirection || data.overlayDirection;
   const animationDurationSec = slide.animationDurationMs != null ? slide.animationDurationMs / 1000 : undefined;
   const animationDelaySec = slide.animationDelayMs != null ? slide.animationDelayMs / 1000 : 0;
 
@@ -178,16 +197,28 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
   // wrapper is the thing AnimatePresence actually watches; the per-slide entrance animation
   // (Ken Burns/fade/etc.) still plays independently inside it. `mode="sync"` keeps the outgoing
   // slide mounted for the fade's duration instead of an instant unmount -- the old hard-cut.
-  const crossfade = data.slideTransition === "crossfade" && !reduceMotion;
+  const crossfade = !isCarousel && data.slideTransition === "crossfade" && !reduceMotion;
+  // Carousel: the incoming slide enters from the reading-end edge and the outgoing one leaves toward
+  // the reading-start edge (reversed when going back). Physical x is flipped for RTL. `custom` lets
+  // the exiting slide read the *current* direction, not the one it was mounted with.
+  const slideTrack = isCarousel && !reduceMotion;
+  const trackSign = isRtl ? -1 : 1;
+  const trackVariants = {
+    enter: (d: number) => (slideTrack ? { x: `${100 * d * trackSign}%` } : { opacity: crossfade ? 0 : 1 }),
+    center: slideTrack ? { x: "0%" } : { opacity: 1 },
+    exit: (d: number) => (slideTrack ? { x: `${-100 * d * trackSign}%` } : crossfade ? { opacity: 0 } : {}),
+  };
   const mediaNode = !desktopUrl ? null : (
-    <AnimatePresence mode="sync" initial={false}>
+    <AnimatePresence mode="sync" initial={false} custom={direction}>
       <motion.div
         key={slide.id}
         className="absolute inset-0"
-        initial={crossfade ? { opacity: 0 } : false}
-        animate={{ opacity: 1 }}
-        exit={crossfade ? { opacity: 0 } : undefined}
-        transition={{ duration: crossfade ? DURATION.large : 0, ease: EASE_PREMIUM }}
+        custom={direction}
+        variants={trackVariants}
+        initial="enter"
+        animate="center"
+        exit="exit"
+        transition={{ duration: slideTrack ? 0.9 : crossfade ? DURATION.large : 0, ease: EASE_PREMIUM }}
       >
         <HeroMediaMotion animation={slide.animation} durationSec={animationDurationSec} delay={animationDelaySec} className="absolute inset-0">
           {slide.mediaType === "video" ? (
@@ -214,6 +245,8 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
     </AnimatePresence>
   );
 
+  const arrowVisibility = isCarousel ? "flex" : "hidden lg:flex";
+
   return (
     <div
       className="relative"
@@ -235,23 +268,24 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
             type="button"
             aria-label="Previous slide"
             onClick={goPrev}
-            className="absolute start-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-ink/40 p-2 text-paper backdrop-blur-sm transition hover:bg-ink/60 lg:flex"
+            className={`absolute start-3 top-1/2 z-30 -translate-y-1/2 rounded-full bg-ink/40 p-2 text-paper backdrop-blur-sm transition hover:bg-ink/60 ${arrowVisibility}`}
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={20} className="rtl:rotate-180" />
           </button>
           <button
             type="button"
             aria-label="Next slide"
             onClick={goNext}
-            className="absolute end-3 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-ink/40 p-2 text-paper backdrop-blur-sm transition hover:bg-ink/60 lg:flex"
+            className={`absolute end-3 top-1/2 z-30 -translate-y-1/2 rounded-full bg-ink/40 p-2 text-paper backdrop-blur-sm transition hover:bg-ink/60 ${arrowVisibility}`}
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={20} className="rtl:rotate-180" />
           </button>
         </>
       ) : null}
       <HeroFrame
         layout={data.layout}
         overlayOpacity={overlayOpacity}
+        hideOverlay={overlayDirection === "none"}
         media={mediaNode}
         content={content}
         ctaOverlay={ctaOverlay}
@@ -264,7 +298,7 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
                 verticalAlign: data.verticalAlign,
                 contentMaxWidth: data.contentMaxWidth,
                 textColorMode: data.textColorMode,
-                overlayDirection: data.overlayDirection,
+                overlayDirection,
                 isRtl: locale === "ar",
               }
             : undefined
@@ -278,11 +312,21 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
               type="button"
               aria-label={`Go to slide ${i + 1}`}
               aria-current={i === activeIndex}
-              onClick={() => setIndex(i)}
+              onClick={() => {
+                if (i === activeIndex) return;
+                setDirection(i > activeIndex ? 1 : -1);
+                // Jump relative to the (unbounded) index so the modulo wrap stays consistent.
+                setIndex((cur) => cur + (i - activeIndex));
+              }}
               className={`h-1.5 rounded-full transition-all ${i === activeIndex ? "w-6 bg-current" : "w-1.5 bg-current/40 hover:bg-current/60"}`}
             />
           ))}
         </div>
+      ) : null}
+      {isCarousel && slides.length > 1 ? (
+        <p className="manifest-strip pointer-events-none absolute end-4 top-4 z-30 rounded-full bg-ink/40 px-3 py-1 text-paper tabular-nums backdrop-blur-sm" aria-live="polite">
+          {String(activeIndex + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}
+        </p>
       ) : null}
     </div>
   );

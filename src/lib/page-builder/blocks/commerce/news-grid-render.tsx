@@ -35,7 +35,7 @@ export async function NewsGridRender({ data, locale }: BlockRenderProps<NewsGrid
 
       <Link
         href={`/${locale}/blog/${featured.slug}`}
-        className="group relative mb-8 flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-current/10 sm:flex-row"
+        className="group relative mb-8 flex flex-col overflow-hidden rounded-[var(--card-radius-lg)] border border-current/10 sm:flex-row"
       >
         <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-frost sm:aspect-auto sm:w-1/2">
           {featured.coverImage ? (

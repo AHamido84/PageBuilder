@@ -89,10 +89,23 @@ export function CategoryGridEdit({ data, onChange, locale }: BlockEditProps<Cate
               <span className="block text-xs text-neutral-500">Leave all unchecked to show every active category.</span>
             </span>
           </label>
+          <label className="flex items-start gap-2 text-sm text-neutral-300">
+            <input
+              type="radio"
+              name={`category-grid-mode-${locale}`}
+              checked={mode === "all"}
+              onChange={() => onChange({ ...data, mode: "all" })}
+              className="mt-0.5"
+            />
+            <span>
+              All — every active top-level category
+              <span className="block text-xs text-neutral-500">Automatic, in Category Management order. Use the limit to cap it.</span>
+            </span>
+          </label>
         </div>
       </div>
 
-      {mode === "dynamic" ? (
+      {mode === "dynamic" || mode === "all" ? (
         <div className="space-y-2">
           <TextField
             label="Number displayed (optional)"
@@ -102,7 +115,9 @@ export function CategoryGridEdit({ data, onChange, locale }: BlockEditProps<Cate
               onChange({ ...data, limit: n });
             }}
           />
-          {featured === 0 ? (
+          {mode === "all" ? (
+            <p className="text-xs text-neutral-500">Shows every active item automatically{data.limit ? `, up to ${data.limit}` : ""}.</p>
+          ) : featured === 0 ? (
             <p className="rounded-md border border-amber-900/50 bg-amber-950/30 px-2 py-1.5 text-xs text-amber-400">
               No categories are currently marked Featured yet — this section won&apos;t show anything on the live site until you mark some as Featured in Category
               Management.
@@ -151,6 +166,7 @@ export function CategoryGridEdit({ data, onChange, locale }: BlockEditProps<Cate
           options={[
             { value: "bento", label: "Bento (featured hero + grid)" },
             { value: "grid", label: "Uniform grid" },
+            { value: "chips", label: "Chips (compact links, no images)" },
           ]}
         />
         <NumberField label="Grid columns (desktop)" value={data.columns ?? 4} min={2} max={6} onChange={(columns) => onChange({ ...data, columns })} />
@@ -185,7 +201,7 @@ export function CategoryGridPreview({ data }: { data: CategoryGridData }) {
           </>
         )
       ) : (
-        <>Live Category Grid — {data.categoryIds?.length ? `${data.categoryIds.length} selected` : "all categories"}.</>
+        <>Live Category Grid — {mode === "all" || !data.categoryIds?.length ? "all categories" : `${data.categoryIds.length} selected`}.</>
       )}
     </div>
   );
@@ -230,10 +246,23 @@ export function BrandGridEdit({ data, onChange, locale }: BlockEditProps<BrandGr
               <span className="block text-xs text-neutral-500">Leave all unchecked to show every active brand.</span>
             </span>
           </label>
+          <label className="flex items-start gap-2 text-sm text-neutral-300">
+            <input
+              type="radio"
+              name={`brand-grid-mode-${locale}`}
+              checked={mode === "all"}
+              onChange={() => onChange({ ...data, mode: "all" })}
+              className="mt-0.5"
+            />
+            <span>
+              All — every active brand
+              <span className="block text-xs text-neutral-500">Automatic, in Brand Management order. Use the limit to cap it.</span>
+            </span>
+          </label>
         </div>
       </div>
 
-      {mode === "dynamic" ? (
+      {mode === "dynamic" || mode === "all" ? (
         <div className="space-y-2">
           <TextField
             label="Limit (optional)"
@@ -243,7 +272,9 @@ export function BrandGridEdit({ data, onChange, locale }: BlockEditProps<BrandGr
               onChange({ ...data, limit: n });
             }}
           />
-          {featured === 0 ? (
+          {mode === "all" ? (
+            <p className="text-xs text-neutral-500">Shows every active item automatically{data.limit ? `, up to ${data.limit}` : ""}.</p>
+          ) : featured === 0 ? (
             <p className="rounded-md border border-amber-900/50 bg-amber-950/30 px-2 py-1.5 text-xs text-amber-400">
               No brands are currently marked Featured yet — this section won&apos;t show anything on the live site until you mark some as Featured in Brand
               Management.
@@ -309,7 +340,7 @@ export function BrandGridPreview({ data }: { data: BrandGridData }) {
           </>
         )
       ) : (
-        <>Live Brand Grid — {data.brandIds?.length ? `${data.brandIds.length} selected` : "all brands"}.</>
+        <>Live Brand Grid — {mode === "all" || !data.brandIds?.length ? "all brands" : `${data.brandIds.length} selected`}.</>
       )}
     </div>
   );

@@ -1,24 +1,24 @@
 "use client";
 
-import { useActionState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { subscribeNewsletterAction, type NewsletterState } from "@/app/[locale]/newsletter-actions";
 import { buttonClasses } from "@/components/ui/button";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: NewsletterState = {};
 
 export function NewsletterForm() {
   const t = useTranslations("footer");
   const locale = useLocale();
-  const [state, formAction, pending] = useActionState(subscribeNewsletterAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(subscribeNewsletterAction, initialState);
 
   if (state.success) {
     return <p className="text-sm text-wheat">{t("newsletterSuccess")}</p>;
   }
 
   return (
-    <form action={formAction} className="flex gap-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="flex gap-2">
       <input type="hidden" name="locale" value={locale.toUpperCase()} />
       <label htmlFor="newsletter-email" className="sr-only">
         {t("newsletterPlaceholder")}

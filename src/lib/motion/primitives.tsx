@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ElementType, type RefObject } from "react";
 import Link from "next/link";
 import { motion, useInView, useReducedMotion, useScroll, useTransform, type Variants } from "framer-motion";
-import { DURATION, EASE_PREMIUM } from "./motionTokens";
+import { DURATION, EASE_PREMIUM, EASING, type EasingKey } from "./motionTokens";
 import { useDesignAnimationSettings } from "@/components/site/design-animation-context";
 
 /** Phase 10 `ScrollReveal`'s `as` prop: a fixed, module-scope set of motion-enhanced elements
@@ -152,7 +152,9 @@ export type ScrollRevealVariant =
   | "slide-start"
   | "slide-end"
   | "fade-left"
-  | "fade-right";
+  | "fade-right"
+  | "reveal"
+  | "blur-reveal";
 
 /** Phase 9 "Animation > Intensity" -- scales every variant's travel distance (px offset / scale
  * delta) around its existing hand-tuned default (1 = unchanged, exactly today's values). Kept as a
@@ -191,6 +193,10 @@ function getScrollVariants(isRtl: boolean, intensityScale = 1): Record<Exclude<S
     // reading-direction cue). Pick slide-start/slide-end instead for anything tied to reading order.
     "fade-left": { hidden: { opacity: 0, x: -slideX }, show: { opacity: 1, x: 0 } },
     "fade-right": { hidden: { opacity: 0, x: slideX }, show: { opacity: 1, x: 0 } },
+    // Redesign PHASE 9. "reveal": a bottom-up clip wipe (no movement, so nothing shifts layout).
+    // "blur-reveal": fades in from a soft blur with a small rise.
+    reveal: { hidden: { clipPath: "inset(0% 0% 100% 0%)" }, show: { clipPath: "inset(0% 0% 0% 0%)" } },
+    "blur-reveal": { hidden: { opacity: 0, filter: `blur(${Math.round(12 * intensityScale)}px)`, y: 12 * intensityScale }, show: { opacity: 1, filter: "blur(0px)", y: 0 } },
   };
 }
 
@@ -207,8 +213,11 @@ interface ScrollRevealProps {
   className?: string;
   durationSec?: number;
   delaySec?: number;
-  trigger?: "onScroll" | "onLoad";
+  /** "onScrollRepeat" (PHASE 9) replays every time the element re-enters the viewport. */
+  trigger?: "onScroll" | "onLoad" | "onScrollRepeat";
   intensity?: "subtle" | "normal" | "strong";
+  /** PHASE 9: entrance easing (see EASING in motionTokens). Defaults to the existing premium curve. */
+  easing?: EasingKey;
   /** Phase 10: render as something other than a plain `div` -- e.g. `Link` (Next.js) or `"a"` -- so
    * a card that's itself a link can reveal-on-scroll in place, with zero extra wrapper element and
    * zero risk to CSS Grid item sizing/`col-span`/`row-span` (the wrapper WOULD be the grid's direct
@@ -224,7 +233,7 @@ interface ScrollRevealProps {
  * immediately on mount instead of waiting for the viewport (via `animate` instead of `whileInView`);
  * `intensity` scales the variant's travel distance (see INTENSITY_SCALE). Phase 10 added `as` (see
  * above) and automatic mobile-intensity scaling (MOBILE_INTENSITY_FACTOR). */
-export function ScrollReveal({ variant, children, className, durationSec, delaySec = 0, trigger = "onScroll", intensity = "normal", as, ...rest }: ScrollRevealProps) {
+export function ScrollReveal({ variant, children, className, durationSec, delaySec = 0, trigger = "onScroll", intensity = "normal", easing = "premium", as, ...rest }: ScrollRevealProps) {
   const reduce = useReducedMotion();
   const isRtl = useIsRtl();
   const isMobile = useIsMobileViewport();
@@ -243,9 +252,11 @@ export function ScrollReveal({ variant, children, className, durationSec, delayS
       </Component>
     );
   }
-  const transition = { duration: durationSec ?? DURATION.large * speed, delay: delaySec, ease: EASE_PREMIUM };
+  const transition = { duration: durationSec ?? DURATION.large * speed, delay: delaySec, ...(EASING[easing] ?? EASING.premium).framer };
   const intensityScale = INTENSITY_SCALE[intensity] * (isMobile ? MOBILE_INTENSITY_FACTOR : 1);
-  const variants = getScrollVariants(isRtl, intensityScale)[variant];
+  // PHASE 9 mobile rule: animated blur is costly on phone GPUs -- blur-reveal becomes a plain fade there.
+  const effectiveVariant = isMobile && variant === "blur-reveal" ? "fade-in" : variant;
+  const variants = getScrollVariants(isRtl, intensityScale)[effectiveVariant];
   if (trigger === "onLoad") {
     return (
       <Component className={className} initial="hidden" animate="show" variants={variants} transition={transition} {...rest}>
@@ -254,7 +265,7 @@ export function ScrollReveal({ variant, children, className, durationSec, delayS
     );
   }
   return (
-    <Component className={className} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.15 }} variants={variants} transition={transition} {...rest}>
+    <Component className={className} initial="hidden" whileInView="show" viewport={{ once: trigger !== "onScrollRepeat", amount: 0.15 }} variants={variants} transition={transition} {...rest}>
       {children}
     </Component>
   );

@@ -16,7 +16,7 @@ export default async function EditPagePage({ params }: { params: Promise<{ id: s
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "pages", "update");
 
-  const page = await prisma.page.findUnique({ where: { id }, include: { sections: true, seo: true } });
+  const page = await prisma.page.findUnique({ where: { id }, include: { sections: true, seo: { include: { ogImage: { select: { url: true } } } } } });
 
   if (!page) notFound();
 
@@ -27,7 +27,8 @@ export default async function EditPagePage({ params }: { params: Promise<{ id: s
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold">{isHomepage ? "Homepage (/)" : `/${page.slug}`}</h1>
+          <h1 className="text-lg font-semibold">{page.titleEn || (isHomepage ? "Homepage (/)" : `/${page.slug}`)}</h1>
+          {page.titleEn ? <p className="text-xs text-neutral-500">{isHomepage ? "/" : `/${page.slug}`}{page.titleAr ? ` · ${page.titleAr}` : ""}</p> : null}
           <p className="text-sm text-neutral-500">
             {page.status} · {page.sections.length} section{page.sections.length === 1 ? "" : "s"}
           </p>
@@ -45,7 +46,7 @@ export default async function EditPagePage({ params }: { params: Promise<{ id: s
 
       <Tabs
         items={[
-          { key: "details", label: "Details", content: <PageDetailsForm pageId={page.id} slug={page.slug} /> },
+          { key: "details", label: "Details", content: <PageDetailsForm pageId={page.id} slug={page.slug} titleEn={page.titleEn} titleAr={page.titleAr} /> },
           {
             key: "seo",
             label: "SEO",

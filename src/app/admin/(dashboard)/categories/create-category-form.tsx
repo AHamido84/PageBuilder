@@ -1,13 +1,14 @@
 "use client";
 
-import { useActionState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { createCategoryAction, type FormActionState } from "./actions";
-import { ImageUploadField } from "@/components/admin/image-upload-field";
+import { MediaPickerField } from "@/components/admin/ui/media-picker-field";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
 export function CreateCategoryForm({ categories }: { categories: { id: string; slug: string }[] }) {
-  const [state, formAction, pending] = useActionState(createCategoryAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(createCategoryAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -15,7 +16,7 @@ export function CreateCategoryForm({ categories }: { categories: { id: string; s
   }, [state.success]);
 
   return (
-    <form ref={formRef} action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form ref={formRef} action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Slug</label>
         <input name="slug" required placeholder="frozen-poultry" className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
@@ -55,7 +56,8 @@ export function CreateCategoryForm({ categories }: { categories: { id: string; s
         <label className="mb-1 block text-xs text-neutral-400">Order</label>
         <input name="order" type="number" defaultValue={0} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
       </div>
-      <ImageUploadField name="imageId" label="Image" />
+      <MediaPickerField name="imageId" label="Image" accept="IMAGE" uploadFolderName="Categories" />
+      <MediaPickerField name="bannerId" label="Banner (wide header on this category's product listing)" accept="IMAGE" uploadFolderName="Banners" />
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Featured order (optional)</label>
         <input

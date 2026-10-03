@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, can } from "@/lib/rbac/current-user";
 import { saveUploadedFile, MediaUploadError } from "@/lib/media-upload";
+import { buildMediaWhere, mediaListSelect } from "@/lib/media-library";
 import { logActivity } from "@/lib/activity-log";
-import type { Prisma } from "@prisma/client";
+
+const PAGE_SIZE = 60;
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -12,37 +14,23 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const type = searchParams.get("type");
-  const q = searchParams.get("q");
+  const where = buildMediaWhere({
+    q: searchParams.get("q"),
+    type: searchParams.get("type"),
+    folder: searchParams.get("folder"),
+    tag: searchParams.get("tag"),
+  });
+  const skip = Math.max(0, Number(searchParams.get("skip")) || 0);
 
-  const where: Prisma.MediaWhereInput = {};
-  if (type === "IMAGE" || type === "DOCUMENT" || type === "VIDEO") {
-    where.type = type;
-  }
-  if (q) {
-    where.originalName = { contains: q, mode: "insensitive" };
-  }
-
-  const media = await prisma.media.findMany({
+  const rows = await prisma.media.findMany({
     where,
-    orderBy: { createdAt: "desc" },
-    take: 100,
-    select: {
-      id: true,
-      url: true,
-      originalName: true,
-      type: true,
-      mimeType: true,
-      sizeBytes: true,
-      width: true,
-      height: true,
-      altTextEn: true,
-      altTextAr: true,
-      createdAt: true,
-    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip,
+    take: PAGE_SIZE + 1,
+    select: mediaListSelect,
   });
 
-  return NextResponse.json({ media });
+  return NextResponse.json({ media: rows.slice(0, PAGE_SIZE), hasMore: rows.length > PAGE_SIZE });
 }
 
 export async function POST(request: Request) {
@@ -51,12 +39,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const formData = await request.formData();
+  // A body cut off by a platform size limit fails to parse -- report that instead of crashing with a 500.
+  const formData = await request.formData().catch(() => null);
+  if (!formData) {
+    return NextResponse.json({ error: "The upload was too large or was interrupted. Try a smaller file." }, { status: 413 });
+  }
   const file = formData.get("file");
 
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "No file provided." }, { status: 400 });
   }
+
+  // Optional destination folder; an unknown id is ignored (file lands in Unfiled) rather than failing the upload.
+  const folderParam = formData.get("folderId");
+  const folderId =
+    typeof folderParam === "string" && folderParam
+      ? (await prisma.mediaFolder.findUnique({ where: { id: folderParam }, select: { id: true } }))?.id ?? null
+      : null;
 
   try {
     const saved = await saveUploadedFile(file);
@@ -71,8 +70,10 @@ export async function POST(request: Request) {
         url: saved.url,
         width: saved.width,
         height: saved.height,
+        folderId,
         uploadedById: user.id,
       },
+      select: mediaListSelect,
     });
 
     await logActivity({
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
       entityId: media.id,
     });
 
-    return NextResponse.json({ id: media.id, url: media.url });
+    return NextResponse.json({ id: media.id, url: media.url, media });
   } catch (error) {
     if (error instanceof MediaUploadError) {
       return NextResponse.json({ error: error.message }, { status: 400 });

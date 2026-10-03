@@ -2,8 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { Tabs } from "@/components/admin/ui/tabs";
 import { normalizeHeaderLogoSettings } from "@/lib/site-settings/header-logo";
-import { parseDesignTokens } from "@/lib/design-tokens/schema";
-import { GeneralForm, ContactForm, SocialForm, HoursForm, SeoForm, FooterForm, AppearanceForm, type Settings } from "./settings-forms";
+import Link from "next/link";
+import { parseFooterSettings } from "@/lib/site-settings/footer";
+import { GeneralForm, ContactForm, SocialForm, HoursForm, SeoForm, FooterForm, type Settings } from "./settings-forms";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +14,13 @@ export default async function SettingsPage() {
 
   let record = await prisma.siteSetting.findUnique({
     where: { id: "singleton" },
-    include: { logo: true, favicon: true, defaultOgImage: true },
+    include: { logo: true, favicon: true, defaultOgImage: true, footerLogo: true },
   });
 
   if (!record) {
     record = await prisma.siteSetting.create({
       data: { id: "singleton", siteNameEn: "Seven Eleven Trading", siteNameAr: "سفن إليفن للتجارة" },
-      include: { logo: true, favicon: true, defaultOgImage: true },
+      include: { logo: true, favicon: true, defaultOgImage: true, footerLogo: true },
     });
   }
 
@@ -53,7 +54,9 @@ export default async function SettingsPage() {
     newsletterTitleAr: record.newsletterTitleAr,
     newsletterBodyEn: record.newsletterBodyEn,
     newsletterBodyAr: record.newsletterBodyAr,
-    designTokens: parseDesignTokens(record.designTokens),
+    footerLogoId: record.footerLogoId,
+    footerLogo: record.footerLogo,
+    footerSettings: parseFooterSettings(record.footerSettings),
   };
 
   return (
@@ -67,7 +70,18 @@ export default async function SettingsPage() {
           { key: "hours", label: "Business hours", content: <HoursForm settings={settings} /> },
           { key: "seo", label: "SEO defaults", content: <SeoForm settings={settings} /> },
           { key: "footer", label: "Footer", content: <FooterForm settings={settings} /> },
-          { key: "appearance", label: "Appearance", content: <AppearanceForm settings={settings} /> },
+          {
+            key: "appearance",
+            label: "Appearance",
+            content: (
+              <p className="text-sm text-neutral-400">
+                Colors, fonts, spacing, corners, shadows and buttons now have their own page with a live preview:{" "}
+                <Link href="/admin/appearance" className="text-sky-400 hover:underline">
+                  Open Appearance
+                </Link>
+              </p>
+            ),
+          },
         ]}
       />
     </div>

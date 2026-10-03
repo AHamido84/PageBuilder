@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
 import { updateBlogPostAction, type FormActionState } from "../actions";
 import { PostFormFields } from "../post-form-fields";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
@@ -41,10 +41,10 @@ function toLocalDateTimeInput(date: Date | null): string {
 }
 
 export function EditPostForm({ post, categories, tags, authors }: Props) {
-  const [state, formAction, pending] = useActionState(updateBlogPostAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(updateBlogPostAction, initialState);
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form action={formAction} onSubmit={submitKeepingInput} className="space-y-3">
       <input type="hidden" name="id" value={post.id} />
       <PostFormFields
         categories={categories}

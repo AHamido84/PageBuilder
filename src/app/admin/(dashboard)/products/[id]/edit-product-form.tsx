@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { updateProductDetailsAction, updateProductSpecsAction, type FormActionState } from "../actions";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 const inputClass = "w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm";
@@ -26,12 +26,12 @@ interface ProductDetails {
 }
 
 export function EditProductForm({ product, categories, brands }: { product: ProductDetails; categories: { id: string; label: string }[]; brands: { id: string; slug: string }[] }) {
-  const [state, formAction, pending] = useActionState(updateProductDetailsAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(updateProductDetailsAction, initialState);
   const en = product.translations.find((t) => t.locale === "EN");
   const ar = product.translations.find((t) => t.locale === "AR");
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <input type="hidden" name="id" value={product.id} />
       <div>
         <label className={labelClass}>SKU</label>
@@ -134,12 +134,12 @@ interface ProductSpecs {
 }
 
 export function ProductSpecsForm({ product }: { product: ProductSpecs }) {
-  const [state, formAction, pending] = useActionState(updateProductSpecsAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(updateProductSpecsAction, initialState);
   const en = product.translations.find((t) => t.locale === "EN");
   const ar = product.translations.find((t) => t.locale === "AR");
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <input type="hidden" name="id" value={product.id} />
       <div>
         <label className={labelClass}>Weight</label>

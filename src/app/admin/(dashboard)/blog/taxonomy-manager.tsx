@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { DeleteButton } from "@/components/admin/ui/delete-button";
 import {
   createBlogCategoryAction,
@@ -9,6 +9,7 @@ import {
   deleteTagAction,
   type FormActionState,
 } from "./actions";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
@@ -25,7 +26,7 @@ function TaxonomyForm({
   action: (prev: FormActionState, formData: FormData) => Promise<FormActionState>;
   placeholder: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(action, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -33,7 +34,7 @@ function TaxonomyForm({
   }, [state.success]);
 
   return (
-    <form ref={formRef} action={formAction} className="flex flex-wrap items-end gap-2">
+    <form ref={formRef} action={formAction} onSubmit={submitKeepingInput} className="flex flex-wrap items-end gap-2">
       <input name="slug" placeholder="slug" required className="w-28 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs" />
       <input name="nameEn" placeholder={`${placeholder} (EN)`} required className="w-32 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs" />
       <input name="nameAr" placeholder={`${placeholder} (AR)`} required dir="rtl" className="w-32 rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs" />

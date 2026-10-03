@@ -13,7 +13,22 @@ import type {
   SectionTypographySettings,
   StyleTokens,
 } from "@/lib/page-builder/types";
-import { defaultStyleTokens, defaultBackgroundImageSettings, sanitizeAdvancedToken } from "@/lib/page-builder/types";
+import { defaultStyleTokens, defaultBackgroundImageSettings, sanitizeAdvancedToken, defaultSectionElementMotion, defaultSectionHoverSettings } from "@/lib/page-builder/types";
+import type { ElementMotionToken } from "@/lib/page-builder/types";
+
+// PHASE 9 element-level animation choices (CSS keyframes in globals.css).
+const ELEMENT_MOTION_OPTIONS: { value: ElementMotionToken; label: string }[] = [
+  { value: "none", label: "None" },
+  { value: "fade", label: "Fade" },
+  { value: "fade-up", label: "Fade up" },
+  { value: "fade-down", label: "Fade down" },
+  { value: "fade-start", label: "Fade from start (RTL-aware)" },
+  { value: "fade-end", label: "Fade from end (RTL-aware)" },
+  { value: "scale", label: "Scale" },
+  { value: "blur", label: "Blur reveal" },
+  { value: "reveal", label: "Reveal wipe" },
+];
+const ELEMENT_MOTION_LABELS = { heading: "Headings", text: "Text", image: "Images", button: "Buttons", card: "Cards" } as const;
 import {
   ALIGN_OPTIONS,
   ANIMATION_INTENSITY_OPTIONS,
@@ -155,6 +170,16 @@ export function SettingsPanel({ section, device, onDeviceChange, locale: editorL
           independent" (see LocaleSectionSettings, types.ts) for every tab, content and style alike. */}
       <div className="space-y-1.5 border-b border-neutral-800 p-3">
         <SegmentedControl value={editorLocale} onChange={onLocaleChange} options={[{ value: "en", label: "English" }, { value: "ar", label: "العربية" }]} />
+        {/* PHASE 10: settings are per language by design; this copies the other language's layout/style/
+            animation/background in one step (content text is untouched). Undoable like any edit. */}
+        <button
+          type="button"
+          onClick={() => onUpdateSettings(editorLocale, structuredClone(section.settings[editorLocale === "ar" ? "en" : "ar"]))}
+          className="text-[11px] text-neutral-400 underline-offset-2 hover:text-neutral-100 hover:underline"
+          title="Copies layout, style, typography, buttons, animation, background and advanced settings. Content text is not copied. Undo with Ctrl+Z."
+        >
+          {editorLocale === "ar" ? "Copy design settings from English" : "Copy design settings from العربية"}
+        </button>
         <p className="text-[11px] text-neutral-500">
           Editing every tab below for <span className="font-medium text-neutral-300">{editorLocale === "ar" ? "العربية" : "English"}</span> only — the other
           language is unaffected.
@@ -182,6 +207,7 @@ export function SettingsPanel({ section, device, onDeviceChange, locale: editorL
                 </p>
                 <MediaPickerControlled
                   label="Desktop image"
+                  uploadFolderName="Backgrounds"
                   mediaId={bg.image?.id ?? ""}
                   previewUrl={bg.image?.url}
                   onChange={(id, url) => updateBg("image", id ? { id, url } : null)}
@@ -190,6 +216,7 @@ export function SettingsPanel({ section, device, onDeviceChange, locale: editorL
                   <>
                     <MediaPickerControlled
                       label="Mobile image (optional — falls back to desktop)"
+                      uploadFolderName="Backgrounds"
                       mediaId={bg.mobileImage?.id ?? ""}
                       previewUrl={bg.mobileImage?.url}
                       onChange={(id, url) => updateBg("mobileImage", id ? { id, url } : null)}
@@ -220,6 +247,16 @@ export function SettingsPanel({ section, device, onDeviceChange, locale: editorL
                       options={BACKGROUND_ATTACHMENT_OPTIONS.map((o) => ({ value: o, label: o === "fixed" ? "Fixed (parallax)" : "Scroll" }))}
                     />
                     <SelectField
+                      label="Image motion (desktop only)"
+                      value={bg.motion ?? "none"}
+                      onChange={(motion) => updateBg("motion", motion)}
+                      options={[
+                        { value: "none", label: "None" },
+                        { value: "slow-zoom", label: "Slow zoom" },
+                        { value: "ken-burns", label: "Ken Burns — zoom + drift" },
+                      ]}
+                    />
+                    <SelectField
                       label="Overlay"
                       value={bg.overlay}
                       onChange={(overlay) => updateBg("overlay", overlay)}
@@ -248,6 +285,7 @@ export function SettingsPanel({ section, device, onDeviceChange, locale: editorL
                       <MediaPickerControlled
                         label="Video (optional — plays over the image above, which stays as its poster/fallback)"
                         accept="VIDEO"
+                        uploadFolderName="Backgrounds"
                         mediaId={bg.video?.id ?? ""}
                         previewUrl={bg.video?.url}
                         onChange={(id, url) => updateBg("video", id ? { id, url } : null)}
@@ -449,6 +487,8 @@ export function SettingsPanel({ section, device, onDeviceChange, locale: editorL
                     { value: "slide-end", label: "Slide in (end — reading direction, RTL-aware)" },
                     { value: "fade-left", label: "Fade in from left (physical, same in AR/EN)" },
                     { value: "fade-right", label: "Fade in from right (physical, same in AR/EN)" },
+                    { value: "reveal", label: "Reveal — bottom-up wipe" },
+                    { value: "blur-reveal", label: "Blur reveal (plain fade on phones)" },
                     { value: "parallax", label: "Parallax" },
                   ]}
                 />
@@ -458,7 +498,23 @@ export function SettingsPanel({ section, device, onDeviceChange, locale: editorL
                       label="Trigger"
                       value={localeSettings.animationTrigger}
                       onChange={(animationTrigger) => updateSetting("animationTrigger", animationTrigger)}
-                      options={ANIMATION_TRIGGER_OPTIONS.map((o) => ({ value: o, label: o === "onScroll" ? "On scroll into view" : "On page load" }))}
+                      options={ANIMATION_TRIGGER_OPTIONS.map((o) => ({
+                        value: o,
+                        label: o === "onScroll" ? "On scroll into view (once)" : o === "onScrollRepeat" ? "Every time it scrolls into view" : "On page load",
+                      }))}
+                    />
+                    <SelectField
+                      label="Easing"
+                      value={localeSettings.animationEasing ?? "premium"}
+                      onChange={(animationEasing) => updateSetting("animationEasing", animationEasing)}
+                      options={[
+                        { value: "premium", label: "Premium (default)" },
+                        { value: "smooth", label: "Smooth" },
+                        { value: "out", label: "Ease out" },
+                        { value: "in-out", label: "Ease in-out" },
+                        { value: "linear", label: "Linear" },
+                        { value: "spring", label: "Soft spring" },
+                      ]}
                     />
                     <SelectField
                       label="Intensity"
@@ -478,6 +534,55 @@ export function SettingsPanel({ section, device, onDeviceChange, locale: editorL
                     </div>
                   </>
                 ) : null}
+
+                <div className="space-y-2 border-t border-neutral-800 pt-3">
+                  <p className="text-xs font-medium text-neutral-300">Element animations</p>
+                  <p className="text-[11px] leading-snug text-neutral-500">
+                    Animate the headings, text, images, buttons and cards inside this section independently, as they scroll into view. CSS-only;
+                    browsers without scroll-timeline support (and visitors who prefer reduced motion) simply see the content.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["heading", "text", "image", "button", "card"] as const).map((key) => (
+                      <SelectField
+                        key={key}
+                        label={ELEMENT_MOTION_LABELS[key]}
+                        value={localeSettings.elementMotion?.[key] ?? "none"}
+                        onChange={(value) => updateSetting("elementMotion", { ...defaultSectionElementMotion(localeSettings.elementMotion), [key]: value })}
+                        options={ELEMENT_MOTION_OPTIONS}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2 border-t border-neutral-800 pt-3">
+                  <p className="text-xs font-medium text-neutral-300">Hover effects</p>
+                  <CheckboxField
+                    label="Image zoom"
+                    checked={localeSettings.hover?.imageZoom ?? false}
+                    onChange={(imageZoom) => updateSetting("hover", { ...defaultSectionHoverSettings(localeSettings.hover), imageZoom })}
+                  />
+                  <CheckboxField
+                    label="Card lift"
+                    checked={localeSettings.hover?.cardLift ?? false}
+                    onChange={(cardLift) => updateSetting("hover", { ...defaultSectionHoverSettings(localeSettings.hover), cardLift })}
+                  />
+                  <CheckboxField
+                    label="Overlay reveal on images"
+                    checked={localeSettings.hover?.overlayReveal ?? false}
+                    onChange={(overlayReveal) => updateSetting("hover", { ...defaultSectionHoverSettings(localeSettings.hover), overlayReveal })}
+                  />
+                  <SelectField
+                    label="Button hover"
+                    value={localeSettings.hover?.button ?? "none"}
+                    onChange={(button) => updateSetting("hover", { ...defaultSectionHoverSettings(localeSettings.hover), button })}
+                    options={[
+                      { value: "none", label: "Default" },
+                      { value: "lift", label: "Lift" },
+                      { value: "shine", label: "Shine sweep" },
+                      { value: "arrow", label: "Nudge icon" },
+                    ]}
+                  />
+                </div>
               </div>
             ),
           },

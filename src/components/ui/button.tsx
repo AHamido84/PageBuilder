@@ -9,8 +9,9 @@ export type ButtonSize = "sm" | "md" | "lg";
 // hookup until an admin's Buttons override redefines them (see resolve-css.ts). Every variant's own
 // color is untouched here -- that's already covered by the Global Colors Primary/Secondary/Gold
 // overrides re-pointing --color-coral/--color-petrol/--color-wheat directly.
+// "ui-btn" is a stable hook for the PHASE 9 section motion/hover CSS (globals.css); it has no styles of its own.
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-[var(--button-radius)] font-medium tracking-[-0.01em] transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-[var(--ease-premium)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 focus-visible:shadow-[var(--shadow-focus)]";
+  "ui-btn inline-flex items-center justify-center gap-2 rounded-[var(--button-radius)] font-medium tracking-[-0.01em] transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-[var(--ease-premium)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 focus-visible:shadow-[var(--shadow-focus)]";
 
 // Primary = Coral, Secondary = Petrol Green (spec's explicit CTA color assignment) -- kept as two
 // distinct solid fills, never diluting Coral into a general-purpose accent used elsewhere. "gold"/
@@ -23,13 +24,22 @@ const base =
 // "gold-outline", since that value is already a persisted, selectable option in the Hero block's
 // CTA style schema (heroButtonStyleSchema) -- renaming it would be a breaking change to already-
 // editable content for zero benefit. Both names are intentionally kept, permanently.
-const GOLD_OUTLINE_CLASSES = "border border-wheat text-wheat hover:bg-wheat hover:text-ink";
+//
+// Global Visual Theme Engine: every editable variant reads its colors from --btn-<variant>-*
+// variables (globals.css), whose defaults are exactly the palette colors listed above, so the
+// Appearance page's per-button controls can restyle one variant without touching the others.
+// Solid variants draw their border as a 1px inset ring (transparent by default) so adding a
+// border color never changes the button's size.
+const GOLD_OUTLINE_CLASSES =
+  "border border-[color:var(--btn-ghost-gold-border)] bg-[var(--btn-ghost-gold-bg)] text-[color:var(--btn-ghost-gold-text)] hover:bg-[var(--btn-ghost-gold-hover-bg)] hover:text-[color:var(--btn-ghost-gold-hover-text)]";
+// (Written out in full per variant -- Tailwind only generates classes it can find as literal strings.)
+const SOLID_SHADOW = "inset-ring shadow-[var(--button-shadow)] hover:shadow-[var(--shadow-card)]";
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-coral text-paper shadow-[var(--button-shadow)] hover:bg-coral-strong hover:shadow-[var(--shadow-card)]",
-  secondary: "bg-petrol text-paper shadow-[var(--button-shadow)] hover:bg-ink hover:shadow-[var(--shadow-card)]",
+  primary: `${SOLID_SHADOW} bg-[var(--btn-primary-bg)] text-[color:var(--btn-primary-text)] inset-ring-[color:var(--btn-primary-border)] hover:bg-[var(--btn-primary-hover-bg)] hover:text-[color:var(--btn-primary-hover-text)]`,
+  secondary: `${SOLID_SHADOW} bg-[var(--btn-secondary-bg)] text-[color:var(--btn-secondary-text)] inset-ring-[color:var(--btn-secondary-border)] hover:bg-[var(--btn-secondary-hover-bg)] hover:text-[color:var(--btn-secondary-hover-text)]`,
   "ghost-light": "border border-paper/40 text-paper hover:border-paper hover:bg-paper hover:text-ink",
   "ghost-dark": "text-ink hover:text-harbor",
-  gold: "bg-wheat text-ink shadow-[var(--button-shadow)] hover:bg-wheat-strong hover:shadow-[var(--shadow-card)]",
+  gold: `${SOLID_SHADOW} bg-[var(--btn-gold-bg)] text-[color:var(--btn-gold-text)] inset-ring-[color:var(--btn-gold-border)] hover:bg-[var(--btn-gold-hover-bg)] hover:text-[color:var(--btn-gold-hover-text)]`,
   "gold-outline": GOLD_OUTLINE_CLASSES,
   "ghost-gold": GOLD_OUTLINE_CLASSES,
 };

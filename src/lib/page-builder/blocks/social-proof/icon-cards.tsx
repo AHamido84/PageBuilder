@@ -8,6 +8,9 @@ import {
 } from "lucide-react";
 import { TextField, TextareaField, SelectField } from "@/components/admin/ui/field";
 import { IconButton } from "@/components/admin/ui/icon-button";
+import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
+import { CmsFillImage } from "@/components/media/cms-image";
+import { Arrow } from "@/components/ui/arrow";
 import { ScrollReveal } from "@/lib/motion/primitives";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveColumnsClasses } from "../../style-tokens";
@@ -43,12 +46,22 @@ export function IconCardsEdit({ data, onChange, locale }: BlockEditProps<IconCar
           />
           <TextField label="Title" value={item.title} onChange={(title) => setItems(items.map((it, idx) => (idx === i ? { ...it, title } : it)))} dir={dir} />
           <TextareaField label="Body" value={item.body} onChange={(body) => setItems(items.map((it, idx) => (idx === i ? { ...it, body } : it)))} dir={dir} rows={2} />
+          <MediaPickerControlled
+            label="Image (optional — replaces the icon)"
+            uploadFolderName="Solutions"
+            mediaId={item.image?.id ?? ""}
+            previewUrl={item.image?.url}
+            onChange={(id, url) => setItems(items.map((it, idx) => (idx === i ? { ...it, image: id ? { id, url } : null } : it)))}
+          />
           <TextField label="Link (optional)" value={item.link ?? ""} onChange={(link) => setItems(items.map((it, idx) => (idx === i ? { ...it, link } : it)))} />
+          {item.link ? (
+            <TextField label="Button label (optional)" value={item.ctaLabel ?? ""} onChange={(ctaLabel) => setItems(items.map((it, idx) => (idx === i ? { ...it, ctaLabel } : it)))} dir={dir} />
+          ) : null}
         </div>
       ))}
       <button
         type="button"
-        onClick={() => setItems([...items, { icon: "star", title: "", body: "", link: "" }])}
+        onClick={() => setItems([...items, { icon: "star", title: "", body: "", link: "", image: null, ctaLabel: "" }])}
         className="flex items-center gap-1.5 rounded-md border border-dashed border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-200"
       >
         <Plus size={14} /> Add card
@@ -64,24 +77,36 @@ export function IconCardsRender({ data, settings, locale }: BlockRenderProps<Ico
       <div className={`grid gap-[var(--card-gap,1.5rem)] lg:gap-[calc(var(--card-gap,1.5rem)*1.333)] ${resolveColumnsClasses(settings)}`}>
         {data.items.map((item, i) => {
           const Icon = ICON_OPTIONS[item.icon] ?? Star;
+          const hasImage = Boolean(item.image?.url);
           const cardContent = (
             <>
-              <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-harbor-soft">
-                <Icon size={26} strokeWidth={1.5} className="text-harbor" />
-              </span>
-              <p className="mt-5 font-display text-h4">{item.title}</p>
+              {hasImage ? (
+                <div className="relative -mx-8 -mt-8 mb-6 aspect-[4/3] overflow-hidden">
+                  <CmsFillImage src={item.image!.url} alt={item.title} sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" />
+                </div>
+              ) : (
+                <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-harbor-soft">
+                  <Icon size={26} strokeWidth={1.5} className="text-harbor" />
+                </span>
+              )}
+              <p className={`${hasImage ? "" : "mt-5 "}font-display text-h4`}>{item.title}</p>
               <p className="mt-2 text-sm leading-relaxed opacity-65">{item.body}</p>
+              {item.link && item.ctaLabel ? (
+                <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-harbor">
+                  {item.ctaLabel} <Arrow />
+                </span>
+              ) : null}
             </>
           );
-          const cardClasses = "hover-lift rounded-[var(--radius-lg)] border border-current/10 p-8";
+          const cardClasses = `hover-lift rounded-[var(--card-radius-lg)] border border-current/10 p-8${hasImage ? " overflow-hidden" : ""}`;
           // Phase 10: reveals in place on scroll -- `as` picks Link or a plain div per item, same
           // element as before (no extra wrapper), so the grid's column/gap sizing is untouched.
           return item.link ? (
-            <ScrollReveal key={i} as={Link} href={resolveHref(item.link, locale)} variant="fade-up" className={`${cardClasses} block`}>
+            <ScrollReveal key={i} as={Link} href={resolveHref(item.link, locale)} variant="fade-up" className={`${cardClasses} block`} data-ui-card="">
               {cardContent}
             </ScrollReveal>
           ) : (
-            <ScrollReveal key={i} variant="fade-up" className={cardClasses}>
+            <ScrollReveal key={i} variant="fade-up" className={cardClasses} data-ui-card="">
               {cardContent}
             </ScrollReveal>
           );

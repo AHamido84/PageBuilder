@@ -1,21 +1,13 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { Section } from "@/components/ui/section";
+import { LEGAL_UPDATED, type LegalContent } from "@/lib/legal-content";
 
-interface LegalSection {
-  heading: string;
-  body: string;
-}
-
-interface LegalContent {
-  en: LegalSection[];
-  ar: LegalSection[];
-}
 
 export async function LegalPage({ titleKey, content }: { titleKey: "privacyTitle" | "termsTitle" | "cookieTitle"; content: LegalContent }) {
   const locale = await getLocale();
   const t = await getTranslations("legal");
   const sections = locale === "ar" ? content.ar : content.en;
-  const updated = "2026-08-08";
+  const updated = LEGAL_UPDATED;
 
   return (
     <Section tone="paper" className="border-t-0 pb-20 pt-14 sm:pt-20">

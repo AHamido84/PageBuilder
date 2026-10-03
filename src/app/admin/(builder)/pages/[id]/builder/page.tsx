@@ -5,6 +5,7 @@ import { getBlock } from "@/lib/page-builder/registry";
 import type { BuilderSection } from "@/lib/page-builder/types";
 import { normalizeLocaleSettings } from "@/lib/page-builder/types";
 import { PageBuilderShell } from "./page-builder-shell";
+import { getDraftState } from "@/lib/page-builder/draft-state";
 import type { RevisionListItem } from "./revision-history-panel";
 
 /** Mirrors SectionRenderer's resolution step (see src/components/site/section-renderer.tsx) so a
@@ -85,6 +86,8 @@ export default async function PageBuilderPage({ params }: { params: Promise<{ id
     <PageBuilderShell
       pageId={page.id}
       slug={page.slug}
+      title={page.titleEn}
+      initialDraftState={await getDraftState(page.id)}
       initialStatus={page.status}
       initialSections={sections}
       initialRevisions={revisions}

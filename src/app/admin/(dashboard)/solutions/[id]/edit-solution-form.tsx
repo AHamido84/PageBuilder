@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { updateSolutionAction, type FormActionState } from "../actions";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 
@@ -17,12 +17,12 @@ interface Props {
 }
 
 export function EditSolutionForm({ solution }: Props) {
-  const [state, formAction, pending] = useActionState(updateSolutionAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(updateSolutionAction, initialState);
   const en = solution.translations.find((t) => t.locale === "EN");
   const ar = solution.translations.find((t) => t.locale === "AR");
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <input type="hidden" name="id" value={solution.id} />
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Slug</label>

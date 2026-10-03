@@ -190,9 +190,49 @@ export async function addProductImageAction(productId: string, mediaId: string):
 export async function removeProductImageAction(productId: string, mediaId: string): Promise<{ error?: string }> {
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "products", "update");
-  await prisma.product.update({ where: { id: productId }, data: { images: { disconnect: { id: mediaId } } } });
+  // Removing the main image from the gallery also clears it as the main image (PHASE 7) -- the
+  // card then falls back to the first remaining gallery image instead of a photo no longer listed.
+  const product = await prisma.product.findUnique({ where: { id: productId }, select: { mainImageId: true } });
+  await prisma.product.update({
+    where: { id: productId },
+    data: { images: { disconnect: { id: mediaId } }, ...(product?.mainImageId === mediaId ? { mainImageId: null } : {}) },
+  });
   revalidatePath(`/admin/products/${productId}`);
   return {};
+}
+
+/**
+ * Redesign PHASE 7: sets (or clears, with "") the product's explicit main image or its optional
+ * mobile-only image. Only IMAGE media are accepted. Picking a main image that isn't in the gallery
+ * yet also adds it to the gallery, so the detail page always shows it.
+ */
+export async function setProductKeyImageAction(productId: string, slot: "main" | "mobile", mediaId: string): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "products", "update");
+  if (slot !== "main" && slot !== "mobile") return { error: "Invalid image slot." };
+
+  if (mediaId) {
+    const media = await prisma.media.findUnique({ where: { id: mediaId }, select: { type: true } });
+    if (!media) return { error: "Media not found." };
+    if (media.type !== "IMAGE") return { error: "Only images can be used here." };
+  }
+
+  const value = mediaId || null;
+  await prisma.product.update({
+    where: { id: productId },
+    data:
+      slot === "main"
+        ? { mainImageId: value, ...(value ? { images: { connect: { id: value } } } : {}) }
+        : { mobileImageId: value },
+  });
+  await logActivity({ userId: currentUser.id, action: `product.${slot}Image`, entityType: "Product", entityId: productId });
+  revalidatePath(`/admin/products/${productId}`);
+  return {};
+}
+
+/** Gallery "Set as main" shortcut -- same as picking it in the Main image field. */
+export async function setProductMainImageAction(productId: string, mediaId: string): Promise<{ error?: string }> {
+  return setProductKeyImageAction(productId, "main", mediaId);
 }
 
 export async function addProductVideoAction(productId: string, mediaId: string): Promise<{ error?: string }> {
@@ -280,6 +320,7 @@ const productSeoSchema = z.object({
   descriptionEn: z.string().max(400).optional().or(z.literal("")),
   descriptionAr: z.string().max(400).optional().or(z.literal("")),
   canonicalUrl: z.string().max(300).optional().or(z.literal("")),
+  ogImageId: z.string().max(60).optional().or(z.literal("")),
 });
 
 export async function updateProductSeoAction(_prev: FormActionState, formData: FormData): Promise<FormActionState> {
@@ -302,6 +343,7 @@ export async function updateProductSeoAction(_prev: FormActionState, formData: F
       descriptionEn: data.descriptionEn || null,
       descriptionAr: data.descriptionAr || null,
       canonicalUrl: data.canonicalUrl || null,
+      ogImageId: data.ogImageId || null,
       noIndex,
     },
     update: {
@@ -310,6 +352,7 @@ export async function updateProductSeoAction(_prev: FormActionState, formData: F
       descriptionEn: data.descriptionEn || null,
       descriptionAr: data.descriptionAr || null,
       canonicalUrl: data.canonicalUrl || null,
+      ogImageId: data.ogImageId || null,
       noIndex,
     },
   });
@@ -357,6 +400,8 @@ export async function duplicateProductAction(productId: string): Promise<{ error
       relatedProductIds: source.relatedProductIds,
       isPublished: false,
       isFeatured: false,
+      mainImageId: source.mainImageId,
+      mobileImageId: source.mobileImageId,
       images: { connect: source.images.map((m) => ({ id: m.id })) },
       videos: { connect: source.videos.map((m) => ({ id: m.id })) },
       documents: { connect: source.documents.map((m) => ({ id: m.id })) },

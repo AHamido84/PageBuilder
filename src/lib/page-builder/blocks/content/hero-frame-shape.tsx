@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import { useIsMobileViewport } from "@/lib/motion/primitives";
 import { FRAME_SHAPE_CSS, FRAME_MORPH_TARGET, type FrameStyle, type FrameBorderStyle, type FrameGlow } from "./frame-shapes";
 import type { HeroFrameBorderColor } from "../content-blocks";
 
@@ -54,7 +55,9 @@ export function HeroFrameShape({
   const reduce = useReducedMotion();
   const shape = FRAME_SHAPE_CSS[frameStyle];
   const morphTarget = FRAME_MORPH_TARGET[frameStyle];
-  const shouldMorph = animation === "morph" && !!morphTarget && !!shape.borderRadius && !reduce;
+  // PHASE 9 mobile rule: the endless border-radius morph repaints every frame -- off on phones.
+  const isMobile = useIsMobileViewport();
+  const shouldMorph = animation === "morph" && !!morphTarget && !!shape.borderRadius && !reduce && !isMobile;
   const hasBorder = borderStyle !== "none";
   // React doesn't treat `inset` as one of its auto-`px` unitless properties, so a bare number here
   // renders as invalid CSS (`inset: 3;`, silently ignored -- confirmed live: the content box

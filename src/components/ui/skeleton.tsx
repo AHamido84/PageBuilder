@@ -6,7 +6,7 @@ export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivEl
 
 export function ProductCardSkeleton() {
   return (
-    <div className="rounded-[var(--radius-md)] border border-ink/10 bg-paper p-4">
+    <div className="rounded-[var(--radius-md)] border border-line bg-paper p-4">
       <Skeleton className="mb-4 aspect-[4/3] w-full" />
       <Skeleton className="mb-2 h-3 w-1/3" />
       <Skeleton className="mb-1 h-4 w-4/5" />

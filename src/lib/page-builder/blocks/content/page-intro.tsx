@@ -1,6 +1,6 @@
 "use client";
 
-import { TextField, TextareaField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, SelectField } from "@/components/admin/ui/field";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { PageIntroData } from "../content-blocks";
 
@@ -18,6 +18,15 @@ export function PageIntroEdit({ data, onChange, locale }: BlockEditProps<PageInt
       <TextField label="Eyebrow (optional)" value={data.eyebrow ?? ""} onChange={(eyebrow) => onChange({ ...data, eyebrow })} dir={dir} />
       <TextField label="Title" value={data.title ?? ""} onChange={(title) => onChange({ ...data, title })} dir={dir} />
       <TextareaField label="Description (optional)" value={data.description ?? ""} onChange={(description) => onChange({ ...data, description })} dir={dir} rows={2} />
+      <SelectField
+        label="Title heading level"
+        value={data.headingLevel ?? "h1"}
+        onChange={(headingLevel) => onChange({ ...data, headingLevel })}
+        options={[
+          { value: "h1", label: "H1 — main page title (default)" },
+          { value: "h2", label: "H2 — intro further down the page" },
+        ]}
+      />
     </div>
   );
 }
@@ -27,7 +36,7 @@ export function PageIntroRender({ data }: BlockRenderProps<PageIntroData>) {
   return (
     <div className="max-w-2xl">
       {data.eyebrow ? <p className="manifest-strip mb-3 text-harbor">{data.eyebrow}</p> : null}
-      {data.title ? <h2 className="font-display text-h2">{data.title}</h2> : null}
+      {data.title ? (data.headingLevel === "h2" ? <h2 className="font-display text-h2">{data.title}</h2> : <h1 className="font-display text-h2">{data.title}</h1>) : null}
       {data.description ? <p className="mt-4 text-base leading-relaxed text-ink/70 sm:text-lg">{data.description}</p> : null}
     </div>
   );

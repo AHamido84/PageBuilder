@@ -33,7 +33,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a
             href="/"
-            className="rounded-[var(--radius-sm)] border border-ink/15 px-5 py-2.5 text-sm font-medium text-ink hover:bg-ink/5"
+            className="rounded-[var(--radius-sm)] border border-line-strong px-5 py-2.5 text-sm font-medium text-ink hover:bg-ink/5"
           >
             Back to home
           </a>

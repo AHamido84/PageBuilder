@@ -1,21 +1,37 @@
 import { prisma } from "@/lib/prisma";
-import { ProductCard, type ProductCardData } from "@/components/site/product-card";
+import type { ProductCardData } from "@/components/site/product-card";
 import { ProductCarouselTrack } from "@/components/site/product-carousel-track";
+import type { Prisma } from "@prisma/client";
+import { ProductGridFilterable } from "./product-grid-filterable";
 import type { BlockRenderProps } from "../../types";
 import type { ProductGridData } from "../commerce-blocks";
+import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
 
 async function loadCards(data: ProductGridData, locale: string): Promise<ProductCardData[]> {
   const limit = Number(data.limit) || 8;
-  const products = await prisma.product.findMany({
-    where: { isPublished: true, ...(data.categoryId ? { categoryId: data.categoryId } : {}) },
+  const mode = data.mode ?? "latest";
+  const manualIds = mode === "manual" ? (data.productIds ?? []).slice(0, limit) : [];
+  if (mode === "manual" && manualIds.length === 0) return [];
+  const where: Prisma.ProductWhereInput = { isPublished: true };
+  if (mode === "manual") where.id = { in: manualIds };
+  else {
+    if (mode === "featured") where.isFeatured = true;
+    // "latest" keeps the original behavior: an optional category narrows it.
+    if ((mode === "category" || mode === "latest" || mode === "featured") && data.categoryId) where.categoryId = data.categoryId;
+  }
+  const found = await prisma.product.findMany({
+    where,
     take: limit,
     orderBy: { createdAt: "desc" },
     include: {
       translations: true,
       category: { include: { translations: true } },
-      images: { take: 1, select: { url: true, width: true, height: true } },
+      ...productCardImageInclude,
     },
   });
+
+  // Manual mode: the editor's chosen order, not the database's.
+  const products = mode === "manual" ? manualIds.map((id) => found.find((p) => p.id === id)).filter((p): p is (typeof found)[number] => Boolean(p)) : found;
 
   return products.map((product) => ({
     id: product.id,
@@ -24,9 +40,7 @@ async function loadCards(data: ProductGridData, locale: string): Promise<Product
     temperatureClass: product.temperatureClass,
     name: product.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.sku,
     categoryName: product.category.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.category.slug,
-    imageUrl: product.images[0]?.url ?? null,
-    imageWidth: product.images[0]?.width ?? null,
-    imageHeight: product.images[0]?.height ?? null,
+    ...resolveProductCardImage(product),
     shortDescription: product.translations.find((t) => t.locale === locale.toUpperCase())?.shortDescription ?? null,
     isFeatured: product.isFeatured,
     createdAt: product.createdAt,
@@ -43,24 +57,22 @@ export async function ProductGridRender({ data, locale }: BlockRenderProps<Produ
     <div>
       {data.heading ? <h2 className="mb-3 font-display text-h2">{data.heading}</h2> : null}
       {data.description ? <p className="measure-ar mb-8 max-w-2xl text-ink/60">{data.description}</p> : null}
-      <div
-        className="grid grid-cols-2 gap-[var(--grid-gap,1.25rem)] sm:grid-cols-[repeat(var(--cols),minmax(0,1fr))]"
-        style={{ "--cols": columns } as React.CSSProperties}
-      >
-        {cards.map((card) => (
-          <ProductCard
-            key={card.id}
-            product={card}
-            locale={locale}
-            imageFit={data.imageFit}
-            imagePosition={data.imagePosition}
-            hoverEffect={data.hoverEffect}
-            showSpecs={data.showSpecs}
-            showCta={data.showCta}
-            ctaLabel={data.ctaLabel}
-          />
-        ))}
-      </div>
+      <ProductGridFilterable
+        cards={cards}
+        locale={locale}
+        columns={columns}
+        showCategoryFilter={data.showCategoryFilter ?? false}
+        filterAllLabel={data.filterAllLabel ?? ""}
+        promo={data.promo}
+        cardOptions={{
+          imageFit: data.imageFit,
+          imagePosition: data.imagePosition,
+          hoverEffect: data.hoverEffect,
+          showSpecs: data.showSpecs,
+          showCta: data.showCta,
+          ctaLabel: data.ctaLabel,
+        }}
+      />
     </div>
   );
 }

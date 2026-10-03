@@ -27,6 +27,10 @@ export type AnimationToken =
   | "parallax"
   | "fade-left"
   | "fade-right"
+  // Redesign PHASE 9: "reveal" = bottom-to-top clip wipe, "blur-reveal" = fade in from a soft blur
+  // (falls back to a plain fade on phones -- animated blur is expensive on mobile GPUs).
+  | "reveal"
+  | "blur-reveal"
   // Phase 8 "Global Visual Control Center": resolves at render time to the site-wide Animation >
   // Default Animation setting (DesignAnimationProvider), so a section can genuinely defer to
   // whatever the admin currently has configured as the global default instead of a value frozen at
@@ -123,7 +127,41 @@ export function defaultSectionButtonSettings(overrides?: Partial<SectionButtonSe
   return { radius: "inherit", shadow: "inherit", paddingScale: "inherit", icon: "inherit", ...overrides };
 }
 
-export type AnimationTriggerToken = "onScroll" | "onLoad";
+// "onScrollRepeat" (PHASE 9): replays every time the section re-enters the viewport.
+export type AnimationTriggerToken = "onScroll" | "onLoad" | "onScrollRepeat";
+/** PHASE 9: entrance easing curve. "premium" = the site's existing EASE_PREMIUM (default, unchanged). */
+export type AnimationEasingToken = "premium" | "smooth" | "out" | "in-out" | "linear" | "spring";
+
+/** PHASE 9 element-level motion: applied independently to the headings / text / images / buttons /
+ * cards inside a section, as CSS scroll-driven animations (no JavaScript; browsers without
+ * `animation-timeline` support simply show the content, never hide it). */
+export type ElementMotionToken = "none" | "fade" | "fade-up" | "fade-down" | "fade-start" | "fade-end" | "scale" | "blur" | "reveal";
+export interface SectionElementMotion {
+  heading: ElementMotionToken;
+  text: ElementMotionToken;
+  image: ElementMotionToken;
+  button: ElementMotionToken;
+  card: ElementMotionToken;
+}
+export function defaultSectionElementMotion(overrides?: Partial<SectionElementMotion>): SectionElementMotion {
+  return { heading: "none", text: "none", image: "none", button: "none", card: "none", ...overrides };
+}
+
+/** PHASE 9 section hover effects (pure CSS; all off by default; also off when the global
+ * Appearance > Hover effects switch is off). */
+export type ButtonHoverToken = "none" | "lift" | "shine" | "arrow";
+export interface SectionHoverSettings {
+  imageZoom: boolean;
+  cardLift: boolean;
+  button: ButtonHoverToken;
+  overlayReveal: boolean;
+}
+export function defaultSectionHoverSettings(overrides?: Partial<SectionHoverSettings>): SectionHoverSettings {
+  return { imageZoom: false, cardLift: false, button: "none", overlayReveal: false, ...overrides };
+}
+
+/** PHASE 9: continuous motion for a section's background image (CSS; desktop only; off under reduced motion). */
+export type BackgroundMotionToken = "none" | "slow-zoom" | "ken-burns";
 export type AnimationIntensityToken = "subtle" | "normal" | "strong";
 
 /** Phase 9 "Advanced" tab -- a real custom-class/anchor-id escape hatch, replacing the previous
@@ -193,6 +231,8 @@ export interface BackgroundImageSettings {
   blur: number;
   /** 50-150 (%). 100 = unchanged. */
   brightness: number;
+  /** PHASE 9: "slow-zoom"/"ken-burns" animate the image layer (desktop only). */
+  motion: BackgroundMotionToken;
   /** 50-150 (%). 100 = unchanged. */
   contrast: number;
 }
@@ -214,6 +254,7 @@ export function defaultBackgroundImageSettings(overrides?: Partial<BackgroundIma
     blur: 0,
     brightness: 100,
     contrast: 100,
+    motion: "none",
     ...overrides,
   };
 }
@@ -263,6 +304,10 @@ export interface SectionSettings {
   animationDelayMs: number;
   animationTrigger: AnimationTriggerToken;
   animationIntensity: AnimationIntensityToken;
+  /** PHASE 9 additions (defaults reproduce the previous behavior exactly). */
+  animationEasing: AnimationEasingToken;
+  elementMotion: SectionElementMotion;
+  hover: SectionHoverSettings;
   advanced: SectionAdvancedSettings;
 }
 
@@ -371,6 +416,9 @@ export function defaultSectionSettings(overrides?: Partial<SectionSettings>): Se
     animationDelayMs: 0,
     animationTrigger: "onScroll",
     animationIntensity: "normal",
+    animationEasing: "premium",
+    elementMotion: defaultSectionElementMotion(),
+    hover: defaultSectionHoverSettings(),
     advanced: defaultSectionAdvancedSettings(),
     ...overrides,
   };
@@ -457,6 +505,9 @@ function coerceSectionSettings(raw: unknown): SectionSettings {
     animationDelayMs: typeof raw.animationDelayMs === "number" ? raw.animationDelayMs : 0,
     animationTrigger: (raw.animationTrigger as AnimationTriggerToken) ?? "onScroll",
     animationIntensity: (raw.animationIntensity as AnimationIntensityToken) ?? "normal",
+    animationEasing: (raw.animationEasing as AnimationEasingToken) ?? "premium",
+    elementMotion: isPlainObject(raw.elementMotion) ? defaultSectionElementMotion(raw.elementMotion as Partial<SectionElementMotion>) : defaultSectionElementMotion(),
+    hover: isPlainObject(raw.hover) ? defaultSectionHoverSettings(raw.hover as Partial<SectionHoverSettings>) : defaultSectionHoverSettings(),
     advanced: coerceSectionAdvancedSettings(raw.advanced),
   };
 }

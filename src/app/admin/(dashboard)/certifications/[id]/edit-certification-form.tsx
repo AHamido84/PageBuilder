@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
 import { updateCertificationAction, type FormActionState } from "../actions";
 import { MediaPickerField } from "@/components/admin/ui/media-picker-field";
+import { useFormAction } from "@/lib/use-form-action";
 
 const initialState: FormActionState = {};
 const inputClass = "w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm";
@@ -30,10 +30,10 @@ function toDateInputValue(d: Date | null): string {
 }
 
 export function EditCertificationForm({ certification }: Props) {
-  const [state, formAction, pending] = useActionState(updateCertificationAction, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(updateCertificationAction, initialState);
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <input type="hidden" name="id" value={certification.id} />
       <div>
         <label className={labelClass}>Slug</label>

@@ -75,7 +75,7 @@ export function TestimonialsRender({ data, locale }: BlockRenderProps<Testimonia
     <div>
       {data.heading ? <h2 className="mb-10 font-display text-h2">{data.heading}</h2> : null}
       <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:gap-12">
-        <ScrollReveal variant="fade-up" className="relative rounded-[var(--radius-xl)] border border-current/10 bg-paper p-8 sm:p-12">
+        <ScrollReveal variant="fade-up" className="relative rounded-[var(--card-radius-xl)] border border-current/10 bg-paper p-8 sm:p-12">
           <Quote className="mb-4 h-10 w-10 text-wheat/70" strokeWidth={1.5} aria-hidden />
           <blockquote className="font-display text-h3 leading-snug text-ink">&ldquo;{featured.quote}&rdquo;</blockquote>
           <figcaption className="mt-6 flex items-center gap-4">
@@ -90,7 +90,7 @@ export function TestimonialsRender({ data, locale }: BlockRenderProps<Testimonia
         {rest.length > 0 ? (
           <div className="flex flex-col gap-[var(--card-gap,1.5rem)]">
             {rest.map((item, i) => (
-              <ScrollReveal key={i} variant="fade-up" className="rounded-[var(--radius-lg)] border border-current/10 p-6">
+              <ScrollReveal key={i} variant="fade-up" className="rounded-[var(--card-radius-lg)] border border-current/10 p-6" data-ui-card="">
                 <blockquote className="text-sm leading-relaxed opacity-80">&ldquo;{item.quote}&rdquo;</blockquote>
                 <figcaption className="mt-4 flex items-center gap-3">
                   <Avatar avatar={item.avatar ?? null} name={item.authorName} locale={locale} size="sm" />

@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { MediaPickerField } from "@/components/admin/ui/media-picker-field";
+import { useFormAction } from "@/lib/use-form-action";
 
 export interface SeoFormActionState {
   error?: string;
@@ -18,16 +19,19 @@ interface SeoFormProps {
     descriptionAr?: string | null;
     canonicalUrl?: string | null;
     noIndex?: boolean;
+    /** PHASE 8: social share (Open Graph) image -- falls back to Settings' default share image when empty. */
+    ogImageId?: string | null;
+    ogImage?: { url: string } | null;
   };
 }
 
 const initialState: SeoFormActionState = {};
 
 export function SeoForm({ action, idFieldName, entityId, defaultValues }: SeoFormProps) {
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const [state, formAction, pending, submitKeepingInput] = useFormAction(action, initialState);
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form action={formAction} onSubmit={submitKeepingInput} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <input type="hidden" name={idFieldName} value={entityId} />
       <div>
         <label className="mb-1 block text-xs text-neutral-400">SEO title (English)</label>
@@ -79,6 +83,16 @@ export function SeoForm({ action, idFieldName, entityId, defaultValues }: SeoFor
         <input type="checkbox" name="noIndex" value="true" defaultChecked={defaultValues.noIndex} />
         Hide from search engines (noindex)
       </label>
+      <div className="col-span-full">
+        <MediaPickerField
+          name="ogImageId"
+          label="Social share image (Open Graph) — optional, falls back to the site default"
+          accept="IMAGE"
+          uploadFolderName="Banners"
+          defaultMediaId={defaultValues.ogImageId ?? null}
+          defaultUrl={defaultValues.ogImage?.url}
+        />
+      </div>
       {state.error ? <p className="col-span-full text-sm text-red-400">{state.error}</p> : null}
       {state.success ? <p className="col-span-full text-sm text-emerald-400">Saved.</p> : null}
       <div className="col-span-full">

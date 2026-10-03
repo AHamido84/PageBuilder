@@ -7,16 +7,22 @@ import { FaqAccordion } from "./faq-accordion";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { faqSchema } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
+import { pageTitle } from "@/lib/page-builder/page-title";
+import { loadPageHeaderSections, loadPageHeaderMeta } from "@/lib/page-builder/page-headers";
+import { isDraftPreviewRequest } from "@/lib/page-builder/render-page";
+import { SectionRenderer } from "@/components/site/section-renderer";
+import { DraftPreviewBanner } from "@/components/site/draft-preview-banner";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "faq" });
-  return buildMetadata({ locale, path: "/faq", fallbackTitle: t("title") });
+  const header = await loadPageHeaderMeta("faq");
+  return buildMetadata({ locale, path: "/faq", seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title") });
 }
 
-export default async function FaqPage() {
+export default async function FaqPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const locale = await getLocale();
   const t = await getTranslations("faq");
 
@@ -37,9 +43,8 @@ export default async function FaqPage() {
     }))
   );
 
-  return (
-    <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
-      {faqs.length > 0 ? (
+  const body =
+    faqs.length > 0 ? (
         <>
           <JsonLd data={faqJsonLd} />
           <div className="mx-auto max-w-3xl space-y-10">
@@ -53,7 +58,24 @@ export default async function FaqPage() {
         </>
       ) : (
         <EmptyState title={t("empty")} />
-      )}
-    </Section>
+      );
+
+  // PHASE 8: the header/intro is an editable Page Builder page (__header__faq) when one is
+  // published; otherwise the original built-in header, unchanged.
+  const draftPreview = await isDraftPreviewRequest(await searchParams);
+  const headerSections = await loadPageHeaderSections("faq", draftPreview);
+  if (!headerSections) {
+    return (
+      <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
+        {body}
+      </Section>
+    );
+  }
+  return (
+    <>
+      <SectionRenderer sections={headerSections} locale={locale} />
+      {draftPreview ? <DraftPreviewBanner /> : null}
+      <Section tone="paper">{body}</Section>
+    </>
   );
 }

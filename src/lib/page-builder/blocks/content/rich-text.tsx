@@ -51,7 +51,7 @@ export function RichTextEdit({ data, onChange, locale }: BlockEditProps<RichText
 export function RichTextRender({ data, settings }: BlockRenderProps<RichTextData>) {
   return (
     <div
-      className={`max-w-none leading-relaxed [&_a]:underline [&_a]:opacity-80 [&_ol]:list-decimal [&_ol]:ps-5 [&_p]:mb-3 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:ps-5 ${resolveBodyClasses(settings)}`}
+      className={`max-w-none leading-relaxed [&_h2]:mb-2 [&_h2]:mt-8 [&_h2]:font-display [&_h2]:text-xl [&_h2:first-child]:mt-0 [&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:font-display [&_h3]:text-lg [&_h4]:mb-1 [&_h4]:mt-5 [&_h4]:font-semibold [&_a]:underline [&_a]:opacity-80 [&_ol]:list-decimal [&_ol]:ps-5 [&_p]:mb-3 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:ps-5 ${resolveBodyClasses(settings)}`}
       // Trusted: data.html is sanitized server-side (sanitize-html) in saveDraftAction before persisting. Never re-sanitized here — see saveDraftAction.
       dangerouslySetInnerHTML={{ __html: data.html }}
     />

@@ -9,11 +9,13 @@ interface MediaPickerFieldProps {
   accept?: "IMAGE" | "DOCUMENT" | "VIDEO";
   defaultMediaId?: string | null;
   defaultUrl?: string | null;
+  /** Default upload folder in the picker, e.g. "Brands". */
+  uploadFolderName?: string;
   onSelect?: (mediaId: string, url: string) => void;
 }
 
 /** Uncontrolled variant, backed by a hidden `<input>` for plain `<form>` submission. */
-export function MediaPickerField({ name, label, accept = "IMAGE", defaultMediaId, defaultUrl, onSelect }: MediaPickerFieldProps) {
+export function MediaPickerField({ name, label, accept = "IMAGE", defaultMediaId, defaultUrl, uploadFolderName, onSelect }: MediaPickerFieldProps) {
   const [mediaId, setMediaId] = useState(defaultMediaId ?? "");
   const [previewUrl, setPreviewUrl] = useState(defaultUrl ?? "");
   const [open, setOpen] = useState(false);
@@ -40,7 +42,7 @@ export function MediaPickerField({ name, label, accept = "IMAGE", defaultMediaId
           onClick={() => setOpen(true)}
           className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800"
         >
-          {previewUrl ? "Change" : "Select"} from library
+          {previewUrl ? "Change media" : "Select media"}
         </button>
         {mediaId ? (
           <button
@@ -63,6 +65,7 @@ export function MediaPickerField({ name, label, accept = "IMAGE", defaultMediaId
         title={`Select ${label.toLowerCase()}`}
         accept={accept}
         selectedIds={mediaId ? [mediaId] : []}
+        uploadFolderName={uploadFolderName}
         onSelect={handlePick}
       />
     </div>
@@ -74,11 +77,13 @@ interface MediaPickerControlledProps {
   accept?: "IMAGE" | "DOCUMENT" | "VIDEO";
   mediaId: string;
   previewUrl?: string;
+  /** Default upload folder in the picker, e.g. "Backgrounds". */
+  uploadFolderName?: string;
   onChange: (mediaId: string, url: string) => void;
 }
 
 /** Controlled variant of MediaPickerField for use outside plain <form> submission (e.g. the page builder's in-memory state). */
-export function MediaPickerControlled({ label, accept = "IMAGE", mediaId, previewUrl, onChange }: MediaPickerControlledProps) {
+export function MediaPickerControlled({ label, accept = "IMAGE", mediaId, previewUrl, uploadFolderName, onChange }: MediaPickerControlledProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -96,7 +101,7 @@ export function MediaPickerControlled({ label, accept = "IMAGE", mediaId, previe
           onClick={() => setOpen(true)}
           className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800"
         >
-          {previewUrl ? "Change" : "Select"} from library
+          {previewUrl ? "Change media" : "Select media"}
         </button>
         {mediaId ? (
           <button
@@ -115,6 +120,7 @@ export function MediaPickerControlled({ label, accept = "IMAGE", mediaId, previe
         title={`Select ${label.toLowerCase()}`}
         accept={accept}
         selectedIds={mediaId ? [mediaId] : []}
+        uploadFolderName={uploadFolderName}
         onSelect={(item) => onChange(item.id, item.url)}
       />
     </div>

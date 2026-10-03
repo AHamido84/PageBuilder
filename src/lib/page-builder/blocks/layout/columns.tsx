@@ -58,7 +58,7 @@ function ColumnsRenderImpl({ count, data, locale }: BlockRenderProps<ColumnsData
         <div key={i}>
           {item.image?.url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.image.url} alt="" className="mb-4 aspect-[4/3] w-full rounded-[var(--radius-md)] object-cover" />
+            <img src={item.image.url} alt="" className="mb-4 aspect-[4/3] w-full rounded-[var(--image-radius)] object-cover" />
           ) : null}
           {item.heading ? <h3 className="font-display text-xl">{item.heading}</h3> : null}
           {item.body ? <p className="mt-2 text-sm opacity-70">{item.body}</p> : null}

@@ -2,10 +2,12 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, can } from "@/lib/rbac/current-user";
-import { SectionRenderer, type SectionRow } from "@/components/site/section-renderer";
+import { resolveSectionsToRender, isDraftPreviewRequest } from "@/lib/page-builder/render-page";
+import { DraftPreviewBanner } from "@/components/site/draft-preview-banner";
+import { SectionRenderer } from "@/components/site/section-renderer";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { isReservedPageSlug } from "@/lib/page-builder/reserved-slugs";
+import { pageTitle } from "@/lib/page-builder/page-title";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     include: { seo: { include: { ogImage: { select: { url: true } } } } },
   });
   if (!page || page.status !== "PUBLISHED") return {};
-  const fallbackTitle = fullSlug
+  const fallbackTitle =
+    pageTitle(page, locale) ??
+    fullSlug
     .split("/")
     .pop()!
     .replace(/[-_]/g, " ")
@@ -35,7 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   });
 }
 
-export default async function CmsPage({ params }: { params: Promise<{ slug: string[] }> }) {
+export default async function CmsPage({ params, searchParams }: { params: Promise<{ slug: string[] }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { slug } = await params;
   const locale = await getLocale();
   const fullSlug = slug.join("/");
@@ -54,20 +58,13 @@ export default async function CmsPage({ params }: { params: Promise<{ slug: stri
     notFound();
   }
 
-  if (page.status !== "PUBLISHED") {
-    // Draft/archived pages: only a logged-in admin with pages:read may preview them,
-    // and they always see the live working draft (never a revision snapshot).
-    const user = await getCurrentUser();
-    if (!user || !can(user, "pages", "read")) notFound();
-    return <SectionRenderer sections={page.sections as SectionRow[]} locale={locale} />;
-  }
-
-  // Published: anonymous visitors AND logged-in admins both see the published
-  // snapshot, not live edits -- editing a published page's sections does not
-  // change the live site until an explicit Publish.
-  const publishedRevision = await prisma.pageRevision.findFirst({ where: { pageId: page.id, isPublished: true } });
-  if (!publishedRevision) notFound();
-
-  const snapshot = publishedRevision.snapshot as unknown as { sections: SectionRow[] };
-  return <SectionRenderer sections={snapshot.sections} locale={locale} />;
+  // Published snapshot for visitors; the saved draft only for editors via ?preview=draft (or a never-published page).
+  const resolved = await resolveSectionsToRender(page, await isDraftPreviewRequest(await searchParams));
+  if (!resolved) notFound();
+  return (
+    <>
+      <SectionRenderer sections={resolved.sections} locale={locale} />
+      {resolved.draft ? <DraftPreviewBanner /> : null}
+    </>
+  );
 }

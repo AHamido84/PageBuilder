@@ -118,7 +118,7 @@ export function SiteHeader({
         "top-0 z-50 border-b transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ease-[var(--ease-premium)]",
         logoSettings.sticky && "sticky",
         scrolled
-          ? "border-ink/10 bg-paper/97 shadow-[var(--shadow-card)] backdrop-blur-md"
+          ? "border-line bg-paper/97 shadow-[var(--shadow-card)] backdrop-blur-md"
           : "border-transparent bg-paper/92 backdrop-blur-sm"
       )}
     >
@@ -209,7 +209,7 @@ export function SiteHeader({
         <button
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
-          className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-sm)] border border-ink/15 lg:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-sm)] border border-line-strong lg:hidden"
           aria-label={mobileOpen ? tCommon("close") : tCommon("menu")}
           aria-expanded={mobileOpen}
         >
@@ -254,14 +254,14 @@ export function SiteHeader({
                       <p className="col-span-2 text-sm text-ink/50">No categories yet.</p>
                     )}
                   </div>
-                  <div className="mt-6 border-t border-ink/10 pt-4">
+                  <div className="mt-6 border-t border-line pt-4">
                     <Link href={`/${locale}/products`} className="inline-flex items-center gap-1.5 text-sm font-medium text-harbor hover:underline">
                       {t("viewAllProducts")} <Arrow />
                     </Link>
                   </div>
                 </div>
 
-                <div className="border-s border-ink/10 ps-10">
+                <div className="border-s border-line ps-10">
                   <p className="manifest-strip mb-4 text-ink/40">{t("featured")}</p>
                   {featuredProducts.length > 0 ? (
                     <ul className="space-y-4">
@@ -337,7 +337,7 @@ export function SiteHeader({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: DURATION.standard, ease: EASE_PREMIUM }}
-            className="overflow-hidden border-t border-ink/10 bg-paper lg:hidden"
+            className="overflow-hidden border-t border-line bg-paper lg:hidden"
           >
             <div className="max-h-[calc(100vh-4rem)] overflow-y-auto px-5 py-6">
               <MobileNav categories={categories} locale={locale} menuItems={menuItems} />
@@ -394,7 +394,7 @@ function MegaPanel({ children }: { children: React.ReactNode }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: DURATION.standard, ease: EASE_PREMIUM }}
-      className="border-t border-ink/10 bg-paper"
+      className="border-t border-line bg-paper"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="mx-auto max-w-[1400px] px-12 py-9">{children}</div>
@@ -468,7 +468,7 @@ function MobileNav({
           )}
         </div>
       ))}
-      <div className="flex items-center justify-between border-t border-ink/10 pt-6">
+      <div className="flex items-center justify-between border-t border-line pt-6">
         <div className="flex items-center gap-3 text-sm">
           <Link href={`/ar${pathWithoutLocale}`} className={locale === "ar" ? "font-semibold" : "text-ink/45"}>
             AR

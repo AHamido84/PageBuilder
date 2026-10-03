@@ -17,8 +17,30 @@ const productGridSchema = z.object({
   heading: z.string().max(200).optional().default(""),
   /** Phase 5: optional subheading shown under the heading. */
   description: z.string().max(400).optional().default(""),
+  /** Which products load. "latest" (default -- the original behavior, still honoring `categoryId`
+   * when set), "featured" (Product.isFeatured), "category" (only `categoryId`), "manual" (exactly
+   * `productIds`, in that order). Every mode respects `limit` and only shows published products. */
+  mode: z.enum(["latest", "featured", "category", "manual"]).optional().default("latest"),
+  productIds: z.array(z.string()).optional().default([]),
   categoryId: z.string().optional().default(""),
   limit: z.number().int().min(1).max(24).default(8),
+  /** Category filter chips above the grid ("All", then each category present in the results). */
+  showCategoryFilter: z.boolean().optional().default(false),
+  /** Empty = localized default ("All" / "الكل"). */
+  filterAllLabel: z.string().max(40).optional().default(""),
+  /** Optional promo/CTA card placed inside the product grid (e.g. "Choices that fit your menu"). */
+  promo: z
+    .object({
+      enabled: z.boolean().default(false),
+      eyebrow: z.string().max(80).optional().default(""),
+      title: z.string().max(150).optional().default(""),
+      body: z.string().max(300).optional().default(""),
+      ctaLabel: z.string().max(60).optional().default(""),
+      ctaUrl: z.string().max(300).optional().default(""),
+      /** 1-based slot among the visible cards. */
+      position: z.number().int().min(1).max(24).optional().default(4),
+    })
+    .optional(),
   /** Phase 5: desktop grid column count (PRODUCT_GRID only -- PRODUCT_CAROUSEL ignores it, its
    * slide width is fixed by ProductCarouselTrack's own responsive `basis-*` classes). Mobile stays
    * a fixed 2-up regardless, matching every other grid block in this registry. */
@@ -44,7 +66,7 @@ const categoryGridSchema = z.object({
   /** "dynamic" (default): pulls categories with Category.isFeatured=true, ordered by
    * featuredOrder/order -- see loadFeaturedCategories in category-brand-grid-render.tsx.
    * "manual": legacy/opt-out behavior, unchanged -- uses categoryIds below exactly as before. */
-  mode: z.enum(["dynamic", "manual"]).default("dynamic"),
+  mode: z.enum(["dynamic", "manual", "all"]).default("dynamic"),
   /** Manual mode: this array's own order IS the display order (reorderable in the editor via
    * up/down controls) -- see loadManualCategories in category-brand-grid-render.tsx. */
   categoryIds: z.array(z.string()).default([]),
@@ -57,7 +79,8 @@ const categoryGridSchema = z.object({
   /** "bento" (default, unchanged): first category gets the large editorial hero treatment, the rest
    * bento-grid. "grid": every category rendered as a plain uniform tile, no hero card -- for
    * sections where the editorial treatment doesn't fit the surrounding page. */
-  layout: z.enum(["bento", "grid"]).optional().default("bento"),
+  /** "chips": a compact row of category links (for a "discover our products" strip) -- no images. */
+  layout: z.enum(["bento", "grid", "chips"]).optional().default("bento"),
   showProductCount: z.boolean().optional().default(false),
   /** Shows each category's translated description on its own tile (the featured/hero card already
    * always shows it). */
@@ -86,7 +109,7 @@ const brandGridSchema = z.object({
   /** "dynamic" (default): pulls brands with Brand.isFeatured=true, ordered by `order` -- see
    * loadFeaturedBrands in category-brand-grid-render.tsx. "manual": legacy/opt-out behavior,
    * unchanged -- uses brandIds below exactly as before. */
-  mode: z.enum(["dynamic", "manual"]).default("dynamic"),
+  mode: z.enum(["dynamic", "manual", "all"]).default("dynamic"),
   brandIds: z.array(z.string()).default([]),
   /** Dynamic mode only: caps how many featured brands render. Unset = no limit. */
   limit: z.number().int().min(1).max(24).optional(),
@@ -147,8 +170,8 @@ export const commerceBlocks: BlockDefinition<any>[] = [
     icon: ShoppingBag,
     dataSchema: productGridSchema,
     defaultData: {
-      en: { heading: "Featured products", description: "", categoryId: "", limit: 8, columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "" },
-      ar: { heading: "منتجات مميزة", description: "", categoryId: "", limit: 8, columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "" },
+      en: { heading: "Featured products", description: "", mode: "latest", productIds: [], categoryId: "", limit: 8, showCategoryFilter: false, filterAllLabel: "", columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "" },
+      ar: { heading: "منتجات مميزة", description: "", mode: "latest", productIds: [], categoryId: "", limit: 8, showCategoryFilter: false, filterAllLabel: "", columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "" },
     },
     defaultSettings: defaultSectionSettings(),
     Edit: ProductGridEdit,
@@ -162,8 +185,8 @@ export const commerceBlocks: BlockDefinition<any>[] = [
     icon: GalleryHorizontal,
     dataSchema: productGridSchema,
     defaultData: {
-      en: { heading: "Featured products", description: "", categoryId: "", limit: 8, columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "" },
-      ar: { heading: "منتجات مميزة", description: "", categoryId: "", limit: 8, columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "" },
+      en: { heading: "Featured products", description: "", mode: "latest", productIds: [], categoryId: "", limit: 8, showCategoryFilter: false, filterAllLabel: "", columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "" },
+      ar: { heading: "منتجات مميزة", description: "", mode: "latest", productIds: [], categoryId: "", limit: 8, showCategoryFilter: false, filterAllLabel: "", columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "" },
     },
     defaultSettings: defaultSectionSettings(),
     Edit: ProductGridEdit,

@@ -2,7 +2,7 @@
 
 import { Parallax, ScrollReveal } from "@/lib/motion/primitives";
 import { useDesignAnimationSettings } from "@/components/site/design-animation-context";
-import type { AnimationIntensityToken, AnimationTriggerToken, AnimationToken } from "./types";
+import type { AnimationEasingToken, AnimationIntensityToken, AnimationTriggerToken, AnimationToken } from "./types";
 
 // Phase 9 "Animation > Intensity" applied to Parallax's total travel distance (its own "offset"
 // prop, default 36px) -- same INTENSITY_SCALE multiplier convention as ScrollReveal's variants.
@@ -25,6 +25,7 @@ export function Reveal({
   delayMs,
   trigger,
   intensity = "normal",
+  easing = "premium",
 }: {
   animation: AnimationToken;
   children: React.ReactNode;
@@ -32,6 +33,7 @@ export function Reveal({
   delayMs?: number;
   trigger?: AnimationTriggerToken;
   intensity?: AnimationIntensityToken;
+  easing?: AnimationEasingToken;
 }) {
   const { defaultAnimation } = useDesignAnimationSettings();
   const resolved = animation === "inherit" ? defaultAnimation : animation;
@@ -43,6 +45,7 @@ export function Reveal({
       delaySec={delayMs != null ? delayMs / 1000 : undefined}
       trigger={trigger}
       intensity={intensity}
+      easing={easing}
     >
       {children}
     </ScrollReveal>

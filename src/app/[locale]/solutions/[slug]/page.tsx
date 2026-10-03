@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, can } from "@/lib/rbac/current-user";
-import { SectionRenderer, type SectionRow } from "@/components/site/section-renderer";
+import { resolveSectionsToRender, isDraftPreviewRequest } from "@/lib/page-builder/render-page";
+import { DraftPreviewBanner } from "@/components/site/draft-preview-banner";
+import { SectionRenderer } from "@/components/site/section-renderer";
 import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
@@ -48,22 +49,21 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   });
 }
 
-export default async function SolutionDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function SolutionDetailPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { slug } = await params;
   const locale = await getLocale();
 
   const solution = await loadSolution(slug);
   if (!solution) notFound();
 
-  if (!solution.isPublished || solution.page.status !== "PUBLISHED") {
-    const user = await getCurrentUser();
-    if (!user || !can(user, "pages", "read")) notFound();
-    return <SectionRenderer sections={solution.page.sections as SectionRow[]} locale={locale} />;
-  }
-
-  const publishedRevision = await prisma.pageRevision.findFirst({ where: { pageId: solution.pageId, isPublished: true } });
-  if (!publishedRevision) notFound();
-
-  const snapshot = publishedRevision.snapshot as unknown as { sections: SectionRow[] };
-  return <SectionRenderer sections={snapshot.sections} locale={locale} />;
+  // An unpublished Solution is treated like an unpublished page: editors see the draft, visitors get a 404.
+  const pageForRender = solution.isPublished ? solution.page : { ...solution.page, status: "DRAFT" };
+  const resolved = await resolveSectionsToRender(pageForRender, await isDraftPreviewRequest(await searchParams));
+  if (!resolved) notFound();
+  return (
+    <>
+      <SectionRenderer sections={resolved.sections} locale={locale} />
+      {resolved.draft ? <DraftPreviewBanner /> : null}
+    </>
+  );
 }

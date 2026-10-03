@@ -17,6 +17,35 @@ import {
   resolveTypographyClasses,
 } from "./style-tokens";
 import { Reveal } from "./reveal";
+import { EASING } from "@/lib/motion/motionTokens";
+
+/** PHASE 9: data attributes that switch on the CSS-only element motion + hover effects in
+ * globals.css ("Section motion system"). Only non-default values are emitted, so an unedited
+ * section's DOM is exactly what it was before. */
+function motionAttributes(settings: SectionSettings): { attrs: Record<string, string>; style: React.CSSProperties } {
+  const attrs: Record<string, string> = {};
+  const el = settings.elementMotion;
+  if (el) {
+    if (el.heading !== "none") attrs["data-motion-heading"] = el.heading;
+    if (el.text !== "none") attrs["data-motion-text"] = el.text;
+    if (el.image !== "none") attrs["data-motion-image"] = el.image;
+    if (el.button !== "none") attrs["data-motion-button"] = el.button;
+    if (el.card !== "none") attrs["data-motion-card"] = el.card;
+  }
+  const hover = settings.hover;
+  if (hover) {
+    if (hover.imageZoom) attrs["data-hover-img-zoom"] = "";
+    if (hover.cardLift) attrs["data-hover-card-lift"] = "";
+    if (hover.button !== "none") attrs["data-hover-btn"] = hover.button;
+    if (hover.overlayReveal) attrs["data-hover-overlay"] = "";
+  }
+  const hasElementMotion = Object.keys(attrs).some((k) => k.startsWith("data-motion-"));
+  const easing = EASING[settings.animationEasing] ?? EASING.premium;
+  const style: React.CSSProperties = hasElementMotion && settings.animationEasing !== "premium" ? ({ "--section-motion-ease": easing.css } as React.CSSProperties) : {};
+  return { attrs, style };
+}
+
+const BG_MOTION_CLASSES = { none: "", "slow-zoom": "bg-motion-slow-zoom", "ken-burns": "bg-motion-ken-burns" } as const;
 
 /**
  * Shared wrapper applying a section's responsive style settings + entrance animation.
@@ -90,19 +119,27 @@ export function SectionShell({
   const anchorId = advanced?.anchorId ? sanitizeAdvancedToken(advanced.anchorId, false) : undefined;
 
   const outerStyle: React.CSSProperties = { ...gapStyle, ...buttonsStyle, ...resolveBorderStyle(settings.border) };
+  const motion = motionAttributes(settings);
+  const bgMotionClass = BG_MOTION_CLASSES[bg?.motion ?? "none"] ?? "";
   const hasOuterStyle = Object.keys(outerStyle).length > 0;
 
   const section = (
-    <div className={cn("border-t border-ink/10", resolveSectionClasses(settings), radiusClass, needsClipping && "relative overflow-hidden")}>
+    // `section-radius-default` is inert unless the Appearance page sets a global Section radius
+    // (resolve-css.ts emits its rule only then); a section's own Border Radius always wins.
+    <div
+      className={cn("border-t border-line", resolveSectionClasses(settings), radiusClass || "section-radius-default", needsClipping && "relative overflow-hidden")}
+      style={Object.keys(motion.style).length ? motion.style : undefined}
+      {...motion.attrs}
+    >
       {hasBackgroundLayer ? (
         <>
           {hasDistinctMobileImage && hasDesktopImage ? (
             <>
-              <div aria-hidden className="pointer-events-none absolute inset-0 z-0 hidden md:block" style={desktopBgStyle ?? undefined} />
+              <div aria-hidden className={cn("pointer-events-none absolute inset-0 z-0 hidden md:block", bgMotionClass)} style={desktopBgStyle ?? undefined} />
               <div aria-hidden className="pointer-events-none absolute inset-0 z-0 md:hidden" style={mobileBgStyle ?? undefined} />
             </>
           ) : hasBackgroundImage ? (
-            <div aria-hidden className="pointer-events-none absolute inset-0 z-0" style={(desktopBgStyle ?? mobileBgStyle) ?? undefined} />
+            <div aria-hidden className={cn("pointer-events-none absolute inset-0 z-0", bgMotionClass)} style={(desktopBgStyle ?? mobileBgStyle) ?? undefined} />
           ) : null}
           {hasVideo && bg ? (
             <video
@@ -127,6 +164,7 @@ export function SectionShell({
           delayMs={settings.animationDelayMs}
           trigger={settings.animationTrigger}
           intensity={settings.animationIntensity}
+          easing={settings.animationEasing}
         >
           {children}
         </Reveal>

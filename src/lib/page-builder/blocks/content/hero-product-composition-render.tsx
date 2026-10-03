@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { motion, useReducedMotion } from "framer-motion";
+import { useIsMobileViewport } from "@/lib/motion/primitives";
 import { Badge } from "@/components/ui/badge";
 import { HeroFrameShape } from "./hero-frame-shape";
 import type { HeroRenderData, HeroResolvedProduct } from "../content-blocks";
@@ -19,7 +20,10 @@ import { resolveHref } from "../../href";
  * Category/Brand Grid blocks already use -- never a fabricated placeholder image.
  */
 export function HeroProductComposition({ data, locale }: { data: HeroRenderData; locale: string }) {
-  const reduce = useReducedMotion();
+  // PHASE 9 mobile rule: treat phones like reduced motion here (drops the endless floating loop).
+  const reducedMotion = useReducedMotion();
+  const isMobile = useIsMobileViewport();
+  const reduce = Boolean(reducedMotion) || isMobile;
   const hasAny = data.primaryProduct || data.secondaryProduct || data.supportingProduct;
   if (!hasAny) return null;
 

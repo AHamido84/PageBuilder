@@ -7,20 +7,24 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { SectionRenderer } from "@/components/site/section-renderer";
-import { loadPageHeaderSections } from "@/lib/page-builder/page-headers";
+import { loadPageHeaderSections, loadPageHeaderMeta } from "@/lib/page-builder/page-headers";
+import { isDraftPreviewRequest } from "@/lib/page-builder/render-page";
+import { DraftPreviewBanner } from "@/components/site/draft-preview-banner";
+import { pageTitle } from "@/lib/page-builder/page-title";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "brands" });
-  return buildMetadata({ locale, path: "/brands", fallbackTitle: t("title") });
+  const header = await loadPageHeaderMeta("brands");
+  return buildMetadata({ locale, path: "/brands", seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title") });
 }
 
 async function getBrands(locale: string) {
   const brands = await prisma.brand.findMany({
     where: { isActive: true },
-    orderBy: { slug: "asc" },
+    orderBy: [{ order: "asc" }, { slug: "asc" }],
     include: { translations: true, logo: { select: { url: true } }, _count: { select: { products: true } } },
   });
 
@@ -34,7 +38,7 @@ async function getBrands(locale: string) {
   }));
 }
 
-export default async function BrandsPage() {
+export default async function BrandsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const locale = await getLocale();
   const t = await getTranslations("brands");
   const tCommon = await getTranslations("common");
@@ -63,7 +67,8 @@ export default async function BrandsPage() {
   // Phase 7: the page's own generic header/intro is now a real, admin-editable Page Builder
   // section (see src/lib/page-builder/page-headers.ts) -- falls back to the exact original
   // hardcoded text if the one-time seed script hasn't been run in this environment yet.
-  const headerSections = await loadPageHeaderSections("brands");
+  const draftPreview = await isDraftPreviewRequest(await searchParams);
+  const headerSections = await loadPageHeaderSections("brands", draftPreview);
   if (!headerSections) {
     return (
       <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
@@ -75,6 +80,7 @@ export default async function BrandsPage() {
   return (
     <>
       <SectionRenderer sections={headerSections} locale={locale} />
+      {draftPreview ? <DraftPreviewBanner /> : null}
       <Section tone="paper">{results}</Section>
     </>
   );

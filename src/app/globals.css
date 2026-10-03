@@ -51,6 +51,20 @@
   --color-warm-white: var(--color-paper);
   --color-charcoal: var(--color-ink);
 
+  /* Global Visual Theme Engine: the full set of role names the Appearance page edits, each an alias
+     onto the palette value that role actually drives (so overriding e.g. --color-petrol via the
+     admin "Primary" color moves --color-primary with it). See src/lib/design-tokens/schema.ts. */
+  --color-secondary: var(--color-coral);
+  --color-accent: var(--color-harbor);
+  --color-background: var(--color-paper);
+  --color-surface: var(--color-frost);
+  --color-text: var(--color-ink);
+  /* Hairline borders. Defaults reproduce Tailwind's own border-ink/10 and /15 exactly (oklab mix
+     with transparent), so the border-line/border-line-strong utilities render identically until
+     an admin sets a Border color. */
+  --color-border: color-mix(in oklab, var(--color-ink) 10%, transparent);
+  --color-border-strong: color-mix(in oklab, var(--color-ink) 15%, transparent);
+
   /* Three-step elevation: flat (resting cards) -> card (default) -> lifted (hover/active). */
   --shadow-flat: 0 1px 2px rgba(24, 48, 45, 0.05);
   --shadow-card: 0 1px 2px rgba(24, 48, 45, 0.07), 0 10px 28px -14px rgba(24, 48, 45, 0.22);
@@ -81,6 +95,34 @@
   --button-shadow: var(--shadow-flat);
   --card-radius: var(--radius-md);
   --image-radius: var(--radius-md);
+  /* Larger-radius card/image recipes (product/category/solution cards, galleries, product photos).
+     Defaults keep each element's existing radius; an admin Card/Image radius sets all of them to
+     one value (resolve-css.ts) so the control visibly reaches every card and image on the site. */
+  --card-radius-lg: var(--radius-lg);
+  --card-radius-xl: var(--radius-xl);
+  --image-radius-lg: var(--radius-lg);
+
+  /* Per-variant button colors. Defaults are exactly the palette colors each variant already used. */
+  --btn-primary-bg: var(--color-coral);
+  --btn-primary-text: var(--color-paper);
+  --btn-primary-border: transparent;
+  --btn-primary-hover-bg: var(--color-coral-strong);
+  --btn-primary-hover-text: var(--color-paper);
+  --btn-secondary-bg: var(--color-petrol);
+  --btn-secondary-text: var(--color-paper);
+  --btn-secondary-border: transparent;
+  --btn-secondary-hover-bg: var(--color-ink);
+  --btn-secondary-hover-text: var(--color-paper);
+  --btn-gold-bg: var(--color-wheat);
+  --btn-gold-text: var(--color-ink);
+  --btn-gold-border: transparent;
+  --btn-gold-hover-bg: var(--color-wheat-strong);
+  --btn-gold-hover-text: var(--color-ink);
+  --btn-ghost-gold-bg: transparent;
+  --btn-ghost-gold-text: var(--color-wheat);
+  --btn-ghost-gold-border: var(--color-wheat);
+  --btn-ghost-gold-hover-bg: var(--color-wheat);
+  --btn-ghost-gold-hover-text: var(--color-ink);
   --grid-gap: 1.25rem; /* matches the gap-5 already used by the commerce grids below */
   --card-gap: 1.5rem; /* matches the gap-6 already used by card-based grids below */
   --section-spacing-scale: 1;
@@ -142,6 +184,9 @@
      simply redefines these same two variables to point at a different option's variable instead. */
   --font-body: var(--font-body-public-sans);
   --font-arabic: var(--font-arabic-plex-arabic);
+  /* Heading typefaces, same pattern: Archivo (English) and the Arabic body font (Arabic) by default. */
+  --font-display: var(--font-display-archivo);
+  --font-display-ar: var(--font-arabic);
 }
 
 @theme inline {
@@ -168,6 +213,13 @@
   --color-gold: var(--color-gold);
   --color-warm-white: var(--color-warm-white);
   --color-charcoal: var(--color-charcoal);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-text: var(--color-text);
+  --color-line: var(--color-border);
+  --color-line-strong: var(--color-border-strong);
 
   --font-display: var(--font-display);
   --font-body: var(--font-body);
@@ -212,7 +264,7 @@ body {
 }
 
 html[dir="rtl"] .font-display {
-  font-family: var(--font-arabic), sans-serif;
+  font-family: var(--font-display-ar), sans-serif;
   font-stretch: normal;
   letter-spacing: 0;
 }
@@ -402,4 +454,254 @@ html[dir="rtl"] .animate-marquee {
 :focus-visible {
   outline: 2px solid var(--color-wheat);
   outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Redesign PHASE 9 -- section motion system (pure CSS, no JavaScript)
+   Switched on per section by data attributes emitted from SectionShell
+   (src/lib/page-builder/section-shell.tsx). Uses the individual `translate` /
+   `scale` / `filter` properties, never `transform`, so it composes with the
+   Framer-Motion entrance reveals that already set `transform` inline.
+   ========================================================================== */
+
+/* -- Element-level entrance (scroll-driven) ---------------------------------
+   Progressive enhancement: only where `animation-timeline: view()` exists AND
+   the visitor hasn't asked for reduced motion. Elsewhere content is simply
+   visible -- it is never hidden waiting for JavaScript, so no flicker, no
+   layout shift and nothing to hydrate. */
+:root {
+  --m-dist: 28px;
+  --m-dir: 1;
+}
+html[dir="rtl"] {
+  --m-dir: -1;
+}
+@media (max-width: 639px) {
+  :root {
+    --m-dist: 14px; /* lighter on phones */
+  }
+}
+
+@keyframes m-fade {
+  from { opacity: 0; }
+}
+@keyframes m-fade-up {
+  from { opacity: 0; translate: 0 var(--m-dist); }
+}
+@keyframes m-fade-down {
+  from { opacity: 0; translate: 0 calc(var(--m-dist) * -1); }
+}
+@keyframes m-fade-start {
+  from { opacity: 0; translate: calc(var(--m-dist) * -1 * var(--m-dir)) 0; }
+}
+@keyframes m-fade-end {
+  from { opacity: 0; translate: calc(var(--m-dist) * var(--m-dir)) 0; }
+}
+@keyframes m-scale {
+  from { opacity: 0; scale: 0.92; }
+}
+@keyframes m-blur {
+  from { opacity: 0; filter: blur(10px); }
+}
+@keyframes m-reveal {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    [data-motion-heading] :is(h1, h2, h3, h4),
+    [data-motion-text] :is(p, li, blockquote),
+    [data-motion-image] :is(img, video),
+    [data-motion-button] .ui-btn,
+    [data-motion-card] [data-ui-card] {
+      animation-duration: auto;
+      animation-timing-function: var(--section-motion-ease, cubic-bezier(0.22, 1, 0.36, 1));
+      animation-fill-mode: both;
+      animation-timeline: view();
+      /* Starts as the element enters the viewport, done by the time it is ~a third in.
+         Anything already on screen at load is past this range, so it renders finished. */
+      animation-range: entry 0% cover 30%;
+    }
+    :is(
+        [data-motion-heading="fade"] :is(h1, h2, h3, h4),
+        [data-motion-text="fade"] :is(p, li, blockquote),
+        [data-motion-image="fade"] :is(img, video),
+        [data-motion-button="fade"] .ui-btn,
+        [data-motion-card="fade"] [data-ui-card]
+      ) {
+      animation-name: m-fade;
+    }
+    :is(
+        [data-motion-heading="fade-up"] :is(h1, h2, h3, h4),
+        [data-motion-text="fade-up"] :is(p, li, blockquote),
+        [data-motion-image="fade-up"] :is(img, video),
+        [data-motion-button="fade-up"] .ui-btn,
+        [data-motion-card="fade-up"] [data-ui-card]
+      ) {
+      animation-name: m-fade-up;
+    }
+    :is(
+        [data-motion-heading="fade-down"] :is(h1, h2, h3, h4),
+        [data-motion-text="fade-down"] :is(p, li, blockquote),
+        [data-motion-image="fade-down"] :is(img, video),
+        [data-motion-button="fade-down"] .ui-btn,
+        [data-motion-card="fade-down"] [data-ui-card]
+      ) {
+      animation-name: m-fade-down;
+    }
+    :is(
+        [data-motion-heading="fade-start"] :is(h1, h2, h3, h4),
+        [data-motion-text="fade-start"] :is(p, li, blockquote),
+        [data-motion-image="fade-start"] :is(img, video),
+        [data-motion-button="fade-start"] .ui-btn,
+        [data-motion-card="fade-start"] [data-ui-card]
+      ) {
+      animation-name: m-fade-start;
+    }
+    :is(
+        [data-motion-heading="fade-end"] :is(h1, h2, h3, h4),
+        [data-motion-text="fade-end"] :is(p, li, blockquote),
+        [data-motion-image="fade-end"] :is(img, video),
+        [data-motion-button="fade-end"] .ui-btn,
+        [data-motion-card="fade-end"] [data-ui-card]
+      ) {
+      animation-name: m-fade-end;
+    }
+    :is(
+        [data-motion-heading="scale"] :is(h1, h2, h3, h4),
+        [data-motion-text="scale"] :is(p, li, blockquote),
+        [data-motion-image="scale"] :is(img, video),
+        [data-motion-button="scale"] .ui-btn,
+        [data-motion-card="scale"] [data-ui-card]
+      ) {
+      animation-name: m-scale;
+    }
+    :is(
+        [data-motion-heading="blur"] :is(h1, h2, h3, h4),
+        [data-motion-text="blur"] :is(p, li, blockquote),
+        [data-motion-image="blur"] :is(img, video),
+        [data-motion-button="blur"] .ui-btn,
+        [data-motion-card="blur"] [data-ui-card]
+      ) {
+      animation-name: m-blur;
+    }
+    :is(
+        [data-motion-heading="reveal"] :is(h1, h2, h3, h4),
+        [data-motion-text="reveal"] :is(p, li, blockquote),
+        [data-motion-image="reveal"] :is(img, video),
+        [data-motion-button="reveal"] .ui-btn,
+        [data-motion-card="reveal"] [data-ui-card]
+      ) {
+      animation-name: m-reveal;
+    }
+    /* Blur is expensive on phone GPUs: plain fade there. */
+    @media (max-width: 639px) {
+      :is(
+          [data-motion-heading="blur"] :is(h1, h2, h3, h4),
+          [data-motion-text="blur"] :is(p, li, blockquote),
+          [data-motion-image="blur"] :is(img, video),
+          [data-motion-button="blur"] .ui-btn,
+          [data-motion-card="blur"] [data-ui-card]
+        ) {
+        animation-name: m-fade;
+      }
+    }
+  }
+}
+
+/* -- Section hover effects ---------------------------------------------------
+   Off when the global Appearance > Hover effects switch is off
+   (html[data-hover-animation="off"]). Movement is skipped under reduced motion;
+   the overlay (opacity only) still works. */
+html:not([data-hover-animation="off"]) [data-hover-overlay] :is(a, [data-ui-card]) :is(.relative, .absolute):has(> img)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(to top, rgb(10 24 38 / 0.6), rgb(10 24 38 / 0.1) 60%, transparent);
+  opacity: 0;
+  transition: opacity 0.4s var(--ease-premium);
+}
+html:not([data-hover-animation="off"]) [data-hover-overlay] :is(a, [data-ui-card]):is(:hover, :focus-visible) :is(.relative, .absolute):has(> img)::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-hover-animation="off"]) [data-hover-img-zoom] :is(a, [data-ui-card], figure) img {
+    transition: scale 0.7s var(--ease-premium);
+  }
+  html:not([data-hover-animation="off"]) [data-hover-img-zoom] :is(a, [data-ui-card], figure):is(:hover, :focus-visible) img {
+    scale: 1.06;
+  }
+
+  html:not([data-hover-animation="off"]) [data-hover-card-lift] [data-ui-card] {
+    transition:
+      translate 0.35s var(--ease-premium),
+      box-shadow 0.35s var(--ease-premium);
+  }
+  html:not([data-hover-animation="off"]) [data-hover-card-lift] [data-ui-card]:is(:hover, :focus-within) {
+    translate: 0 -6px;
+    box-shadow: var(--shadow-lifted);
+  }
+
+  html:not([data-hover-animation="off"]) [data-hover-btn="lift"] .ui-btn {
+    transition:
+      translate 0.25s var(--ease-premium),
+      box-shadow 0.25s var(--ease-premium),
+      color 0.2s,
+      background-color 0.2s,
+      border-color 0.2s;
+  }
+  html:not([data-hover-animation="off"]) [data-hover-btn="lift"] .ui-btn:hover {
+    translate: 0 -3px;
+    box-shadow: var(--shadow-lifted);
+  }
+
+  html:not([data-hover-animation="off"]) [data-hover-btn="shine"] .ui-btn {
+    position: relative;
+    overflow: hidden;
+  }
+  html:not([data-hover-animation="off"]) [data-hover-btn="shine"] .ui-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%);
+    translate: -120% 0;
+    transition: translate 0.8s var(--ease-premium);
+  }
+  html:not([data-hover-animation="off"]) [data-hover-btn="shine"] .ui-btn:hover::after {
+    translate: 120% 0;
+  }
+
+  html:not([data-hover-animation="off"]) [data-hover-btn="arrow"] .ui-btn svg {
+    transition: translate 0.3s var(--ease-premium);
+  }
+  html:not([data-hover-animation="off"]) [data-hover-btn="arrow"] .ui-btn:hover svg {
+    translate: calc(4px * var(--m-dir)) 0;
+  }
+}
+
+/* -- Section background motion (desktop only) -------------------------------- */
+@keyframes bg-slow-zoom {
+  from { scale: 1; }
+  to { scale: 1.08; }
+}
+@keyframes bg-ken-burns {
+  from { scale: 1.02; translate: 0 0; }
+  to { scale: 1.12; translate: calc(-2% * var(--m-dir)) -1.5%; }
+}
+@media (prefers-reduced-motion: no-preference) and (min-width: 768px) {
+  .bg-motion-slow-zoom,
+  .bg-motion-ken-burns {
+    will-change: scale, translate;
+  }
+  .bg-motion-slow-zoom {
+    animation: bg-slow-zoom 24s ease-in-out infinite alternate;
+  }
+  .bg-motion-ken-burns {
+    animation: bg-ken-burns 32s ease-in-out infinite alternate;
+  }
 }
