@@ -68,7 +68,8 @@ const updateLeadSchema = z.object({
   id: z.string().min(1),
   contactName: z.string().min(1).max(200),
   companyName: z.string().max(200).optional().or(z.literal("")),
-  email: z.string().email(),
+  // Empty for quote-form leads (G7_QUOTE asks for a phone number instead of an email).
+  email: z.string().email().or(z.literal("")),
   phone: z.string().max(40).optional().or(z.literal("")),
   message: z.string().max(4000).optional().or(z.literal("")),
   status: statusSchema,

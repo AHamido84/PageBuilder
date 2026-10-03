@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { NewsletterForm } from "./newsletter-form";
 import type { PublicMenuItem } from "@/lib/menus";
 import { formatCopyright, parseFooterSettings } from "@/lib/site-settings/footer";
 
@@ -38,8 +37,9 @@ const LINK = "transition-colors hover:text-[var(--g7-gold-500)] focus-visible:ou
 /**
  * Golden Seven home v7 footer (design-assets/reference/10-footer.png): logo + tagline + domain,
  * "Quick links" (Products / Our story / For businesses) and
- * "Contact us" columns, then copyright and the language switch. The newsletter band, contact
- * email/phone, legal links and social links stay driven by /admin/settings as before.
+ * "Contact us" columns, then copyright and the language switch. No newsletter band (not in the
+ * design; the Settings > Footer newsletter toggle no longer applies). Contact email/phone, legal
+ * links and social links stay driven by /admin/settings as before.
  */
 export async function SiteFooter({ locale }: FooterProps) {
   const t = await getTranslations("footer");
@@ -49,8 +49,6 @@ export async function SiteFooter({ locale }: FooterProps) {
   const isAr = locale === "ar";
   const footerOptions = parseFooterSettings(settings?.footerSettings);
   const siteName = (isAr ? settings?.siteNameAr : settings?.siteNameEn) || t("aboutTitle");
-  const newsletterTitle = (isAr ? settings?.newsletterTitleAr : settings?.newsletterTitleEn) || t("newsletterTitle");
-  const newsletterBody = (isAr ? settings?.newsletterBodyAr : settings?.newsletterBodyEn) || t("newsletterBody");
   const currentYear = new Date().getFullYear();
   const year = isAr ? new Intl.NumberFormat("ar-EG", { useGrouping: false }).format(currentYear) : currentYear;
   const copyright = formatCopyright(isAr ? footerOptions.copyrightAr : footerOptions.copyrightEn, t("rightsLine"), { year, siteName });
@@ -72,20 +70,6 @@ export async function SiteFooter({ locale }: FooterProps) {
 
   return (
     <footer className="bg-[var(--g7-teal-800)] text-[var(--g7-cream-50)]">
-      {footerOptions.showNewsletter !== false ? (
-        <div className="border-b border-[var(--g7-divider-on-teal)]">
-          <div className="g7-container flex flex-col gap-6 py-12 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-lg">
-              <p className="text-2xl font-bold">{newsletterTitle}</p>
-              <p className="mt-2 text-base font-light text-[var(--g7-cream-50)]/75">{newsletterBody}</p>
-            </div>
-            <div className="lg:min-w-[380px] lg:shrink-0">
-              <NewsletterForm />
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       <div className="g7-container pb-[clamp(2.5rem,6vw,7rem)] pt-[clamp(3rem,4.4vw,5.3rem)]">
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-[44.7fr_31.2fr_24.1fr] lg:gap-0">
           <div className="sm:col-span-2 lg:col-span-1">

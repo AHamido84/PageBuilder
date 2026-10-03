@@ -31,11 +31,16 @@ export interface LeadFormState {
  * Form/Quote Form blocks). Runs unauthenticated by design -- the submitter
  * has no admin session, so this intentionally never calls assertCan.
  */
-export async function submitLead(formData: FormData, rateLimitKeyPrefix = "lead"): Promise<LeadFormState> {
+export async function submitLead(formData: FormData, rateLimitKeyPrefix = "lead", options: { emailOptional?: boolean } = {}): Promise<LeadFormState> {
   // PHASE 11 fix: errors are shown to the visitor, so they follow the form's language (they were
   // always English, also on /ar).
   const t = await getTranslations({ locale: formData.get("locale") === "AR" ? "ar" : "en", namespace: "formErrors" });
-  const parsed = leadSchema.safeParse(Object.fromEntries(formData));
+  // The G7 quote form asks for a phone number instead of an email: an empty email is stored as ""
+  // (the column is required), and a phone number becomes mandatory.
+  const schema = options.emailOptional
+    ? leadSchema.extend({ email: z.string().email().or(z.literal("")), phone: z.string().trim().min(6).max(40) })
+    : leadSchema;
+  const parsed = schema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     const field = parsed.error.issues[0]?.path[0];
     return { error: field === "contactName" ? t("nameRequired") : field === "email" ? t("invalidEmail") : t("invalidInput") };
@@ -84,7 +89,7 @@ export async function submitLead(formData: FormData, rateLimitKeyPrefix = "lead"
       text: [
         `Contact: ${lead.contactName}`,
         lead.companyName ? `Company: ${lead.companyName}` : null,
-        `Email: ${lead.email}`,
+        lead.email ? `Email: ${lead.email}` : null,
         lead.phone ? `Phone: ${lead.phone}` : null,
         `Type: ${lead.inquiryType}`,
         lead.message ? `\nMessage:\n${lead.message}` : null,

@@ -19,7 +19,6 @@ const MESSAGES = {
     nameRequired: "يرجى إدخال اسمك.",
     phoneRequired: "يرجى إدخال رقم التواصل.",
     phoneInvalid: "يرجى إدخال رقم تواصل صحيح.",
-    emailInvalid: "يرجى إدخال بريد إلكتروني صحيح.",
     sending: "جارٍ الإرسال…",
     success: "شكرًا لك! استلمنا طلبك وسنتواصل معك قريبًا.",
     another: "إرسال طلب آخر",
@@ -29,7 +28,6 @@ const MESSAGES = {
     nameRequired: "Please enter your name.",
     phoneRequired: "Please enter your phone number.",
     phoneInvalid: "Please enter a valid phone number.",
-    emailInvalid: "Please enter a valid email address.",
     sending: "Sending…",
     success: "Thank you! We've received your request and will be in touch soon.",
     another: "Send another request",
@@ -37,7 +35,7 @@ const MESSAGES = {
   },
 };
 
-type FieldErrors = Partial<Record<"contactName" | "phone" | "email", string>>;
+type FieldErrors = Partial<Record<"contactName" | "phone", string>>;
 
 /** Three stacked outlined diamonds (design ornament), drawn in SVG. */
 function DiamondOrnament({ className }: { className?: string }) {
@@ -85,7 +83,6 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
     const phone = value("phone");
     if (!phone) next.phone = t.phoneRequired;
     else if (!/^[+\d][\d\s()-]{6,}$/.test(phone.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))))) next.phone = t.phoneInvalid;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value("email"))) next.email = t.emailInvalid;
     return next;
   }
 
@@ -112,7 +109,7 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
     <section id={anchorId} className="scroll-mt-24 bg-[var(--g7-cream-50)]">
       <div className="grid grid-cols-1 xl:grid-cols-[3fr_2fr]">
         {/* Image + overlaid heading */}
-        <div className="relative aspect-[4/5] overflow-hidden bg-[var(--g7-teal-900)] sm:aspect-[5/4] xl:aspect-[1152/920]">
+        <div className="relative aspect-[4/5] overflow-hidden bg-[var(--g7-teal-900)] sm:aspect-[5/4] xl:aspect-auto xl:min-h-[47.9vw]">
           {data.image?.url ? <Image src={data.image.url} alt={data.imageAlt ?? ""} fill sizes="(min-width: 1280px) 60vw, 100vw" className="object-cover object-bottom" /> : null}
           <DiamondOrnament className="absolute start-[clamp(1.25rem,2.9vw,3.5rem)] top-[clamp(1.25rem,2.1vw,2.5rem)] h-[clamp(4rem,6.5vw,7.8rem)] w-[clamp(1.25rem,2vw,2.4rem)] text-[var(--g7-gold-500)]" />
           <div className="relative px-6 pt-[clamp(3rem,4.6vw,5.5rem)] text-center text-[var(--g7-cream-50)]">
@@ -185,12 +182,6 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                   {fieldError("phone")}
                 </div>
 
-                <div className="sm:col-span-2">
-                  <label htmlFor="g7q-email" className={labelClass}>{data.emailLabel}</label>
-                  <input id="g7q-email" name="email" type="email" inputMode="email" autoComplete="email" dir="ltr" placeholder={data.emailPlaceholder} className={cn(inputClass, "rtl:text-right")} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "g7q-email-error" : undefined} />
-                  {fieldError("email")}
-                </div>
-
                 <fieldset>
                   <legend className={labelClass}>{data.productsLabel}</legend>
                   <div className="flex flex-wrap gap-2.5">
@@ -259,8 +250,6 @@ export function G7QuoteEdit({ data, onChange, locale }: BlockEditProps<G7QuoteDa
     ["cityPlaceholder", "City placeholder"],
     ["phoneLabel", "Phone label"],
     ["phonePlaceholder", "Phone placeholder"],
-    ["emailLabel", "Email label"],
-    ["emailPlaceholder", "Email placeholder"],
     ["productsLabel", "Products label"],
     ["quantityLabel", "Quantity label"],
     ["quantityPlaceholder", "Quantity placeholder"],

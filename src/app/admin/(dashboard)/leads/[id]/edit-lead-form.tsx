@@ -37,7 +37,7 @@ export function EditLeadForm({ lead, users }: Props) {
       </div>
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Email</label>
-        <input name="email" type="email" defaultValue={lead.email} required className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
+        <input name="email" type="email" defaultValue={lead.email} className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm" />
       </div>
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Phone</label>

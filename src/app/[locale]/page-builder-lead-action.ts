@@ -30,7 +30,8 @@ export async function submitQuoteRequestAction(_prev: LeadFormState, formData: F
     const value = formData.get(key);
     if (typeof value === "string") lead.set(key, value);
   }
+  if (!lead.has("email")) lead.set("email", "");
   lead.set("inquiryType", "QUOTE");
   lead.set("message", lines.join("\n"));
-  return submitLead(lead, "quote-lead");
+  return submitLead(lead, "quote-lead", { emailOptional: true });
 }
