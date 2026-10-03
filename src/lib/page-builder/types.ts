@@ -311,7 +311,7 @@ export interface SectionSettings {
   advanced: SectionAdvancedSettings;
 }
 
-export type BlockCategory = "content" | "media" | "layout" | "commerce" | "social-proof" | "interactive" | "forms" | "misc";
+export type BlockCategory = "content" | "media" | "layout" | "commerce" | "social-proof" | "interactive" | "forms" | "misc" | "golden";
 
 export interface BlockEditProps<TData> {
   data: TData;

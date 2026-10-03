@@ -2,15 +2,8 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { NewsletterForm } from "./newsletter-form";
-import { ScrollReveal, KineticText } from "@/lib/motion/primitives";
-import { RouteLine } from "./graphics/route-line";
-import { SectionDivider } from "@/components/ui/section-divider";
-import { Grid } from "@/components/ui/grid";
 import type { PublicMenuItem } from "@/lib/menus";
 import { formatCopyright, parseFooterSettings } from "@/lib/site-settings/footer";
-
-/** The footer's closing accent — a route that resolves to a single point, echoing "journey's end." */
-const FOOTER_ACCENT_PATH = "M4 24 Q 30 4 56 16 T 76 6";
 
 interface CategoryNavItem {
   id: string;
@@ -20,7 +13,7 @@ interface CategoryNavItem {
 
 interface FooterProps {
   categories: CategoryNavItem[];
-  /** Real admin-managed nav items (from /admin/menus, FOOTER location) — each top-level item becomes a column. */
+  /** Admin FOOTER menu -- no longer rendered by the v7 footer (fixed design links), kept so the layout contract is unchanged. */
   menuItems?: PublicMenuItem[];
   locale: string;
 }
@@ -33,181 +26,153 @@ interface SocialLinks {
 }
 
 async function getSiteSettings() {
-  return prisma.siteSetting.findUnique({ where: { id: "singleton" }, include: { footerLogo: { select: { url: true } } } });
+  return prisma.siteSetting.findUnique({
+    where: { id: "singleton" },
+    include: { footerLogo: { select: { url: true } }, logo: { select: { url: true } } },
+  });
 }
 
-export async function SiteFooter({ categories, menuItems = [], locale }: FooterProps) {
+const HEADING = "g7-t30 font-normal text-[var(--g7-gold-500)]";
+const LINK = "transition-colors hover:text-[var(--g7-gold-500)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--g7-gold-500)]";
+
+/**
+ * Golden Seven home v7 footer (design-assets/reference/10-footer.png): logo + tagline + domain,
+ * "Quick links" (Products / Our story / For businesses) and
+ * "Contact us" columns, then copyright and the language switch. The newsletter band, contact
+ * email/phone, legal links and social links stay driven by /admin/settings as before.
+ */
+export async function SiteFooter({ locale }: FooterProps) {
   const t = await getTranslations("footer");
   const tNav = await getTranslations("nav");
-  const tContact = await getTranslations("contactPage");
   const settings = await getSiteSettings();
   const social = (settings?.socialLinks as SocialLinks | null) ?? null;
-  const hasSocial = Boolean(social && (social.facebook || social.linkedin || social.instagram || social.twitter));
   const isAr = locale === "ar";
-  // Real admin-configured content (all set via /admin/settings' Footer tab) with the existing
-  // translation strings as a fallback -- so a site that's never touched these settings keeps
-  // rendering exactly what it always has, unmodified.
-  const aboutTitle = (isAr ? settings?.siteNameAr : settings?.siteNameEn) || t("aboutTitle");
-  const aboutBody = (isAr ? settings?.footerAboutAr : settings?.footerAboutEn) || t("aboutBody");
+  const footerOptions = parseFooterSettings(settings?.footerSettings);
+  const siteName = (isAr ? settings?.siteNameAr : settings?.siteNameEn) || t("aboutTitle");
   const newsletterTitle = (isAr ? settings?.newsletterTitleAr : settings?.newsletterTitleEn) || t("newsletterTitle");
   const newsletterBody = (isAr ? settings?.newsletterBodyAr : settings?.newsletterBodyEn) || t("newsletterBody");
-  const contactLocation = settings?.address || tContact("location");
-  // Footer options from /admin/settings > Footer; every one defaults to the original footer.
-  const footerOptions = parseFooterSettings(settings?.footerSettings);
-  const siteName = (isAr ? settings?.siteNameAr : settings?.siteNameEn) || aboutTitle;
-  const copyright = formatCopyright(isAr ? footerOptions.copyrightAr : footerOptions.copyrightEn, `© {year} {siteName}. ${t("rights")}`, { year: new Date().getFullYear(), siteName });
-  const productsTitle = (isAr ? footerOptions.productsTitleAr : footerOptions.productsTitleEn) || t("productsTitle");
-  const contactTitle = (isAr ? footerOptions.contactTitleAr : footerOptions.contactTitleEn) || t("contactTitle");
+  const currentYear = new Date().getFullYear();
+  const year = isAr ? new Intl.NumberFormat("ar-EG", { useGrouping: false }).format(currentYear) : currentYear;
+  const copyright = formatCopyright(isAr ? footerOptions.copyrightAr : footerOptions.copyrightEn, t("rightsLine"), { year, siteName });
+  const logoUrl = settings?.footerLogo?.url ?? settings?.logo?.url ?? null;
+  const address = settings?.address || t("address");
+
+  // Design 10: three fixed quick links (the admin FOOTER menu was a long multi-column list).
+  const quickLinks = [
+    { id: "products", label: tNav("productsMenu"), href: `/${locale}/products` },
+    { id: "about", label: tNav("ourStory"), href: `/${locale}/about` },
+    { id: "business", label: tNav("forBusiness"), href: `/${locale}/solutions` },
+  ];
+  const socialEntries = ([
+    ["Facebook", social?.facebook],
+    ["LinkedIn", social?.linkedin],
+    ["Instagram", social?.instagram],
+    ["X", social?.twitter],
+  ] as [string, string | undefined][]).filter((entry): entry is [string, string] => Boolean(entry[1]));
 
   return (
-    <footer className="border-t border-paper/10 bg-petrol text-paper">
-      <SectionDivider curve="wave" className="text-petrol" />
-      {/* Tier 1 — conversion: newsletter signup (can be turned off when the page has its own Newsletter section). */}
+    <footer className="bg-[var(--g7-teal-800)] text-[var(--g7-cream-50)]">
       {footerOptions.showNewsletter !== false ? (
-      <div className="border-b border-paper/10 bg-petrol-elevated">
-        <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20">
-          <ScrollReveal variant="fade-up" className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+        <div className="border-b border-[var(--g7-divider-on-teal)]">
+          <div className="g7-container flex flex-col gap-6 py-12 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-lg">
-              <RouteLine d={FOOTER_ACCENT_PATH} viewBox="0 0 80 28" strokeWidth={1.5} className="mb-4 h-5 w-20 text-wheat/60" />
-              <KineticText as="p" text={newsletterTitle} className="font-display text-h1 leading-[1.05]" />
-              <p className="mt-3 max-w-md text-base leading-relaxed text-paper/60">{newsletterBody}</p>
+              <p className="text-2xl font-bold">{newsletterTitle}</p>
+              <p className="mt-2 text-base font-light text-[var(--g7-cream-50)]/75">{newsletterBody}</p>
             </div>
-            <div className="lg:w-auto lg:min-w-[380px] lg:shrink-0">
+            <div className="lg:min-w-[380px] lg:shrink-0">
               <NewsletterForm />
             </div>
-          </ScrollReveal>
+          </div>
         </div>
-      </div>
       ) : null}
 
-      {/* Tier 2 — navigation. */}
-      <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20">
-        <Grid cols={6} gap="xl">
-          <div className="col-span-2 sm:col-span-3 lg:col-span-2">
-            {settings?.footerLogo?.url ? (
-              // eslint-disable-next-line @next/next/no-img-element -- admin-uploaded logo of unknown aspect ratio; sized by height only
-              <img src={settings.footerLogo.url} alt={siteName} className="h-12 w-auto max-w-[220px] object-contain object-start" />
-            ) : (
-              <p className="font-display text-lg">{aboutTitle}</p>
-            )}
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-paper/60">{aboutBody}</p>
+      <div className="g7-container pb-[clamp(2.5rem,6vw,7rem)] pt-[clamp(3rem,4.4vw,5.3rem)]">
+        <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-[44.7fr_31.2fr_24.1fr] lg:gap-0">
+          <div className="sm:col-span-2 lg:col-span-1">
+            <Link href={`/${locale}`} className="inline-block">
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- admin-uploaded logo of unknown aspect ratio; sized by height only
+                <img src={logoUrl} alt={siteName} className="h-[clamp(5rem,7.8vw,9.4rem)] w-auto max-w-[clamp(9rem,13.7vw,16.5rem)] object-contain object-start" loading="lazy" />
+              ) : (
+                <span className="text-2xl font-bold">{siteName}</span>
+              )}
+            </Link>
+            <p className="g7-t30 mt-[clamp(1rem,1.9vw,2.25rem)] font-light">{t("tagline")}</p>
+            <p dir="ltr" className="g7-t30 mt-[clamp(0.5rem,1.2vw,1.4rem)] font-light rtl:text-right">
+              {t("website")}
+            </p>
           </div>
 
-          {menuItems.map((item) => (
-            <div key={item.id}>
-              <p className="manifest-strip mb-4 text-paper/40">{item.label}</p>
-              <ul className="space-y-2.5 text-sm text-paper/70">
-                {item.children.length > 0
-                  ? item.children.map((child) => (
-                      <li key={child.id}>
-                        <Link href={child.href ?? `/${locale}`} className="transition-colors hover:text-paper">
-                          {child.label}
-                        </Link>
-                      </li>
-                    ))
-                  : (
-                      <li>
-                        <Link href={item.href ?? `/${locale}`} className="transition-colors hover:text-paper">
-                          {item.label}
-                        </Link>
-                      </li>
-                    )}
-              </ul>
-            </div>
-          ))}
-
-          {footerOptions.showProductsColumn !== false ? (
-          <div>
-            <p className="manifest-strip mb-4 text-paper/40">{productsTitle}</p>
-            <ul className="space-y-2.5 text-sm text-paper/70">
-              {categories.slice(0, 5).map((category) => (
-                <li key={category.id}>
-                  <Link href={`/${locale}/products?category=${category.slug}`} className="transition-colors hover:text-paper">
-                    {category.name}
+          <nav aria-label={t("quickLinks")}>
+            <p className={HEADING}>{t("quickLinks")}</p>
+            <ul className="g7-t26 mt-[clamp(1rem,2.1vw,2.5rem)] space-y-[clamp(0.25rem,0.5vw,0.6rem)] font-light">
+              {quickLinks.map((link) => (
+                <li key={link.id}>
+                  <Link href={link.href} className={LINK}>
+                    {link.label}
                   </Link>
                 </li>
               ))}
-              <li>
-                <Link href={`/${locale}/products`} className="text-wheat hover:underline">
-                  {tNav("viewAllProducts")}
-                </Link>
-              </li>
             </ul>
-          </div>
-          ) : null}
+          </nav>
 
-          {footerOptions.showContactColumn !== false ? (
           <div>
-            <p className="manifest-strip mb-4 text-paper/40">{contactTitle}</p>
-            <ul className="space-y-2.5 text-sm text-paper/70">
-              <li>{contactLocation}</li>
+            <p className={HEADING}>{t("contactUs")}</p>
+            <ul className="g7-t26 mt-[clamp(1rem,2.1vw,2.5rem)] space-y-[clamp(0.25rem,0.5vw,0.6rem)] font-light">
+              <li>{address}</li>
               {settings?.contactEmail ? (
                 <li>
-                  <a href={`mailto:${settings.contactEmail}`} dir="ltr" className="inline-block transition-colors hover:text-paper">
+                  <a href={`mailto:${settings.contactEmail}`} dir="ltr" className={`inline-block ${LINK}`}>
                     {settings.contactEmail}
                   </a>
                 </li>
               ) : null}
               {settings?.contactPhone ? (
                 <li>
-                  <a href={`tel:${settings.contactPhone}`} dir="ltr" className="inline-block transition-colors hover:text-paper">
+                  <a href={`tel:${settings.contactPhone}`} dir="ltr" className={`inline-block ${LINK}`}>
                     {settings.contactPhone}
                   </a>
                 </li>
               ) : null}
               <li>
-                <Link href={`/${locale}/contact`} className="text-wheat hover:underline">
+                <Link href={`/${locale}#quote`} className={LINK}>
                   {tNav("requestQuote")}
                 </Link>
               </li>
             </ul>
           </div>
-          ) : null}
-        </Grid>
-      </div>
+        </div>
 
-      {/* Tier 3 — legal, social, copyright. */}
-      <div className="border-t border-paper/10">
-        <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-5 py-6 text-xs text-paper/40 sm:px-8 sm:flex-row sm:items-center sm:justify-between lg:px-12">
+        <div className="g7-t22 mt-[clamp(2.5rem,5.4vw,6.5rem)] flex flex-col gap-5 border-t border-[var(--g7-divider-on-teal)] pt-[clamp(1.5rem,2.3vw,2.75rem)] font-light sm:flex-row sm:items-center sm:justify-between">
           <p>{copyright}</p>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             {footerOptions.showLegalLinks !== false ? (
               <>
-                <Link href={`/${locale}/privacy`} className="transition-colors hover:text-paper/70">
+                <Link href={`/${locale}/privacy`} className={`text-sm opacity-80 ${LINK}`}>
                   {t("privacy")}
                 </Link>
-                <Link href={`/${locale}/terms`} className="transition-colors hover:text-paper/70">
+                <Link href={`/${locale}/terms`} className={`text-sm opacity-80 ${LINK}`}>
                   {t("terms")}
                 </Link>
-                <Link href={`/${locale}/cookies`} className="transition-colors hover:text-paper/70">
+                <Link href={`/${locale}/cookies`} className={`text-sm opacity-80 ${LINK}`}>
                   {t("cookies")}
                 </Link>
               </>
             ) : null}
-            {hasSocial ? (
-              <span className="flex items-center gap-4 border-s border-paper/15 ps-5">
-                {social?.facebook ? (
-                  <a href={social.facebook} target="_blank" rel="noreferrer" className="transition-colors hover:text-paper/70">
-                    Facebook
-                  </a>
-                ) : null}
-                {social?.linkedin ? (
-                  <a href={social.linkedin} target="_blank" rel="noreferrer" className="transition-colors hover:text-paper/70">
-                    LinkedIn
-                  </a>
-                ) : null}
-                {social?.instagram ? (
-                  <a href={social.instagram} target="_blank" rel="noreferrer" className="transition-colors hover:text-paper/70">
-                    Instagram
-                  </a>
-                ) : null}
-                {social?.twitter ? (
-                  <a href={social.twitter} target="_blank" rel="noreferrer" className="transition-colors hover:text-paper/70">
-                    X
-                  </a>
-                ) : null}
-              </span>
-            ) : null}
+            {socialEntries.map(([label, href]) => (
+              <a key={label} href={href} target="_blank" rel="noreferrer" className={`text-sm opacity-80 ${LINK}`}>
+                {label}
+              </a>
+            ))}
+            <p className="flex items-center gap-3" aria-label={t("languageSwitch")}>
+              <Link href="/ar" hrefLang="ar" lang="ar" aria-current={isAr ? "true" : undefined} className={`${LINK} ${isAr ? "font-medium" : "opacity-75"}`}>
+                {t("languageAr")}
+              </Link>
+              <span aria-hidden="true">|</span>
+              <Link href="/en" hrefLang="en" lang="en" aria-current={!isAr ? "true" : undefined} className={`${LINK} ${!isAr ? "font-medium" : "opacity-75"}`}>
+                {t("languageEn")}
+              </Link>
+            </p>
           </div>
         </div>
       </div>

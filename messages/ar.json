@@ -15,7 +15,10 @@
     "viewAllProducts": "عرض جميع المنتجات",
     "viewAllCategories": "جميع الفئات",
     "featured": "المميزة",
-    "discoverProducts": "اكتشف تشكيلتنا الكاملة من المنتجات"
+    "discoverProducts": "اكتشف تشكيلتنا الكاملة من المنتجات",
+    "productsMenu": "منتجاتنا",
+    "ourStory": "قصتنا",
+    "forBusiness": "لقطاع الأعمال"
   },
   "common": {
     "loading": "جارٍ التحميل…",
@@ -323,7 +326,16 @@
     "rights": "جميع الحقوق محفوظة.",
     "privacy": "سياسة الخصوصية",
     "terms": "شروط الخدمة",
-    "cookies": "سياسة ملفات تعريف الارتباط"
+    "cookies": "سياسة ملفات تعريف الارتباط",
+    "tagline": "مذاق يليق بضيافتك.",
+    "website": "goldensevenfoods.com",
+    "quickLinks": "روابط سريعة",
+    "contactUs": "تواصل معنا",
+    "address": "جدة، المملكة العربية السعودية",
+    "languageAr": "العربية",
+    "languageEn": "EN",
+    "languageSwitch": "تغيير اللغة",
+    "rightsLine": "© {year} {siteName}. جميع الحقوق محفوظة."
   },
   "formErrors": {
     "nameRequired": "يرجى إدخال اسمك.",

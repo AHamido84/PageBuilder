@@ -15,7 +15,10 @@
     "viewAllProducts": "View all products",
     "viewAllCategories": "All categories",
     "featured": "Featured",
-    "discoverProducts": "Discover Our Full Product Range"
+    "discoverProducts": "Discover Our Full Product Range",
+    "productsMenu": "Our products",
+    "ourStory": "Our story",
+    "forBusiness": "For businesses"
   },
   "common": {
     "loading": "Loading…",
@@ -323,7 +326,16 @@
     "rights": "All rights reserved.",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
-    "cookies": "Cookie Policy"
+    "cookies": "Cookie Policy",
+    "tagline": "A taste worthy of your hospitality.",
+    "website": "goldensevenfoods.com",
+    "quickLinks": "Quick links",
+    "contactUs": "Contact us",
+    "address": "Jeddah, Saudi Arabia",
+    "languageAr": "العربية",
+    "languageEn": "EN",
+    "languageSwitch": "Change language",
+    "rightsLine": "© {year} {siteName}. All rights reserved."
   },
   "formErrors": {
     "nameRequired": "Please enter your name.",

@@ -27,7 +27,7 @@ export function parseFooterSettings(raw: unknown): FooterSettings {
   return parsed.success ? parsed.data : {};
 }
 
-export function formatCopyright(template: string | undefined, fallback: string, values: { year: number; siteName: string }): string {
+export function formatCopyright(template: string | undefined, fallback: string, values: { year: number | string; siteName: string }): string {
   const source = template?.trim() ? template : fallback;
   return source.replaceAll("{year}", String(values.year)).replaceAll("{siteName}", values.siteName);
 }

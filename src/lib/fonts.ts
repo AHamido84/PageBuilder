@@ -13,6 +13,7 @@ import {
   Noto_Kufi_Arabic,
   Noto_Sans_Arabic,
 } from "next/font/google";
+import localFont from "next/font/local";
 
 /**
  * Every typeface the Appearance page can select. Fonts are self-hosted by next/font at build time
@@ -27,6 +28,20 @@ import {
  * Only the defaults are preloaded. The browser downloads a non-default font's files only once an
  * admin has actually selected it (an @font-face nothing uses is never fetched).
  */
+/** Golden Seven home v7 primary typeface (Arabic + Latin), self-hosted -- license in src/fonts/lama-sans/LICENSE.txt.
+ * Only the weights the design uses; 400 and 700 are preloaded. */
+const lamaSans = localFont({
+  src: [
+    { path: "../fonts/lama-sans/LamaSans-Light.otf", weight: "300", style: "normal" },
+    { path: "../fonts/lama-sans/LamaSans-Regular.otf", weight: "400", style: "normal" },
+    { path: "../fonts/lama-sans/LamaSans-Medium.otf", weight: "500", style: "normal" },
+    { path: "../fonts/lama-sans/LamaSans-Bold.otf", weight: "700", style: "normal" },
+    { path: "../fonts/lama-sans/LamaSans-ExtraBold.otf", weight: "800", style: "normal" },
+  ],
+  variable: "--font-lama",
+  display: "swap",
+  fallback: ["IBM Plex Sans Arabic", "system-ui", "sans-serif"],
+});
 const archivo = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-display-archivo", display: "swap" });
 const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-body-public-sans", display: "swap" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-body-inter", display: "swap", preload: false });
@@ -43,6 +58,7 @@ const notoSansArabic = Noto_Sans_Arabic({ subsets: ["arabic"], variable: "--font
 
 /** Put on <html> so every font variable above is defined site-wide. */
 export const fontVariableClassNames = [
+  lamaSans,
   archivo,
   publicSans,
   inter,

@@ -52,3 +52,6 @@ next-env.d.ts
 /public/uploads/
 
 .env*
+
+# Golden Seven design source files (reference only, never deployed)
+/design-assets/

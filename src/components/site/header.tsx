@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { CmsFillImage } from "@/components/media/cms-image";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "framer-motion";
-import { buttonClasses } from "@/components/ui/button";
 import { Arrow } from "@/components/ui/arrow";
 import { RouteLine } from "@/components/site/graphics/route-line";
 import { EASE_PREMIUM, DURATION } from "@/lib/motion/motionTokens";
@@ -45,6 +44,12 @@ interface HeaderProps {
 }
 
 type MegaKey = string | null;
+
+/** Golden Seven home v7 header styles (design 01). */
+const NAV_LINK =
+  "g7-t26 rounded-[6px] px-3 py-2 text-[var(--g7-teal-900)] transition-colors hover:text-[var(--g7-gold-600)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--g7-gold-500)]";
+const CONTACT_BUTTON =
+  "inline-flex h-[clamp(2.75rem,3.3vw,3.95rem)] min-w-[clamp(9rem,11.6vw,13.9rem)] items-center justify-center rounded-[6px] bg-[var(--g7-gold-600)] px-6 text-[clamp(1.1875rem,1.35vw,1.625rem)] font-bold text-[var(--g7-cream-50)] transition-colors hover:bg-[#98691d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--g7-teal-900)]";
 
 export function SiteHeader({
   categories,
@@ -118,11 +123,11 @@ export function SiteHeader({
         "top-0 z-50 border-b transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ease-[var(--ease-premium)]",
         logoSettings.sticky && "sticky",
         scrolled
-          ? "border-line bg-paper/97 shadow-[var(--shadow-card)] backdrop-blur-md"
-          : "border-transparent bg-paper/92 backdrop-blur-sm"
+          ? "border-[var(--g7-divider)] bg-[var(--g7-cream-50)] shadow-[0_1px_0_rgba(15,65,76,0.06)]"
+          : "border-transparent bg-[var(--g7-cream-50)]"
       )}
     >
-      <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-4 px-5 sm:px-8 lg:h-20 lg:px-12">
+      <div className="g7-container flex h-[clamp(4.5rem,7.3vw,8.75rem)] items-center justify-between gap-4">
         <Link
           href={`/${locale}`}
           className="flex shrink-0 items-center gap-2.5"
@@ -167,9 +172,16 @@ export function SiteHeader({
           )}
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex" onMouseLeave={() => setHoverMega(null)}>
+        <nav className="hidden items-center gap-[clamp(0.25rem,2.6vw,3.2rem)] lg:flex" onMouseLeave={() => setHoverMega(null)}>
+          <Link
+            href={`/${locale}`}
+            aria-current={pathWithoutLocale === "/" ? "page" : undefined}
+            className={cn(NAV_LINK, pathWithoutLocale === "/" && "text-[var(--g7-gold-600)]")}
+          >
+            {t("home")}
+          </Link>
           <MegaButton
-            label={t("products")}
+            label={t("productsMenu")}
             megaKey="products"
             active={activeMega === "products"}
             open={openMega === "products"}
@@ -191,7 +203,7 @@ export function SiteHeader({
               <Link
                 key={item.id}
                 href={item.href ?? `/${locale}`}
-                className="rounded-full px-5 py-2.5 text-sm font-medium text-ink/75 transition-colors hover:bg-ink/5 hover:text-ink"
+                className={NAV_LINK}
               >
                 {item.label}
               </Link>
@@ -199,17 +211,17 @@ export function SiteHeader({
           )}
         </nav>
 
-        <div className="hidden items-center gap-6 lg:flex">
-          <LocaleLinks locale={locale} pathWithoutLocale={pathWithoutLocale} />
-          <Link href={`/${locale}/contact`} className={buttonClasses("primary", "md")}>
-            {t("requestQuote")}
+        <div className="hidden items-center gap-[clamp(1.5rem,5.6vw,6.75rem)] lg:flex">
+          <Link href={`/${locale}/contact`} className={CONTACT_BUTTON}>
+            {t("contact")}
           </Link>
+          <LocaleLinks locale={locale} pathWithoutLocale={pathWithoutLocale} />
         </div>
 
         <button
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
-          className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-sm)] border border-line-strong lg:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-[6px] border border-[var(--g7-teal-900)]/25 text-[var(--g7-teal-900)] lg:hidden"
           aria-label={mobileOpen ? tCommon("close") : tCommon("menu")}
           aria-expanded={mobileOpen}
         >
@@ -372,7 +384,7 @@ function MegaButton({
         onToggle();
       }}
       onMouseEnter={() => onHover(megaKey)}
-      className={cn("relative rounded-full px-5 py-2.5 text-sm font-medium transition-colors", open ? "bg-ink/5 text-ink" : "text-ink/75 hover:bg-ink/5 hover:text-ink")}
+      className={cn(NAV_LINK, "relative", open && "text-[var(--g7-gold-600)]")}
       aria-expanded={open}
     >
       {label}
@@ -403,13 +415,13 @@ function MegaPanel({ children }: { children: React.ReactNode }) {
 }
 
 function LocaleLinks({ locale, pathWithoutLocale }: { locale: string; pathWithoutLocale: string }) {
+  // Design 01: "AR  EN", active language dark teal, the other muted. Always LTR order.
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <Link href={`/ar${pathWithoutLocale}`} className={locale === "ar" ? "font-semibold text-ink" : "text-ink/45 hover:text-ink"}>
+    <div dir="ltr" className="g7-t26 flex items-center gap-[clamp(1rem,2vw,2.5rem)]">
+      <Link href={`/ar${pathWithoutLocale}`} hrefLang="ar" lang="ar" aria-current={locale === "ar" ? "true" : undefined} className={locale === "ar" ? "font-medium text-[var(--g7-teal-900)]" : "text-[var(--g7-muted)] hover:text-[var(--g7-teal-900)]"}>
         AR
       </Link>
-      <span className="text-ink/20">/</span>
-      <Link href={`/en${pathWithoutLocale}`} className={locale === "en" ? "font-semibold text-ink" : "text-ink/45 hover:text-ink"}>
+      <Link href={`/en${pathWithoutLocale}`} hrefLang="en" lang="en" aria-current={locale === "en" ? "true" : undefined} className={locale === "en" ? "font-medium text-[var(--g7-teal-900)]" : "text-[var(--g7-muted)] hover:text-[var(--g7-teal-900)]"}>
         EN
       </Link>
     </div>
@@ -431,8 +443,11 @@ function MobileNav({
 
   return (
     <div className="space-y-7">
+      <Link href={`/${locale}`} className="block min-h-11 py-2.5 text-lg text-[var(--g7-teal-900)]">
+        {t("home")}
+      </Link>
       <div>
-        <p className="manifest-strip mb-3 text-ink/40">{t("products")}</p>
+        <p className="manifest-strip mb-3 text-ink/40">{t("productsMenu")}</p>
         <ul className="space-y-1">
           {categories.map((category) => (
             <li key={category.id}>
@@ -478,8 +493,8 @@ function MobileNav({
             EN
           </Link>
         </div>
-        <Link href={`/${locale}/contact`} className={buttonClasses("primary", "sm")}>
-          {t("requestQuote")}
+        <Link href={`/${locale}/contact`} className={CONTACT_BUTTON}>
+          {t("contact")}
         </Link>
       </div>
     </div>
