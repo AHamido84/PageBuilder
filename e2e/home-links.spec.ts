@@ -38,7 +38,10 @@ for (const locale of ["ar", "en"] as const) {
       expect(hrefs.length, "product cards on the homepage").toBeGreaterThan(0);
       for (const href of hrefs) {
         expect(href, "product card links to a product detail page").toMatch(new RegExp(`^/${locale}/products/[^/?#]+$`));
-        await page.goto(href);
+        const response = await page.goto(href);
+        expect(response?.status(), `${href} responds 200`).toBe(200);
+        // A missing product renders a soft 404 (200 + noindex) -- treat that as a dead link.
+        await expect(page.locator('meta[name="robots"][content*="noindex"]'), `${href} is a real product page`).toHaveCount(0);
         await expect(page.locator("h1").first()).toBeVisible();
         await expect(page.locator("h1").first()).not.toHaveText(/^\s*$/);
       }

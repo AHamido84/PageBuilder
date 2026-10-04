@@ -111,7 +111,11 @@ export async function resolveG7Products(data: G7ProductsData, locale: string): P
   const items = (data.items ?? []).map((item): G7Resolved<G7ProductItem> => {
     const explicit = item.productId ? candidates.find((c) => c.id === item.productId) : undefined;
     if (explicit) return { ...item, href: `/products/${explicit.slug}` };
-    if (!isGeneric(item.url)) return { ...item, href: item.url };
+    // A typed /products/<slug> URL only counts if that product exists -- a stale or mistyped slug
+    // falls back to the catalog match instead of shipping a dead link.
+    const typedSlug = /^/products/([^/?#]+)/?$/.exec((item.url ?? "").trim())?.[1];
+    const typedValid = typedSlug ? candidates.some((c) => c.slug === typedSlug) : true;
+    if (!isGeneric(item.url) && typedValid) return { ...item, href: item.url };
     const match = bestMatch(item.name ?? "", candidates, "product");
     return { ...item, href: match ? `/products/${match.slug}` : item.url || "/products" };
   });
