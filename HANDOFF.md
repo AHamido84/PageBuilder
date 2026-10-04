@@ -1,5 +1,7 @@
 # Seven Eleven Trading — Project Handoff / Continuation Notes
 
+**New session? Read `NEXT-SESSION.md` first** (short, current). This file is the long history.
+
 **Read this first in a new session** to pick up where this one left off. This file is intentionally *not* a design document — it's operational context: what exists, what's verified, what's not done, and how to keep going.
 
 > **Logo editable again (2026-10-04, commit d43d145, DEPLOYED to goldensevenfoods `goldensevenfoods-6h2y5bgrv`):** header/footer/JSON-LD use SiteSetting logo/footerLogo again; static Golden Seven logo (public/images/brand) only when none uploaded. Prod SiteSetting logo is still the Seven Eleven PNG until the user uploads the Golden Seven logo in /admin/settings (shared DB: affects seven-eleven-trading too).
