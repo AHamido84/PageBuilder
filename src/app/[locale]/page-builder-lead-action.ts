@@ -15,7 +15,8 @@ export async function submitBlockLeadAction(_prev: LeadFormState, formData: Form
 export async function submitQuoteRequestAction(_prev: LeadFormState, formData: FormData): Promise<LeadFormState> {
   const isAr = formData.get("locale") === "AR";
   const clip = (value: FormDataEntryValue | null) => (typeof value === "string" ? value.trim().slice(0, 120) : "");
-  const city = clip(formData.get("city"));
+  // "Other city" (G7_QUOTE): the typed city replaces the "other" choice.
+  const city = clip(formData.get("cityOther")) || clip(formData.get("city"));
   const quantity = clip(formData.get("quantity"));
   const products = formData.getAll("products").map(clip).filter(Boolean).slice(0, 12);
 
