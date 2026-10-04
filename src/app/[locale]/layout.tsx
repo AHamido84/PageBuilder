@@ -4,6 +4,7 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { SITE_URL } from "@/lib/seo/metadata";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { ToastProvider } from "@/components/ui/toast";
@@ -21,9 +22,11 @@ import { PageTransition } from "@/components/site/page-transition";
 import { fontVariableClassNames } from "@/lib/fonts";
 import { ThemePreviewReceiver } from "@/components/site/theme-preview-receiver";
 import "../globals.css";
+import { getBrandIdentity } from "@/lib/brand";
 import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
   // The favicon lives at public/favicon.ico (a plain static asset), not the App Router's special
   // src/app/favicon.ico convention -- that convention always auto-injects its own <link rel="icon">
   // regardless of what `icons` below declares, which would leave two competing icon tags in <head>
@@ -31,8 +34,9 @@ export async function generateMetadata(): Promise<Metadata> {
   // Referencing the static file explicitly here instead makes this the single source of truth,
   // falling back to it whenever no SiteSetting.favicon has been uploaded yet.
   const settings = await getSiteSettings();
+  const identity = await getBrandIdentity(locale, settings ?? {});
   return {
-    title: { default: "Seven Eleven Trading", template: "%s — Seven Eleven Trading" },
+    title: { default: identity.companyName, template: `%s — ${identity.companyName}` },
     description: "Wholesale food distribution — Jeddah, Saudi Arabia",
     icons: { icon: settings?.favicon?.url ?? "/favicon.ico" },
   };
@@ -112,9 +116,10 @@ export default async function LocaleLayout({
     getPublicMenu("FOOTER", locale),
   ]);
 
+  const identity = await getBrandIdentity(locale, settings ?? {});
   const orgSchema = organizationSchema({
-    siteName: locale === "ar" ? settings?.siteNameAr ?? "" : settings?.siteNameEn ?? "",
-    logoUrl: settings?.logo?.url,
+    siteName: identity.companyName,
+    logoUrl: identity.logo ? `${SITE_URL}${identity.logo.src2x}` : settings?.logo?.url,
     contactEmail: settings?.contactEmail,
     contactPhone: settings?.contactPhone,
     socialLinks: settings?.socialLinks as { facebook?: string; instagram?: string; linkedin?: string; twitter?: string } | null,
@@ -162,7 +167,9 @@ export default async function LocaleLayout({
                 <SiteHeader
                   categories={categories}
                   featuredProducts={featuredProducts}
-                  logoUrl={settings?.logo?.url}
+                  logoUrl={identity.logo ? null : settings?.logo?.url}
+                  brandLogo={identity.logo ? { ...identity.logo, alt: identity.name } : null}
+                  brandName={identity.name}
                   logoSettings={normalizeHeaderLogoSettings(settings?.headerLogo)[locale === "ar" ? "ar" : "en"]}
                   menuItems={headerMenu}
                   locale={locale}

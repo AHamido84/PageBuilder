@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getBrandIdentity, normalizeBrandSpelling } from "@/lib/brand";
 import { prisma } from "@/lib/prisma";
 
 // Strips a leading BOM/zero-width character and trims whitespace before the trailing-slash
@@ -66,8 +67,11 @@ export async function buildMetadata({
   const isAr = locale === "ar";
   const cleanPath = path === "/" ? "" : path;
 
-  const siteName = (isAr ? settings?.siteNameAr : settings?.siteNameEn) || "Seven Eleven Trading";
-  const customTitle = (isAr ? seo?.titleAr : seo?.titleEn) || null;
+  // Per-domain identity (src/lib/brand.ts): Golden Seven on goldensevenfoods, SiteSetting elsewhere.
+  const identity = await getBrandIdentity(locale, settings ?? {});
+  const siteName = identity.companyName;
+  const rawCustomTitle = (isAr ? seo?.titleAr : seo?.titleEn) || null;
+  const customTitle = rawCustomTitle && identity.brand === "golden-seven" ? normalizeBrandSpelling(rawCustomTitle) : rawCustomTitle;
   const title = customTitle || `${fallbackTitle} — ${siteName}`;
 
   const description =

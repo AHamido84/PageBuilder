@@ -38,6 +38,10 @@ interface HeaderProps {
   /** Admin-configurable logo box size/alignment/behavior (Settings > General), already resolved to
    * this page's locale by the caller -- see src/lib/site-settings/header-logo.ts. */
   logoSettings: HeaderLogoLocaleSettings;
+  /** Per-domain static brand logo (src/lib/brand.ts); when set it replaces the SiteSetting logo. */
+  brandLogo?: { src: string; src2x: string; width: number; height: number; alt: string } | null;
+  /** Brand name for the logo alt text / text fallback. */
+  brandName?: string;
   /** Real admin-managed nav items (from /admin/menus, HEADER location) rendered after "Products". */
   menuItems?: PublicMenuItem[];
   locale: string;
@@ -47,15 +51,17 @@ type MegaKey = string | null;
 
 /** Golden Seven home v7 header styles (design 01). */
 const NAV_LINK =
-  "g7-t26 rounded-[6px] px-3 py-2 text-[var(--g7-teal-900)] transition-colors hover:text-[var(--g7-gold-600)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--g7-gold-500)]";
+  "t-ui rounded-[6px] px-3 py-2 text-[var(--g7-teal-900)] transition-colors hover:text-[var(--g7-gold-600)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--g7-gold-500)]";
 const CONTACT_BUTTON =
-  "inline-flex h-[clamp(2.75rem,3.3vw,3.95rem)] min-w-[clamp(9rem,11.6vw,13.9rem)] items-center justify-center rounded-[6px] bg-[var(--g7-gold-600)] px-6 text-[clamp(1.1875rem,calc(1.35vw*var(--g7-k)),calc(1.625rem*var(--g7-k)))] font-bold text-[var(--g7-cream-50)] transition-colors hover:bg-[#98691d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--g7-teal-900)]";
+  "inline-flex h-[clamp(2.75rem,3.3vw,3.95rem)] min-w-[clamp(9rem,11.6vw,13.9rem)] items-center justify-center rounded-[6px] bg-[var(--g7-gold-600)] px-6 t-ui font-bold text-[var(--g7-cream-50)] transition-colors hover:bg-[#98691d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--g7-teal-900)]";
 
 export function SiteHeader({
   categories,
   featuredProducts = [],
   logoUrl,
   logoSettings,
+  brandLogo = null,
+  brandName = "",
   menuItems = [],
   locale,
 }: HeaderProps) {
@@ -133,7 +139,19 @@ export function SiteHeader({
           className="flex shrink-0 items-center gap-2.5"
           style={{ marginInlineEnd: `${logoSettings.spacing}px` }}
         >
-          {showLogo ? (
+          {brandLogo ? (
+            // Golden Seven mark (design 01): static, optimized WebP with a 2x source.
+            // eslint-disable-next-line @next/next/no-img-element -- fixed-size static logo; srcSet covers 2x
+            <img
+              src={brandLogo.src}
+              srcSet={`${brandLogo.src} 1x, ${brandLogo.src2x} 2x`}
+              width={brandLogo.width}
+              height={brandLogo.height}
+              alt={brandLogo.alt}
+              fetchPriority="high"
+              className="h-[2.75rem] w-auto lg:h-[clamp(3rem,4.4vw,5.25rem)]"
+            />
+          ) : showLogo ? (
             // Fixed-box + fill + object-contain: renders at a genuinely large, sharp size (was
             // capped at h-8/h-9 -- a barely-visible thumbnail) while never distorting or cropping
             // whatever aspect ratio the admin's uploaded logo actually has. next/image (not a plain
@@ -159,7 +177,7 @@ export function SiteHeader({
             >
               <CmsFillImage
                 src={logoUrl!}
-                alt="Seven Eleven Trading"
+                alt={brandName || "Seven Eleven Trading"}
                 priority
                 sizes="(min-width: 1024px) 320px, (min-width: 640px) 240px, 200px"
                 className="object-contain"
@@ -168,7 +186,7 @@ export function SiteHeader({
               />
             </span>
           ) : (
-            <span className="font-display text-lg leading-none lg:text-xl">Seven Eleven Trading</span>
+            <span className="font-display text-lg leading-none lg:text-xl">{brandName || "Seven Eleven Trading"}</span>
           )}
         </Link>
 
@@ -417,7 +435,7 @@ function MegaPanel({ children }: { children: React.ReactNode }) {
 function LocaleLinks({ locale, pathWithoutLocale }: { locale: string; pathWithoutLocale: string }) {
   // Design 01: "AR  EN", active language dark teal, the other muted. Always LTR order.
   return (
-    <div dir="ltr" className="g7-t26 flex items-center gap-[clamp(1rem,2vw,2.5rem)]">
+    <div dir="ltr" className="t-ui flex items-center gap-[clamp(1rem,2vw,2.5rem)]">
       <Link href={`/ar${pathWithoutLocale}`} hrefLang="ar" lang="ar" aria-current={locale === "ar" ? "true" : undefined} className={locale === "ar" ? "font-medium text-[var(--g7-teal-900)]" : "text-[var(--g7-muted)] hover:text-[var(--g7-teal-900)]"}>
         AR
       </Link>
