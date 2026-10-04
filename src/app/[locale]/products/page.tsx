@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { Section } from "@/components/ui/section";
 import { Container } from "@/components/ui/container";
+import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
+import { buttonClasses } from "@/components/ui/button";
 import { Pagination } from "@/components/admin/ui/pagination";
 import { ProductCard, type ProductCardData } from "@/components/site/product-card";
 import { FilterBar } from "./filter-bar";
@@ -181,7 +183,19 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           <Pagination page={page} totalPages={totalPages} hrefForPage={hrefForPage} variant="light" />
         </>
       ) : (
-        <EmptyState title={t("empty")} />
+        params.category ? (
+          // A category with nothing in it yet: say so and offer a quote (visual audit finding 10).
+          <EmptyState
+            title={t("emptyCategory")}
+            action={
+              <Link href={`/${locale}#quote-form`} className={buttonClasses("primary", "md")}>
+                {t("emptyCategoryAction")}
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState title={t("empty")} />
+        )
       )}
     </>
   );

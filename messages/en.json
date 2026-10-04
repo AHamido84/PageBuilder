@@ -219,7 +219,9 @@
     "sortNewest": "Newest",
     "empty": "No products match those filters.",
     "emptyAction": "Clear filters",
-    "resultsCount": "{count, plural, =0 {No products} one {# product} other {# products}}"
+    "resultsCount": "{count, plural, =0 {No products} one {# product} other {# products}}",
+    "emptyCategory": "No products in this category yet — request a quote and we'll source it for you",
+    "emptyCategoryAction": "Request a quote"
   },
   "productDetail": {
     "specifications": "Specifications",

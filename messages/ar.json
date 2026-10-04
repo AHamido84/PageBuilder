@@ -219,7 +219,9 @@
     "sortNewest": "الأحدث",
     "empty": "لا توجد منتجات مطابقة لهذه الفلاتر.",
     "emptyAction": "مسح الفلاتر",
-    "resultsCount": "{count, plural, =0 {لا توجد منتجات} one {منتج واحد} other {# منتجات}}"
+    "resultsCount": "{count, plural, =0 {لا توجد منتجات} one {منتج واحد} other {# منتجات}}",
+    "emptyCategory": "لا توجد منتجات في هذه الفئة حاليًا — اطلب عرض سعر وسنوفرها لك",
+    "emptyCategoryAction": "اطلب عرض سعر"
   },
   "productDetail": {
     "specifications": "المواصفات",
