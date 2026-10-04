@@ -119,7 +119,7 @@ export default async function LocaleLayout({
   const identity = await getBrandIdentity(locale, settings ?? {});
   const orgSchema = organizationSchema({
     siteName: identity.companyName,
-    logoUrl: identity.logo ? `${SITE_URL}${identity.logo.src2x}` : settings?.logo?.url,
+    logoUrl: settings?.logo?.url ?? (identity.logo ? `${SITE_URL}${identity.logo.src2x}` : undefined),
     contactEmail: settings?.contactEmail,
     contactPhone: settings?.contactPhone,
     socialLinks: settings?.socialLinks as { facebook?: string; instagram?: string; linkedin?: string; twitter?: string } | null,
@@ -167,8 +167,8 @@ export default async function LocaleLayout({
                 <SiteHeader
                   categories={categories}
                   featuredProducts={featuredProducts}
-                  logoUrl={identity.logo ? null : settings?.logo?.url}
-                  brandLogo={identity.logo ? { ...identity.logo, alt: identity.name } : null}
+                  logoUrl={settings?.logo?.url}
+                  brandLogo={!settings?.logo?.url && identity.logo ? { ...identity.logo, alt: identity.name } : null}
                   brandName={identity.name}
                   logoSettings={normalizeHeaderLogoSettings(settings?.headerLogo)[locale === "ar" ? "ar" : "en"]}
                   menuItems={headerMenu}

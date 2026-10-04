@@ -3,8 +3,9 @@ import { headers } from "next/headers";
 /**
  * Per-domain brand identity. Both Vercel projects (goldensevenfoods, seven-eleven-trading) run this
  * codebase against ONE shared database, so SiteSetting (logo, site name) can only hold one
- * identity. The Golden Seven domain therefore takes its name and logo from here, and the
- * seven-eleven domain keeps using SiteSetting exactly as before.
+ * identity. The Golden Seven domain therefore takes its NAME from here. The logo stays editable in
+ * /admin/settings (header logo, footer logo); the static Golden Seven file below is only used when
+ * no logo is uploaded.
  *
  * Resolution: SITE_BRAND env ("golden-seven" | "seven-eleven") wins; otherwise a host containing
  * "seven-eleven"/"seveneleven" is Seven Eleven and everything else (goldensevenfoods.com, its

@@ -38,7 +38,7 @@ interface HeaderProps {
   /** Admin-configurable logo box size/alignment/behavior (Settings > General), already resolved to
    * this page's locale by the caller -- see src/lib/site-settings/header-logo.ts. */
   logoSettings: HeaderLogoLocaleSettings;
-  /** Per-domain static brand logo (src/lib/brand.ts); when set it replaces the SiteSetting logo. */
+  /** Static fallback logo (src/lib/brand.ts), used only when no logo is uploaded in Settings. */
   brandLogo?: { src: string; src2x: string; width: number; height: number; alt: string } | null;
   /** Brand name for the logo alt text / text fallback. */
   brandName?: string;

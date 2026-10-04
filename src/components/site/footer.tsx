@@ -78,7 +78,7 @@ export async function SiteFooter({ locale }: FooterProps) {
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-[44.7fr_31.2fr_24.1fr] lg:gap-0">
           <div className="sm:col-span-2 lg:col-span-1">
             <Link href={`/${locale}`} className="inline-block">
-              {identity.logo ? (
+              {!logoUrl && identity.logo ? (
                 // eslint-disable-next-line @next/next/no-img-element -- fixed-size static logo; srcSet covers 2x
                 <img
                   src={identity.logo.src}
