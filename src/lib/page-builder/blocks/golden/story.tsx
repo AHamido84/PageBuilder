@@ -5,18 +5,18 @@ import { TextField, TextareaField } from "@/components/admin/ui/field";
 import { cn } from "@/lib/cn";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { G7BannerData, G7SectorsData, G7StepsData, G7TitledItem } from "./schema";
-import { G7ImageField, G7ListEditor, g7Eyebrow } from "./shared";
+import { G7ImageField, G7ListEditor, G7PositionFields, g7Eyebrow, g7OffsetStyle, g7OverlayClasses } from "./shared";
 
 /* 06 -- Lifestyle banner: full-bleed photo (1920x640, same ratio as the image) whose right half
  * fades into teal; text sits there. Like the hero, the photo isn't mirrored for English, so the
  * text stays on the physical right. */
-export function G7BannerRender({ data }: BlockRenderProps<G7BannerData>) {
+export function G7BannerRender({ data, locale }: BlockRenderProps<G7BannerData>) {
   const image = data.image?.url;
   const mobileImage = data.mobileImage?.url || image;
   const text = (
     <div className="text-[var(--g7-cream-50)]">
       {data.eyebrow ? <p className={g7Eyebrow}>{data.eyebrow}</p> : null}
-      <h2 className="mt-[clamp(1rem,2.5vw,3rem)] text-[clamp(2rem,3.45vw,4.15rem)] font-bold leading-[1.55]">
+      <h2 className="mt-[clamp(1rem,2.5vw,3rem)] text-[clamp(2rem,calc(3.45vw*var(--g7-k)),calc(4.15rem*var(--g7-k)))] font-bold leading-[1.55]">
         {data.headingLine1}
         {data.headingLine2 ? (
           <>
@@ -40,8 +40,11 @@ export function G7BannerRender({ data }: BlockRenderProps<G7BannerData>) {
       </div>
       <div className="relative hidden aspect-[1920/640] min-h-[24rem] w-full overflow-hidden md:block">
         {image ? <Image src={image} alt={data.imageAlt ?? ""} fill sizes="100vw" className="object-cover object-left" /> : null}
-        <div className="g7-container relative flex h-full items-center">
-          <div className="ml-auto w-[min(26rem,48%)] lg:w-[31vw] lg:max-w-[37rem]">{text}</div>
+        {/* dir="ltr" so the position presets mean physical sides of the photo; the text keeps the page dir. */}
+        <div dir="ltr" className={cn("g7-container relative flex h-full py-[3vw]", g7OverlayClasses(data.textX, data.textY))}>
+          <div dir={locale === "ar" ? "rtl" : "ltr"} className="g7-nudge w-[min(26rem,48%)] lg:w-[31vw] lg:max-w-[37rem]" style={g7OffsetStyle(data.offsetX, data.offsetY)}>
+            {text}
+          </div>
         </div>
       </div>
     </section>
@@ -60,6 +63,14 @@ export function G7BannerEdit({ data, onChange, locale }: BlockEditProps<G7Banner
       <TextField label="Heading line 1" value={data.headingLine1 ?? ""} onChange={set("headingLine1")} dir={dir} />
       <TextField label="Heading line 2" value={data.headingLine2 ?? ""} onChange={set("headingLine2")} dir={dir} />
       <TextareaField label="Text" rows={3} value={data.body ?? ""} onChange={set("body")} dir={dir} />
+      <G7PositionFields
+        x={data.textX}
+        y={data.textY}
+        offsetX={data.offsetX}
+        offsetY={data.offsetY}
+        onChange={(p) => onChange({ ...data, textX: p.x, textY: p.y, offsetX: p.offsetX, offsetY: p.offsetY })}
+        note="Applies from tablet width (768px+). Phones show the text under the photo."
+      />
     </div>
   );
 }
@@ -79,7 +90,7 @@ export function G7StepsRender({ data }: BlockRenderProps<G7StepsData>) {
         <ol className={cn(columns, "mt-[clamp(2.5rem,4.5vw,5.4rem)]")}>
           {items.map((item, i) => (
             <li key={i}>
-              <span aria-hidden="true" className="block px-[clamp(0rem,1vw,1.25rem)] text-[clamp(2.25rem,2.9vw,3.5rem)] font-extrabold leading-none text-[var(--g7-gold-500)]">
+              <span aria-hidden="true" className="block px-[clamp(0rem,1vw,1.25rem)] text-[clamp(2.25rem,calc(2.9vw*var(--g7-k)),calc(3.5rem*var(--g7-k)))] font-extrabold leading-none text-[var(--g7-gold-500)]">
                 {i + 1}
               </span>
               <div className="mt-[clamp(1.25rem,2.4vw,2.9rem)] border-t border-[var(--g7-divider)] pt-[clamp(1.25rem,1.9vw,2.25rem)]">

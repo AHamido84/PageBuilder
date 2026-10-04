@@ -47,3 +47,8 @@ export function TemperatureBadge({ value, locale }: { value: string; locale: str
   const label = locale === "ar" ? TEMPERATURE_LABEL_AR[value] : TEMPERATURE_LABEL_EN[value];
   return <Badge tone={TEMPERATURE_TONE[value] ?? "frost"}>{label ?? value}</Badge>;
 }
+
+/** Localized temperature-class label without the badge chrome (used by the v7 product card's gold pill). */
+export function temperatureLabel(value: string, locale: string): string {
+  return (locale === "ar" ? TEMPERATURE_LABEL_AR[value] : TEMPERATURE_LABEL_EN[value]) ?? value;
+}

@@ -49,7 +49,7 @@ type MegaKey = string | null;
 const NAV_LINK =
   "g7-t26 rounded-[6px] px-3 py-2 text-[var(--g7-teal-900)] transition-colors hover:text-[var(--g7-gold-600)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--g7-gold-500)]";
 const CONTACT_BUTTON =
-  "inline-flex h-[clamp(2.75rem,3.3vw,3.95rem)] min-w-[clamp(9rem,11.6vw,13.9rem)] items-center justify-center rounded-[6px] bg-[var(--g7-gold-600)] px-6 text-[clamp(1.1875rem,1.35vw,1.625rem)] font-bold text-[var(--g7-cream-50)] transition-colors hover:bg-[#98691d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--g7-teal-900)]";
+  "inline-flex h-[clamp(2.75rem,3.3vw,3.95rem)] min-w-[clamp(9rem,11.6vw,13.9rem)] items-center justify-center rounded-[6px] bg-[var(--g7-gold-600)] px-6 text-[clamp(1.1875rem,calc(1.35vw*var(--g7-k)),calc(1.625rem*var(--g7-k)))] font-bold text-[var(--g7-cream-50)] transition-colors hover:bg-[#98691d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--g7-teal-900)]";
 
 export function SiteHeader({
   categories,

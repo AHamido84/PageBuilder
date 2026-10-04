@@ -35,9 +35,9 @@ export function PageIntroRender({ data }: BlockRenderProps<PageIntroData>) {
   if (!data.eyebrow && !data.title && !data.description) return null;
   return (
     <div className="max-w-2xl">
-      {data.eyebrow ? <p className="manifest-strip mb-3 text-harbor">{data.eyebrow}</p> : null}
-      {data.title ? (data.headingLevel === "h2" ? <h2 className="font-display text-h2">{data.title}</h2> : <h1 className="font-display text-h2">{data.title}</h1>) : null}
-      {data.description ? <p className="mt-4 text-base leading-relaxed text-ink/70 sm:text-lg">{data.description}</p> : null}
+      {data.eyebrow ? <p className="manifest-strip mb-3 text-[var(--g7-gold-500)]">{data.eyebrow}</p> : null}
+      {data.title ? (data.headingLevel === "h2" ? <h2 className="g7-h2-md text-[var(--g7-teal-900)]">{data.title}</h2> : <h1 className="g7-h2-md text-[var(--g7-teal-900)]">{data.title}</h1>) : null}
+      {data.description ? <p className="g7-t24 g7-body mt-4 font-light text-[var(--g7-muted)]">{data.description}</p> : null}
     </div>
   );
 }

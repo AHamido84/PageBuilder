@@ -10,7 +10,7 @@ import { submitQuoteRequestAction } from "@/app/[locale]/page-builder-lead-actio
 import type { LeadFormState } from "@/lib/leads/submit-lead";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { G7Option, G7QuoteData } from "./schema";
-import { G7Arrow, G7ImageField, G7ListEditor, g7Eyebrow, g7GoldButton } from "./shared";
+import { G7Arrow, G7ImageField, G7ListEditor, G7PositionFields, g7Eyebrow, g7GoldButton, g7OffsetStyle, g7OverlayClasses } from "./shared";
 
 const initialState: LeadFormState = {};
 
@@ -49,7 +49,7 @@ function DiamondOrnament({ className }: { className?: string }) {
 }
 
 const inputClass =
-  "h-[clamp(2.875rem,3.1vw,3.75rem)] w-full rounded-[8px] border border-[var(--g7-teal-900)]/25 bg-[var(--g7-white)] px-[clamp(0.875rem,1vw,1.25rem)] text-[clamp(1rem,1.04vw,1.25rem)] text-[var(--g7-teal-900)] placeholder:text-[var(--g7-muted)]/75 transition-colors focus:border-[var(--g7-gold-500)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--g7-gold-500)]/40 aria-[invalid=true]:border-red-700";
+  "h-[clamp(2.875rem,3.1vw,3.75rem)] w-full rounded-[8px] border border-[var(--g7-teal-900)]/25 bg-[var(--g7-white)] px-[clamp(0.875rem,1vw,1.25rem)] text-[clamp(1rem,calc(1.04vw*var(--g7-k)),calc(1.25rem*var(--g7-k)))] text-[var(--g7-teal-900)] placeholder:text-[var(--g7-muted)]/75 transition-colors focus:border-[var(--g7-gold-500)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--g7-gold-500)]/40 aria-[invalid=true]:border-red-700";
 function SelectBox({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative">
@@ -112,8 +112,9 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
         <div className="relative aspect-[4/5] overflow-hidden bg-[var(--g7-teal-900)] sm:aspect-[5/4] xl:aspect-auto xl:min-h-[47.9vw]">
           {data.image?.url ? <Image src={data.image.url} alt={data.imageAlt ?? ""} fill sizes="(min-width: 1280px) 60vw, 100vw" className="object-cover object-bottom" /> : null}
           <DiamondOrnament className="absolute start-[clamp(1.25rem,2.9vw,3.5rem)] top-[clamp(1.25rem,2.1vw,2.5rem)] h-[clamp(4rem,6.5vw,7.8rem)] w-[clamp(1.25rem,2vw,2.4rem)] text-[var(--g7-gold-500)]" />
-          <div className="relative px-6 pt-[clamp(3rem,4.6vw,5.5rem)] text-center text-[var(--g7-cream-50)]">
-            <h2 className="text-[clamp(2rem,4vw,4.8rem)] font-bold leading-[1.2] ltr:text-[clamp(1.75rem,3vw,3.6rem)]">
+          <div dir="ltr" className={cn("absolute inset-0 flex px-[clamp(1.5rem,4vw,5rem)] py-[clamp(3rem,4.6vw,5.5rem)] text-[var(--g7-cream-50)]", g7OverlayClasses(data.asideTextX, data.asideTextY))}>
+            <div dir={locale === "ar" ? "rtl" : "ltr"} className="g7-nudge" style={g7OffsetStyle(data.asideOffsetX, data.asideOffsetY)}>
+            <h2 className="text-[clamp(2rem,calc(4vw*var(--g7-k)),calc(4.8rem*var(--g7-k)))] font-bold leading-[1.2] ltr:text-[clamp(1.75rem,calc(3vw*var(--g7-k)),calc(3.6rem*var(--g7-k)))]">
               {data.asideHeadingLine1}
               {data.asideHeadingLine2 ? (
                 <>
@@ -122,7 +123,8 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                 </>
               ) : null}
             </h2>
-            {data.asideSubtitle ? <p className="mt-[clamp(0.75rem,1.6vw,1.9rem)] text-[clamp(1.0625rem,1.67vw,2rem)] font-light">{data.asideSubtitle}</p> : null}
+            {data.asideSubtitle ? <p className="mt-[clamp(0.75rem,1.6vw,1.9rem)] text-[clamp(1.0625rem,calc(1.67vw*var(--g7-k)),calc(2rem*var(--g7-k)))] font-light">{data.asideSubtitle}</p> : null}
+            </div>
           </div>
         </div>
 
@@ -130,8 +132,8 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
         <div className="px-4 py-12 sm:px-10 xl:px-[clamp(2rem,2.9vw,3.5rem)] xl:pb-[clamp(2rem,2.6vw,3.1rem)] xl:pt-[clamp(2.5rem,4.2vw,5rem)]">
           <div className="mx-auto max-w-[40rem] xl:max-w-none">
             {data.eyebrow ? <p className={cn(g7Eyebrow, "g7-t22")}>{data.eyebrow}</p> : null}
-            {data.heading ? <h2 className="mt-[clamp(1rem,2vw,2.4rem)] text-[clamp(2.25rem,3.75vw,4.5rem)] font-bold leading-[1.2] text-[var(--g7-teal-900)]">{data.heading}</h2> : null}
-            {data.subtitle ? <p className="mt-[clamp(1rem,2.2vw,2.6rem)] text-[clamp(1.125rem,1.77vw,2.125rem)] font-bold text-[var(--g7-teal-900)]">{data.subtitle}</p> : null}
+            {data.heading ? <h2 className="mt-[clamp(1rem,2vw,2.4rem)] text-[clamp(2.25rem,calc(3.75vw*var(--g7-k)),calc(4.5rem*var(--g7-k)))] font-bold leading-[1.2] text-[var(--g7-teal-900)]">{data.heading}</h2> : null}
+            {data.subtitle ? <p className="mt-[clamp(1rem,2.2vw,2.6rem)] text-[clamp(1.125rem,calc(1.77vw*var(--g7-k)),calc(2.125rem*var(--g7-k)))] font-bold text-[var(--g7-teal-900)]">{data.subtitle}</p> : null}
 
             <div ref={statusRef} tabIndex={-1} role="status" aria-live="polite" className="outline-none">
               {done ? (
@@ -188,7 +190,7 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                     {(data.products ?? []).map((p) => (
                       <label key={p.value} className="cursor-pointer">
                         <input type="checkbox" name="products" value={p.label} className="peer sr-only" />
-                        <span className="inline-flex h-[clamp(2.875rem,2.7vw,3.25rem)] items-center rounded-full border border-[var(--g7-teal-900)]/25 bg-[var(--g7-white)] px-[clamp(1rem,1.1vw,1.3rem)] text-[clamp(1rem,1.15vw,1.375rem)] text-[var(--g7-teal-900)] transition-colors hover:border-[var(--g7-gold-500)] peer-checked:border-[var(--g7-teal-900)] peer-checked:bg-[var(--g7-teal-900)] peer-checked:text-[var(--g7-cream-50)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--g7-gold-500)]">
+                        <span className="inline-flex h-[clamp(2.875rem,2.7vw,3.25rem)] items-center rounded-full border border-[var(--g7-teal-900)]/25 bg-[var(--g7-white)] px-[clamp(1rem,1.1vw,1.3rem)] text-[clamp(1rem,calc(1.15vw*var(--g7-k)),calc(1.375rem*var(--g7-k)))] text-[var(--g7-teal-900)] transition-colors hover:border-[var(--g7-gold-500)] peer-checked:border-[var(--g7-teal-900)] peer-checked:bg-[var(--g7-teal-900)] peer-checked:text-[var(--g7-cream-50)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--g7-gold-500)]">
                           {p.label}
                         </span>
                       </label>
@@ -208,12 +210,12 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                 </div>
 
                 <div className="sm:col-span-2">
-                  <button type="submit" disabled={pending || !interactive} className={cn(g7GoldButton, "mt-[clamp(0.5rem,1.4vw,1.7rem)] min-h-[clamp(3.5rem,4.4vw,5.3rem)] w-full rounded-[8px] text-[clamp(1.25rem,1.875vw,2.25rem)] disabled:opacity-70")}>
+                  <button type="submit" disabled={pending || !interactive} className={cn(g7GoldButton, "mt-[clamp(0.5rem,1.4vw,1.7rem)] min-h-[clamp(3.5rem,4.4vw,5.3rem)] w-full rounded-[8px] text-[clamp(1.25rem,calc(1.875vw*var(--g7-k)),calc(2.25rem*var(--g7-k)))] disabled:opacity-70")}>
                     {pending ? <Loader2 size={20} className="animate-spin" aria-hidden="true" /> : null}
                     {pending ? t.sending : data.submitLabel}
                     {!pending ? <G7Arrow size={20} /> : null}
                   </button>
-                  {data.note ? <p className="mt-[clamp(1.25rem,2.2vw,2.6rem)] text-center text-[clamp(0.9375rem,1.04vw,1.25rem)] font-light text-[var(--g7-muted)]">{data.note}</p> : null}
+                  {data.note ? <p className="mt-[clamp(1.25rem,2.2vw,2.6rem)] text-center text-[clamp(0.9375rem,calc(1.04vw*var(--g7-k)),calc(1.25rem*var(--g7-k)))] font-light text-[var(--g7-muted)]">{data.note}</p> : null}
                 </div>
               </form>
             ) : null}
@@ -263,6 +265,14 @@ export function G7QuoteEdit({ data, onChange, locale }: BlockEditProps<G7QuoteDa
       <TextField label="Image heading line 1" value={data.asideHeadingLine1 ?? ""} onChange={set("asideHeadingLine1")} dir={dir} />
       <TextField label="Image heading line 2" value={data.asideHeadingLine2 ?? ""} onChange={set("asideHeadingLine2")} dir={dir} />
       <TextField label="Image subtitle" value={data.asideSubtitle ?? ""} onChange={set("asideSubtitle")} dir={dir} />
+      <G7PositionFields
+        label="Image text position"
+        x={data.asideTextX}
+        y={data.asideTextY}
+        offsetX={data.asideOffsetX}
+        offsetY={data.asideOffsetY}
+        onChange={(p) => onChange({ ...data, asideTextX: p.x, asideTextY: p.y, asideOffsetX: p.offsetX, asideOffsetY: p.offsetY })}
+      />
       <TextField label="Form eyebrow" value={data.eyebrow ?? ""} onChange={set("eyebrow")} dir={dir} />
       <TextField label="Form heading" value={data.heading ?? ""} onChange={set("heading")} dir={dir} />
       <TextField label="Form subtitle" value={data.subtitle ?? ""} onChange={set("subtitle")} dir={dir} />

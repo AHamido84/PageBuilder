@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Badge, TemperatureBadge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Arrow } from "@/components/ui/arrow";
+import { ArrowUpRight } from "lucide-react";
+import { Badge, temperatureLabel } from "@/components/ui/badge";
 import { useTranslations } from "next-intl";
 import { IMAGE_ZOOM_CLASS, ScrollReveal } from "@/lib/motion/primitives";
 
@@ -78,12 +77,13 @@ export function ProductCard({
     // wrapper), so this is safe inside any grid (including bento layouts with col-span/row-span)
     // and the carousel track alike. `href` passes straight through via ScrollReveal's rest-spread.
     <ScrollReveal as={Link} href={`/${locale}/products/${product.slug}`} variant="fade-up" className="group block">
-      <Card variant="product" className={`overflow-hidden p-0 ${hoverCardClass}`}>
+      {/* Golden Seven v7 card (design 04): photo on top, dark teal body with cream text. */}
+      <div data-ui-card className={`flex h-full flex-col overflow-hidden rounded-[12px] bg-[var(--g7-teal-900)] text-[var(--g7-cream-50)] transition-transform duration-300 ease-[var(--ease-premium)] ${hoverCardClass}`}>
         <div
           className={
             imageFit === "natural"
-              ? "relative w-full overflow-hidden bg-frost"
-              : "relative aspect-[4/5] w-full overflow-hidden bg-frost"
+              ? "relative w-full overflow-hidden bg-[var(--g7-teal-800)]"
+              : "relative aspect-[525/472] w-full overflow-hidden bg-[var(--g7-teal-800)]"
           }
         >
           {(product.isFeatured || isNew) && (
@@ -123,26 +123,30 @@ export function ProductCard({
             )
           ) : (
             <div className="flex h-full min-h-40 w-full items-center justify-center">
-              <span className="font-mono-data text-xs text-ink/30">{product.sku}</span>
+              <span className="font-mono-data text-xs text-[var(--g7-cream-50)]/40">{product.sku}</span>
             </div>
           )}
         </div>
-        <div className="p-5">
-          <p className="manifest-strip mb-2 text-ink/40">{product.categoryName}</p>
-          <p className="mb-1 font-display text-lg leading-snug transition-colors group-hover:text-harbor">{product.name}</p>
-          {product.shortDescription ? <p className="mb-2 line-clamp-2 text-sm text-ink/55">{product.shortDescription}</p> : null}
-          {showSpecs && spec ? <p className="font-mono-data mb-2 text-[11px] uppercase tracking-[0.08em] text-ink/45">{spec}</p> : null}
-          <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
-            <span className="font-mono-data text-xs text-ink/40">{product.sku}</span>
-            <TemperatureBadge value={product.temperatureClass} locale={locale} />
+        <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
+          <div className="flex-1">
+          <p className="text-sm font-light text-[var(--g7-cream-50)]/75">{product.categoryName}</p>
+          <p className="mt-1.5 text-lg font-medium leading-snug transition-colors group-hover:text-[var(--g7-gold-500)]">{product.name}</p>
+          {product.shortDescription ? <p className="mt-1.5 line-clamp-2 text-sm font-light text-[var(--g7-cream-50)]/70">{product.shortDescription}</p> : null}
+          </div>
+          <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--g7-cream-50)]/20 pt-3">
+            <span className="text-base font-light">{showSpecs && spec ? spec : product.sku}</span>
+            <span className="rounded-[6px] bg-[var(--g7-gold-500)] px-3 py-0.5 text-xs font-bold text-[var(--g7-cream-50)]">{temperatureLabel(product.temperatureClass, locale)}</span>
           </div>
           {showCta ? (
-            <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-harbor transition-transform duration-300 group-hover:translate-x-1">
-              {ctaLabel || t("viewProduct")} <Arrow />
+            <span className="mt-4 inline-flex items-center gap-3 text-base font-light transition-colors group-hover:text-[var(--g7-gold-500)]">
+              {ctaLabel || t("viewProduct")}
+              <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-full border border-current">
+                <ArrowUpRight size={14} strokeWidth={1.6} />
+              </span>
             </span>
           ) : null}
         </div>
-      </Card>
+      </div>
     </ScrollReveal>
   );
 }

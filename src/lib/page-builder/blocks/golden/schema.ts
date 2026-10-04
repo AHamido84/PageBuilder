@@ -9,6 +9,10 @@ import { z } from "zod";
 
 const media = z.object({ id: z.string(), url: z.string() });
 const text = (max = 300) => z.string().max(max).optional().default("");
+/** Text-on-photo position: physical side of the photo + vertical placement, plus a vw nudge. */
+const textX = (d: "left" | "center" | "right") => z.enum(["left", "center", "right"]).default(d);
+const textY = (d: "top" | "center" | "bottom") => z.enum(["top", "center", "bottom"]).default(d);
+const nudge = z.number().min(-20).max(20).default(0);
 
 export const g7HeroSchema = z.object({
   image: media.nullable().default(null),
@@ -22,6 +26,10 @@ export const g7HeroSchema = z.object({
   secondaryLabel: text(60),
   secondaryUrl: text(300),
   caption: text(160),
+  textX: textX("right"),
+  textY: textY("center"),
+  offsetX: nudge,
+  offsetY: nudge,
 });
 export type G7HeroData = z.infer<typeof g7HeroSchema>;
 
@@ -32,6 +40,7 @@ const categoryItem = z.object({ title: text(80), image: media.nullable().default
 export const g7CategoriesSchema = z.object({
   heading: text(160),
   linkLabel: text(40),
+  labelPosition: z.enum(["bottom-start", "bottom-end", "top-start", "top-end", "center"]).default("bottom-start"),
   items: z.array(categoryItem).max(8).default([]),
 });
 export type G7CategoriesData = z.infer<typeof g7CategoriesSchema>;
@@ -82,6 +91,10 @@ export const g7BannerSchema = z.object({
   headingLine1: text(80),
   headingLine2: text(80),
   body: text(400),
+  textX: textX("right"),
+  textY: textY("center"),
+  offsetX: nudge,
+  offsetY: nudge,
 });
 export type G7BannerData = z.infer<typeof g7BannerSchema>;
 
@@ -101,6 +114,10 @@ export const g7QuoteSchema = z.object({
   asideHeadingLine1: text(80),
   asideHeadingLine2: text(80),
   asideSubtitle: text(160),
+  asideTextX: textX("center"),
+  asideTextY: textY("top"),
+  asideOffsetX: nudge,
+  asideOffsetY: nudge,
   eyebrow: text(60),
   heading: text(80),
   subtitle: text(160),
@@ -144,6 +161,10 @@ export const G7_DEFAULTS = {
       secondaryLabel: "اطلب عرض سعر",
       secondaryUrl: "#quote",
       caption: "مذاقات طبيعية ... للحظات أجمل",
+      textX: "right",
+      textY: "center",
+      offsetX: 0,
+      offsetY: 0,
     },
     en: {
       image: img("hero-products"),
@@ -157,6 +178,10 @@ export const G7_DEFAULTS = {
       secondaryLabel: "Request a quote",
       secondaryUrl: "#quote",
       caption: "Natural flavors... for better moments",
+      textX: "right",
+      textY: "center",
+      offsetX: 0,
+      offsetY: 0,
     },
   } satisfies Record<"ar" | "en", G7HeroData>,
   about: {
@@ -173,6 +198,7 @@ export const G7_DEFAULTS = {
     ar: {
       heading: "منتجاتنا، اختيارك الذهبي.",
       linkLabel: "تسوق الآن",
+      labelPosition: "bottom-start",
       items: [
         { title: "لحوم مجمدة", image: img("category-frozen-meat"), url: "/products" },
         { title: "خضروات مجمده", image: img("category-frozen-vegetables"), url: "/products" },
@@ -183,6 +209,7 @@ export const G7_DEFAULTS = {
     en: {
       heading: "Our products, your golden choice.",
       linkLabel: "Shop now",
+      labelPosition: "bottom-start",
       items: [
         { title: "Frozen meat", image: img("category-frozen-meat"), url: "/products" },
         { title: "Frozen vegetables", image: img("category-frozen-vegetables"), url: "/products" },
@@ -268,6 +295,10 @@ export const G7_DEFAULTS = {
       headingLine1: "تفاصيل صغيرة.",
       headingLine2: "ضيافة لا تُنسى.",
       body: "قرمشة ذهبية ومذاقات فاكهة طبيعية، لتجربة تستحق أن تُشارك.",
+      textX: "right",
+      textY: "center",
+      offsetX: 0,
+      offsetY: 0,
     },
     en: {
       image: img("lifestyle-hospitality-banner"),
@@ -277,6 +308,10 @@ export const G7_DEFAULTS = {
       headingLine1: "Small details.",
       headingLine2: "Unforgettable hospitality.",
       body: "Golden crunch and natural fruit flavors, for an experience worth sharing.",
+      textX: "right",
+      textY: "center",
+      offsetX: 0,
+      offsetY: 0,
     },
   } satisfies Record<"ar" | "en", G7BannerData>,
   steps: {
@@ -327,6 +362,10 @@ export const G7_DEFAULTS = {
       asideHeadingLine1: "خلّنا نبدأ",
       asideHeadingLine2: "شراكة بطعم مميز.",
       asideSubtitle: "منتجات طبيعية بجودة تثق بها",
+      asideTextX: "center",
+      asideTextY: "top",
+      asideOffsetX: 0,
+      asideOffsetY: 0,
       eyebrow: "طلب عرض سعر",
       heading: "ننمو معًا",
       subtitle: "أخبرنا باحتياجك لنبدأ شراكة مميزة",
@@ -372,6 +411,10 @@ export const G7_DEFAULTS = {
       asideHeadingLine1: "Let's begin",
       asideHeadingLine2: "a partnership worth savoring.",
       asideSubtitle: "Natural products, quality you can trust",
+      asideTextX: "center",
+      asideTextY: "top",
+      asideOffsetX: 0,
+      asideOffsetY: 0,
       eyebrow: "Request a quote",
       heading: "Let's grow together",
       subtitle: "Tell us what you need to start a great partnership",

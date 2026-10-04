@@ -15,6 +15,9 @@
   --g7-muted: #4a6a6f;
   --g7-divider: rgba(15, 65, 76, 0.15);
   --g7-divider-on-teal: rgba(247, 240, 230, 0.2);
+  /* Desktop type scale factor for the fluid .g7-* sizes (1 = the 1920 artboard). Phones/tablets
+     use the clamp minimums, so this only shrinks desktop text. */
+  --g7-k: 1;
 
   /* Premium palette (session F redesign): every component already reads these colors through
      semantic Tailwind classes (bg-ink, text-harbor, bg-wheat, ...) rather than hardcoded hex, so
@@ -731,21 +734,62 @@ html:not([data-hover-animation="off"]) [data-hover-overlay] :is(a, [data-ui-card
 @layer components {
   .g7-container { width: 100%; max-width: 1920px; margin-inline: auto; padding-inline: clamp(1rem, 6.77vw, 8.125rem); }
   .g7-section { padding-block: clamp(3.5rem, 6.25vw, 7.5rem); }
-  .g7-display { font-size: clamp(2.75rem, 4.8vw, 5.75rem); line-height: 1.1; font-weight: 700; }
-  .g7-h2 { font-size: clamp(2rem, 5vw, 6rem); line-height: 1.25; font-weight: 700; }
-  .g7-h2-md { font-size: clamp(1.875rem, 3.75vw, 4.5rem); line-height: 1.3; font-weight: 700; }
-  .g7-h2-sm { font-size: clamp(1.75rem, 3.2vw, 3.85rem); line-height: 1.3; font-weight: 700; }
-  .g7-h3 { font-size: clamp(1.75rem, 3.3vw, 4rem); line-height: 1.4; font-weight: 700; }
-  .g7-t40 { font-size: clamp(1.25rem, 2.08vw, 2.5rem); }
-  .g7-t36 { font-size: clamp(1.25rem, 1.875vw, 2.25rem); }
-  .g7-t30 { font-size: clamp(1.0625rem, 1.56vw, 1.875rem); }
-  .g7-t28 { font-size: clamp(1rem, 1.46vw, 1.75rem); }
-  .g7-t26 { font-size: clamp(1rem, 1.35vw, 1.625rem); }
-  .g7-t24 { font-size: clamp(0.9375rem, 1.25vw, 1.5rem); }
-  .g7-t22 { font-size: clamp(0.875rem, 1.15vw, 1.375rem); }
-  .g7-t18 { font-size: clamp(0.8125rem, 0.94vw, 1.125rem); }
-  .g7-t14 { font-size: clamp(0.75rem, 0.73vw, 0.875rem); }
+  .g7-display { font-size: clamp(2.75rem, calc(4.8vw * var(--g7-k)), calc(5.75rem * var(--g7-k))); line-height: 1.1; font-weight: 700; }
+  .g7-h2 { font-size: clamp(2rem, calc(5vw * var(--g7-k)), calc(6rem * var(--g7-k))); line-height: 1.25; font-weight: 700; }
+  .g7-h2-md { font-size: clamp(1.875rem, calc(3.75vw * var(--g7-k)), calc(4.5rem * var(--g7-k))); line-height: 1.3; font-weight: 700; }
+  .g7-h2-sm { font-size: clamp(1.75rem, calc(3.2vw * var(--g7-k)), calc(3.85rem * var(--g7-k))); line-height: 1.3; font-weight: 700; }
+  .g7-h3 { font-size: clamp(1.75rem, calc(3.3vw * var(--g7-k)), calc(4rem * var(--g7-k))); line-height: 1.4; font-weight: 700; }
+  .g7-t40 { font-size: clamp(1.25rem, calc(2.08vw * var(--g7-k)), calc(2.5rem * var(--g7-k))); }
+  .g7-t36 { font-size: clamp(1.25rem, calc(1.875vw * var(--g7-k)), calc(2.25rem * var(--g7-k))); }
+  .g7-t30 { font-size: clamp(1.0625rem, calc(1.56vw * var(--g7-k)), calc(1.875rem * var(--g7-k))); }
+  .g7-t28 { font-size: clamp(1rem, calc(1.46vw * var(--g7-k)), calc(1.75rem * var(--g7-k))); }
+  .g7-t26 { font-size: clamp(1rem, calc(1.35vw * var(--g7-k)), calc(1.625rem * var(--g7-k))); }
+  .g7-t24 { font-size: clamp(0.9375rem, calc(1.25vw * var(--g7-k)), calc(1.5rem * var(--g7-k))); }
+  .g7-t22 { font-size: clamp(0.875rem, calc(1.15vw * var(--g7-k)), calc(1.375rem * var(--g7-k))); }
+  .g7-t18 { font-size: clamp(0.8125rem, calc(0.94vw * var(--g7-k)), calc(1.125rem * var(--g7-k))); }
+  .g7-t14 { font-size: clamp(0.75rem, calc(0.73vw * var(--g7-k)), calc(0.875rem * var(--g7-k))); }
   .g7-body { line-height: 1.7; }
   /* Buttons: >=19px bold keeps cream-on-gold at the WCAG large-text contrast ratio. */
-  .g7-btn-text { font-size: clamp(1.1875rem, 1.25vw, 1.5rem); font-weight: 700; }
+  .g7-btn-text { font-size: clamp(1.1875rem, calc(1.25vw * var(--g7-k)), calc(1.5rem * var(--g7-k))); font-weight: 700; }
 }
+
+@media (min-width: 1024px) {
+  :root { --g7-k: 0.82; }
+}
+
+/* -----------------------------------------------------------------------------------------------
+   Golden Seven v7 -- site-wide style layer: the design's radii (cards 12px, buttons 6px, inputs
+   8px), bold display headings and plain gold-style eyebrows for every page, not just the G7_*
+   homepage blocks. Admin Appearance overrides (html:root, higher specificity) still win.
+   ----------------------------------------------------------------------------------------------- */
+:root {
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --button-radius: 6px;
+  --button-shadow: none;
+  --card-radius: 12px;
+  --card-radius-lg: 12px;
+  --card-radius-xl: 12px;
+  --image-radius: 12px;
+  --image-radius-lg: 12px;
+}
+.font-display,
+html[dir="rtl"] .font-display {
+  font-weight: 700;
+  font-stretch: normal;
+}
+.ui-btn {
+  font-weight: 700;
+}
+.manifest-strip {
+  font-family: var(--font-ui), var(--font-body), sans-serif;
+  font-size: 0.875rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* G7 text-on-photo nudge (see g7OffsetStyle): always / from md / from xl. */
+.g7-nudge { translate: var(--g7-nx, 0) var(--g7-ny, 0); }
+@media (min-width: 768px) { .g7-nudge-md { translate: var(--g7-nx, 0) var(--g7-ny, 0); } }
+@media (min-width: 1280px) { .g7-nudge-xl { translate: var(--g7-nx, 0) var(--g7-ny, 0); } }

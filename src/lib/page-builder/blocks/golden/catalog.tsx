@@ -4,10 +4,20 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
-import { CheckboxField, TextField, TextareaField } from "@/components/admin/ui/field";
+import { CheckboxField, SelectField, TextField, TextareaField } from "@/components/admin/ui/field";
 import { cn } from "@/lib/cn";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { G7BrandItem, G7BrandsData, G7CategoriesData, G7CategoryItem, G7ProductItem, G7ProductTab, G7ProductsData } from "./schema";
+
+type LabelPosition = G7CategoriesData["labelPosition"];
+/** Category-card label placement (start/end follow the reading direction). */
+const LABEL_POSITION: Record<LabelPosition, { box: string; shade: string }> = {
+  "bottom-start": { box: "bottom-0 start-0", shade: "bottom-0 bg-gradient-to-t" },
+  "bottom-end": { box: "bottom-0 end-0 text-end", shade: "bottom-0 bg-gradient-to-t" },
+  "top-start": { box: "top-0 start-0 pt-[clamp(1.25rem,2vw,2.4rem)]", shade: "top-0 bg-gradient-to-b" },
+  "top-end": { box: "top-0 end-0 text-end pt-[clamp(1.25rem,2vw,2.4rem)]", shade: "top-0 bg-gradient-to-b" },
+  center: { box: "inset-0 flex flex-col items-center justify-center text-center", shade: "inset-y-0 h-full bg-black/25" },
+};
 import { G7Arrow, G7ImageField, G7ListEditor, g7Eyebrow, g7GoldButton, g7H2, g7Href } from "./shared";
 
 const focusRing = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--g7-gold-500)]";
@@ -22,9 +32,9 @@ export function G7CategoriesRender({ data, locale }: BlockRenderProps<G7Categori
       <div className="g7-container">
         {data.heading ? <h2 className={cn(g7H2, "text-[var(--g7-cream-50)]")}>{data.heading}</h2> : null}
         <div className="mt-[clamp(2rem,4.7vw,5.6rem)] grid grid-cols-1 gap-[clamp(0.75rem,1.3vw,1.5rem)] sm:grid-cols-2 lg:grid-cols-3">
-          {first ? <CategoryCard item={first} locale={locale} linkLabel={data.linkLabel ?? ""} wide /> : null}
+          {first ? <CategoryCard item={first} locale={locale} linkLabel={data.linkLabel ?? ""} position={data.labelPosition} wide /> : null}
           {rest.map((item, i) => (
-            <CategoryCard key={i} item={item} locale={locale} linkLabel={data.linkLabel ?? ""} />
+            <CategoryCard key={i} item={item} locale={locale} linkLabel={data.linkLabel ?? ""} position={data.labelPosition} />
           ))}
         </div>
       </div>
@@ -32,7 +42,8 @@ export function G7CategoriesRender({ data, locale }: BlockRenderProps<G7Categori
   );
 }
 
-function CategoryCard({ item, locale, linkLabel, wide = false }: { item: G7CategoryItem; locale: string; linkLabel: string; wide?: boolean }) {
+function CategoryCard({ item, locale, linkLabel, position, wide = false }: { item: G7CategoryItem; locale: string; linkLabel: string; position: LabelPosition; wide?: boolean }) {
+  const pos = LABEL_POSITION[position] ?? LABEL_POSITION["bottom-start"];
   return (
     <Link
       href={g7Href(item.url ?? "", locale)}
@@ -51,8 +62,8 @@ function CategoryCard({ item, locale, linkLabel, wide = false }: { item: G7Categ
           className={cn("object-cover group-hover:scale-[1.05] motion-reduce:group-hover:scale-100", zoom)}
         />
       ) : null}
-      <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent" />
-      <div className="absolute bottom-0 start-0 px-[clamp(1.25rem,2.3vw,2.75rem)] pb-[clamp(1.25rem,2vw,2.4rem)] text-[var(--g7-cream-50)]">
+      <div aria-hidden="true" className={cn("absolute inset-x-0 h-1/2 from-black/55 to-transparent", pos.shade)} />
+      <div className={cn("absolute px-[clamp(1.25rem,2.3vw,2.75rem)] pb-[clamp(1.25rem,2vw,2.4rem)] text-[var(--g7-cream-50)]", pos.box)}>
         <p className="g7-t30 font-bold leading-tight">{item.title}</p>
         {linkLabel ? (
           <span className="g7-t22 mt-[clamp(0.25rem,0.8vw,0.9rem)] inline-flex items-center gap-3 font-light group-hover:underline">
@@ -71,6 +82,18 @@ export function G7CategoriesEdit({ data, onChange, locale }: BlockEditProps<G7Ca
     <div className="space-y-3">
       <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
       <TextField label="Card link label" value={data.linkLabel ?? ""} onChange={(linkLabel) => onChange({ ...data, linkLabel })} dir={dir} />
+      <SelectField
+        label="Card text position"
+        value={data.labelPosition}
+        onChange={(labelPosition) => onChange({ ...data, labelPosition })}
+        options={[
+          { value: "bottom-start", label: "Bottom, start side (default)" },
+          { value: "bottom-end", label: "Bottom, end side" },
+          { value: "top-start", label: "Top, start side" },
+          { value: "top-end", label: "Top, end side" },
+          { value: "center", label: "Center" },
+        ]}
+      />
       <G7ListEditor<G7CategoryItem>
         label="Cards (first one is the wide card)"
         items={data.items ?? []}

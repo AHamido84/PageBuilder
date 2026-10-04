@@ -6,9 +6,10 @@ import { TextField, TextareaField } from "@/components/admin/ui/field";
 import { cn } from "@/lib/cn";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { G7AboutData, G7HeroData } from "./schema";
-import { G7Arrow, G7ImageField, g7GoldButton, g7H2, g7Href, g7OutlineButton } from "./shared";
+import { G7Arrow, G7ImageField, G7PositionFields, g7GoldButton, g7H2, g7Href, g7OffsetStyle, g7OutlineButton, g7OverlayClasses } from "./shared";
 
-const heroButtonWidth = "min-w-[clamp(11rem,12.9vw,15.5rem)]";
+// Compact on desktop so both buttons fit side by side in the photo's dark half.
+const heroButtonWidth = "min-w-[clamp(11rem,12.9vw,15.5rem)] xl:min-w-0 xl:gap-[0.9vw] xl:px-[1.3vw]";
 
 /* 01 -- Hero: full-width photo with the text block in the photo's dark teal half. At lg+ the photo
  * is placed exactly as on the 1920x784 artboard (scaled 0.86, shifted -302/-28px); smaller tablets
@@ -21,7 +22,7 @@ export function G7HeroRender({ data, locale }: BlockRenderProps<G7HeroData>) {
   const text = (
     <div className="text-[var(--g7-cream-50)]">
       {data.eyebrow ? <p className="g7-t40 font-light text-[var(--g7-gold-500)]">{data.eyebrow}</p> : null}
-      <h1 className="g7-display mt-[clamp(1rem,3vw,3.6rem)] ltr:text-[clamp(2.25rem,2.85vw,3.4rem)] xl:rtl:whitespace-nowrap">
+      <h1 className="g7-display mt-[clamp(1rem,2.2vw,3rem)] ltr:text-[clamp(2.25rem,calc(2.85vw*var(--g7-k)),calc(3.4rem*var(--g7-k)))] xl:whitespace-nowrap">
         {data.headingLine1}
         {data.headingLine2 ? (
           <>
@@ -30,7 +31,7 @@ export function G7HeroRender({ data, locale }: BlockRenderProps<G7HeroData>) {
           </>
         ) : null}
       </h1>
-      <div className="mt-[clamp(1.75rem,3.9vw,4.7rem)] flex flex-wrap gap-[clamp(0.75rem,1.56vw,1.875rem)]">
+      <div className={cn("mt-[clamp(1.75rem,2.6vw,3.6rem)] flex flex-wrap gap-[clamp(0.75rem,1.2vw,1.5rem)]", data.textX === "center" && "xl:justify-center")}>
         {data.primaryLabel ? (
           <Link href={g7Href(data.primaryUrl ?? "", locale)} className={cn(g7GoldButton, heroButtonWidth)}>
             {data.primaryLabel}
@@ -44,7 +45,7 @@ export function G7HeroRender({ data, locale }: BlockRenderProps<G7HeroData>) {
           </Link>
         ) : null}
       </div>
-      {data.caption ? <p className="mt-[clamp(1.25rem,2.4vw,2.9rem)] text-[clamp(0.8125rem,0.83vw,1rem)] font-light">{data.caption}</p> : null}
+      {data.caption ? <p className="mt-[clamp(1.25rem,1.8vw,2.4rem)] text-[clamp(0.8125rem,calc(0.83vw*var(--g7-k)),calc(1rem*var(--g7-k)))] font-light">{data.caption}</p> : null}
     </div>
   );
 
@@ -71,8 +72,14 @@ export function G7HeroRender({ data, locale }: BlockRenderProps<G7HeroData>) {
           />
         ) : null}
       </div>
-      <div className="g7-container bg-[var(--g7-teal-900)] py-10 sm:py-14 xl:absolute xl:inset-0 xl:flex xl:items-center xl:bg-transparent xl:py-0">
-        <div className="xl:ml-auto xl:w-[28vw] xl:max-w-[34rem] xl:ltr:w-[30vw] xl:ltr:max-w-[36rem]">{text}</div>
+      {/* dir="ltr" so the position presets mean physical sides of the photo; the text keeps the page dir. */}
+      <div
+        dir="ltr"
+        className={cn("g7-container bg-[var(--g7-teal-900)] py-10 sm:py-14 xl:absolute xl:inset-0 xl:flex xl:bg-transparent xl:px-[3.5vw] xl:pb-[7vw] xl:pt-[3vw]", g7OverlayClasses(data.textX, data.textY, "xl"))}
+      >
+        <div dir={locale === "ar" ? "rtl" : "ltr"} className="g7-nudge-xl xl:w-max xl:max-w-[32vw]" style={g7OffsetStyle(data.offsetX, data.offsetY)}>
+          {text}
+        </div>
       </div>
     </section>
   );
@@ -96,6 +103,14 @@ export function G7HeroEdit({ data, onChange, locale }: BlockEditProps<G7HeroData
         <TextField label="Secondary URL" value={data.secondaryUrl ?? ""} onChange={set("secondaryUrl")} />
       </div>
       <TextField label="Caption" value={data.caption ?? ""} onChange={set("caption")} dir={dir} />
+      <G7PositionFields
+        x={data.textX}
+        y={data.textY}
+        offsetX={data.offsetX}
+        offsetY={data.offsetY}
+        onChange={(p) => onChange({ ...data, textX: p.x, textY: p.y, offsetX: p.offsetX, offsetY: p.offsetY })}
+        note="Applies on desktop (1280px+). Phones and tablets show the text under the photo."
+      />
     </div>
   );
 }
