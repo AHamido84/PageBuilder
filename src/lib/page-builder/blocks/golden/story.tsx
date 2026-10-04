@@ -16,7 +16,7 @@ export function G7BannerRender({ data, locale }: BlockRenderProps<G7BannerData>)
   const text = (
     <div className="text-[var(--g7-cream-50)]">
       {data.eyebrow ? <p className={g7Eyebrow}>{data.eyebrow}</p> : null}
-      <h2 className="mt-[clamp(1rem,2.5vw,3rem)] text-[clamp(2rem,calc(3.45vw*var(--g7-k)),calc(4.15rem*var(--g7-k)))] font-bold leading-[1.55]">
+      <h2 className="t-h2 mt-[clamp(0.75rem,1.8vw,2.2rem)]">
         {data.headingLine1}
         {data.headingLine2 ? (
           <>
@@ -25,7 +25,7 @@ export function G7BannerRender({ data, locale }: BlockRenderProps<G7BannerData>)
           </>
         ) : null}
       </h2>
-      {data.body ? <p className="g7-t28 g7-body mt-[clamp(1rem,2.2vw,2.6rem)] max-w-[25rem] font-light lg:max-w-[25vw]">{data.body}</p> : null}
+      {data.body ? <p className="t-p mt-[clamp(1rem,1.8vw,2.2rem)] max-w-[25rem] font-light lg:max-w-[25vw]">{data.body}</p> : null}
     </div>
   );
   return (
@@ -85,17 +85,17 @@ export function G7StepsRender({ data }: BlockRenderProps<G7StepsData>) {
   return (
     <section className="bg-[var(--g7-cream-50)] pb-[clamp(3.5rem,5.7vw,6.9rem)] pt-[clamp(3.5rem,6vw,7.2rem)]">
       <div className="g7-container">
-        {data.heading ? <h2 className="g7-h2-md text-[var(--g7-teal-900)]">{data.heading}</h2> : null}
-        {data.subtitle ? <p className="g7-t30 mt-[clamp(0.75rem,1.1vw,1.3rem)] font-light text-[var(--g7-muted)]">{data.subtitle}</p> : null}
+        {data.heading ? <h2 className="t-h2 text-[var(--g7-teal-900)]">{data.heading}</h2> : null}
+        {data.subtitle ? <p className="t-p mt-[clamp(0.75rem,1.1vw,1.3rem)] font-light text-[var(--g7-muted)]">{data.subtitle}</p> : null}
         <ol className={cn(columns, "mt-[clamp(2.5rem,4.5vw,5.4rem)]")}>
           {items.map((item, i) => (
             <li key={i}>
-              <span aria-hidden="true" className="block px-[clamp(0rem,1vw,1.25rem)] text-[clamp(2.25rem,calc(2.9vw*var(--g7-k)),calc(3.5rem*var(--g7-k)))] font-extrabold leading-none text-[var(--g7-gold-500)]">
+              <span aria-hidden="true" className="block px-[clamp(0rem,1vw,1.25rem)] text-[length:var(--fs-h2)] font-extrabold leading-none text-[var(--g7-gold-500)]">
                 {i + 1}
               </span>
               <div className="mt-[clamp(1.25rem,2.4vw,2.9rem)] border-t border-[var(--g7-divider)] pt-[clamp(1.25rem,1.9vw,2.25rem)]">
-                <h3 className="g7-t36 font-bold text-[var(--g7-teal-900)]">{item.title}</h3>
-                {item.body ? <p className="g7-t28 g7-body mt-[clamp(0.75rem,1.9vw,2.25rem)] max-w-[12.5em] font-light text-[var(--g7-muted)]">{item.body}</p> : null}
+                <h3 className="t-h3 text-[var(--g7-teal-900)]">{item.title}</h3>
+                {item.body ? <p className="t-p mt-[clamp(0.75rem,1.6vw,2rem)] max-w-[20em] font-light text-[var(--g7-muted)]">{item.body}</p> : null}
               </div>
             </li>
           ))}
@@ -112,12 +112,12 @@ export function G7SectorsRender({ data }: BlockRenderProps<G7SectorsData>) {
     <section className="bg-[var(--g7-teal-800)] pb-[clamp(3.5rem,6.8vw,8.1rem)] pt-[clamp(3rem,4vw,4.8rem)]">
       <div className="g7-container">
         {data.eyebrow ? <p className={g7Eyebrow}>{data.eyebrow}</p> : null}
-        {data.heading ? <h2 className="g7-h3 mt-[clamp(0.75rem,1.7vw,2rem)] text-[var(--g7-cream-50)]">{data.heading}</h2> : null}
+        {data.heading ? <h2 className="t-h2 mt-[clamp(0.75rem,1.7vw,2rem)] text-[var(--g7-cream-50)]">{data.heading}</h2> : null}
         <div className={cn(columns, "mt-[clamp(2rem,4.2vw,5rem)]")}>
           {items.map((item, i) => (
             <div key={i} className="border-t border-[var(--g7-divider-on-teal)] pt-[clamp(1.5rem,2.2vw,2.6rem)]">
-              <h3 className="g7-t36 font-bold text-[var(--g7-cream-50)]">{item.title}</h3>
-              {item.body ? <p className="g7-t28 g7-body mt-[clamp(0.75rem,1.9vw,2.25rem)] max-w-[11em] font-light text-[var(--g7-cream-50)]/90">{item.body}</p> : null}
+              <h3 className="t-h3 text-[var(--g7-cream-50)]">{item.title}</h3>
+              {item.body ? <p className="t-p mt-[clamp(0.75rem,1.6vw,2rem)] max-w-[18em] font-light text-[var(--g7-cream-50)]/90">{item.body}</p> : null}
             </div>
           ))}
         </div>

@@ -30,8 +30,8 @@ export function g7Href(url: string, locale: string): string {
 }
 
 /** Section headings and eyebrow labels (sizes from the 1920 artboard, see .g7-* in globals.css). */
-export const g7H2 = "g7-h2";
-export const g7Eyebrow = "g7-t24 font-normal text-[var(--g7-gold-500)]";
+export const g7H2 = "t-h2";
+export const g7Eyebrow = "t-ui font-medium text-[var(--g7-gold-500)]";
 /** Gold primary button, radius 6px, design 248x58. */
 export const g7GoldButton =
   "g7-btn-text inline-flex min-h-[clamp(3rem,3vw,3.625rem)] items-center justify-center gap-[clamp(0.75rem,1.4vw,1.75rem)] rounded-[6px] bg-[var(--g7-gold-600)] px-[clamp(1.5rem,1.9vw,2.25rem)] leading-none text-[var(--g7-cream-50)] transition-colors hover:bg-[#98691d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--g7-cream-50)]";

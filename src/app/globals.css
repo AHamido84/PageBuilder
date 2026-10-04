@@ -15,9 +15,6 @@
   --g7-muted: #4a6a6f;
   --g7-divider: rgba(15, 65, 76, 0.15);
   --g7-divider-on-teal: rgba(247, 240, 230, 0.2);
-  /* Desktop type scale factor for the fluid .g7-* sizes (1 = the 1920 artboard). Phones/tablets
-     use the clamp minimums, so this only shrinks desktop text. */
-  --g7-k: 1;
 
   /* Premium palette (session F redesign): every component already reads these colors through
      semantic Tailwind classes (bg-ink, text-harbor, bg-wheat, ...) rather than hardcoded hex, so
@@ -171,13 +168,13 @@
   --scale-body: 1;
 
   /* Responsive type scale (clamp: mobile floor -> viewport-fluid -> desktop ceiling). */
-  --text-display: calc(clamp(2.75rem, 2rem + 3.2vw, 5rem) * var(--scale-display));
+  --text-display: calc(var(--fs-hero) * var(--scale-display));
   /* Lower mobile floor than the desktop-driven slope would otherwise give: at 375px, Archivo
      Expanded's 133% stretch made a full sentence wrap 5+ lines and dominate the first screen. */
-  --text-hero: clamp(2rem, 1.4rem + 3vw, 4.5rem);
-  --text-h1: calc(clamp(2.25rem, 1.85rem + 1.9vw, 3.75rem) * var(--scale-h1));
-  --text-h2: calc(clamp(1.75rem, 1.5rem + 1.15vw, 3rem) * var(--scale-h2));
-  --text-h3: calc(clamp(1.375rem, 1.2rem + 0.7vw, 2.125rem) * var(--scale-h3));
+  --text-hero: var(--fs-hero);
+  --text-h1: calc(var(--fs-h2) * var(--scale-h1));
+  --text-h2: calc(var(--fs-h2) * var(--scale-h2));
+  --text-h3: calc(var(--fs-h3) * var(--scale-h3));
   /* New for Phase 1 -- H4 plus the remaining named scale steps the brief asks for (Body/Small/
      Caption/Button/Nav). Values are chosen to match sizes already in real use across the site
      (e.g. BODY_SIZE_BASE.md in style-tokens.ts is text-base = 1rem, header.tsx's nav links are
@@ -185,8 +182,8 @@
      via a plain Tailwind size utility today -- these are additive names for the same values, not a
      resize. */
   --text-h4: clamp(1.125rem, 1rem + 0.5vw, 1.5rem);
-  --text-body: calc(1rem * var(--scale-body));
-  --text-small: 0.875rem;
+  --text-body: calc(var(--fs-p) * var(--scale-body));
+  --text-small: var(--fs-small);
   --text-caption: 0.75rem;
   --text-button: 0.875rem;
   --text-nav: 0.875rem;
@@ -315,23 +312,23 @@ html[dir="rtl"] .font-display {
    these classes only set size/line-height so they compose with either font. */
 .text-display {
   font-size: var(--text-display);
-  line-height: 1.02;
+  line-height: var(--lh-heading);
 }
 .text-hero {
   font-size: var(--text-hero);
-  line-height: 1.04;
+  line-height: var(--lh-heading);
 }
 .text-h1 {
   font-size: var(--text-h1);
-  line-height: 1.08;
+  line-height: var(--lh-heading);
 }
 .text-h2 {
   font-size: var(--text-h2);
-  line-height: 1.12;
+  line-height: var(--lh-heading);
 }
 .text-h3 {
   font-size: var(--text-h3);
-  line-height: 1.2;
+  line-height: var(--lh-heading);
 }
 /* Phase 1 additions -- the remaining named steps the design system brief asks for
    (H4/Body/Small/Caption/Button/Nav). Not yet applied to any existing component (nothing here
@@ -343,7 +340,7 @@ html[dir="rtl"] .font-display {
 }
 .text-body {
   font-size: var(--text-body);
-  line-height: 1.6;
+  line-height: var(--lh-body);
 }
 .text-small {
   font-size: var(--text-small);
@@ -727,34 +724,42 @@ html:not([data-hover-animation="off"]) [data-hover-overlay] :is(a, [data-ui-card
 }
 
 /* -----------------------------------------------------------------------------------------------
-   Golden Seven home v7 -- fluid design scale. Values are the design's px on the 1920 artboard
-   expressed as vw (px / 19.2), clamped: identical to the design at 1920, proportionally smaller
-   below, never larger above. Used by the G7_* blocks, header and footer.
+   Golden Seven -- ONE fluid type scale (visual audit 2026-10-04, finding B). Linear from 390px to
+   1440px, clamped at both ends; every heading/paragraph/control on the site uses these tokens.
+     hero 38 -> 68 (max 72) | h2 30 -> 44 (max 48) | h3 22 -> 26 (max 28) | product name 19 -> 21
+     paragraph 17 -> 19 (max 20) | nav/buttons/inputs 16 -> 17.5 (max 18) | small 14 -> 15 (max 16)
    ----------------------------------------------------------------------------------------------- */
+:root {
+  --fs-hero: clamp(2.375rem, 1.679rem + 2.857vw, 4.5rem);
+  --fs-h2: clamp(1.75rem, 1.55rem + 1.333vw, 3rem);
+  --fs-h3: clamp(1.25rem, 1.282rem + 0.381vw, 1.75rem);
+  --fs-product: clamp(1.125rem, 1.141rem + 0.19vw, 1.375rem);
+  --fs-p: clamp(1rem, 1.016rem + 0.19vw, 1.25rem);
+  --fs-ui: clamp(1rem, 0.965rem + 0.143vw, 1.125rem);
+  --fs-small: clamp(0.875rem, 0.852rem + 0.095vw, 1rem);
+  --lh-heading: 1.35;
+  --lh-body: 1.7;
+}
 @layer components {
   .g7-container { width: 100%; max-width: 1920px; margin-inline: auto; padding-inline: clamp(1rem, 6.77vw, 8.125rem); }
-  .g7-section { padding-block: clamp(3.5rem, 6.25vw, 7.5rem); }
-  .g7-display { font-size: clamp(2.75rem, calc(4.8vw * var(--g7-k)), calc(5.75rem * var(--g7-k))); line-height: 1.1; font-weight: 700; }
-  .g7-h2 { font-size: clamp(2rem, calc(5vw * var(--g7-k)), calc(6rem * var(--g7-k))); line-height: 1.25; font-weight: 700; }
-  .g7-h2-md { font-size: clamp(1.875rem, calc(3.75vw * var(--g7-k)), calc(4.5rem * var(--g7-k))); line-height: 1.3; font-weight: 700; }
-  .g7-h2-sm { font-size: clamp(1.75rem, calc(3.2vw * var(--g7-k)), calc(3.85rem * var(--g7-k))); line-height: 1.3; font-weight: 700; }
-  .g7-h3 { font-size: clamp(1.75rem, calc(3.3vw * var(--g7-k)), calc(4rem * var(--g7-k))); line-height: 1.4; font-weight: 700; }
-  .g7-t40 { font-size: clamp(1.25rem, calc(2.08vw * var(--g7-k)), calc(2.5rem * var(--g7-k))); }
-  .g7-t36 { font-size: clamp(1.25rem, calc(1.875vw * var(--g7-k)), calc(2.25rem * var(--g7-k))); }
-  .g7-t30 { font-size: clamp(1.0625rem, calc(1.56vw * var(--g7-k)), calc(1.875rem * var(--g7-k))); }
-  .g7-t28 { font-size: clamp(1rem, calc(1.46vw * var(--g7-k)), calc(1.75rem * var(--g7-k))); }
-  .g7-t26 { font-size: clamp(1rem, calc(1.35vw * var(--g7-k)), calc(1.625rem * var(--g7-k))); }
-  .g7-t24 { font-size: clamp(0.9375rem, calc(1.25vw * var(--g7-k)), calc(1.5rem * var(--g7-k))); }
-  .g7-t22 { font-size: clamp(0.875rem, calc(1.15vw * var(--g7-k)), calc(1.375rem * var(--g7-k))); }
-  .g7-t18 { font-size: clamp(0.8125rem, calc(0.94vw * var(--g7-k)), calc(1.125rem * var(--g7-k))); }
-  .g7-t14 { font-size: clamp(0.75rem, calc(0.73vw * var(--g7-k)), calc(0.875rem * var(--g7-k))); }
-  .g7-body { line-height: 1.7; }
-  /* Buttons: >=19px bold keeps cream-on-gold at the WCAG large-text contrast ratio. */
-  .g7-btn-text { font-size: clamp(1.1875rem, calc(1.25vw * var(--g7-k)), calc(1.5rem * var(--g7-k))); font-weight: 700; }
-}
-
-@media (min-width: 1024px) {
-  :root { --g7-k: 0.82; }
+  /* Semantic token classes. */
+  .t-hero { font-size: var(--fs-hero); line-height: var(--lh-heading); font-weight: 700; }
+  .t-h2 { font-size: var(--fs-h2); line-height: var(--lh-heading); font-weight: 700; }
+  .t-h3 { font-size: var(--fs-h3); line-height: var(--lh-heading); font-weight: 700; }
+  .t-product { font-size: var(--fs-product); line-height: var(--lh-heading); }
+  .t-p { font-size: var(--fs-p); line-height: var(--lh-body); }
+  .t-ui { font-size: var(--fs-ui); line-height: 1.4; }
+  .t-small { font-size: var(--fs-small); line-height: 1.5; }
+  /* Earlier class names, kept as aliases of the same tokens. */
+  .g7-display { font-size: var(--fs-hero); line-height: var(--lh-heading); font-weight: 700; }
+  .g7-h2, .g7-h2-md, .g7-h2-sm { font-size: var(--fs-h2); line-height: var(--lh-heading); font-weight: 700; }
+  .g7-h3, .g7-t40, .g7-t36 { font-size: var(--fs-h3); line-height: var(--lh-heading); }
+  .g7-h3 { font-weight: 700; }
+  .g7-t30, .g7-t28 { font-size: var(--fs-p); }
+  .g7-t26, .g7-t24 { font-size: var(--fs-ui); }
+  .g7-t22, .g7-t18, .g7-t14 { font-size: var(--fs-small); }
+  .g7-body { line-height: var(--lh-body); }
+  .g7-btn-text { font-size: var(--fs-ui); font-weight: 700; }
 }
 
 /* -----------------------------------------------------------------------------------------------
@@ -793,3 +798,13 @@ html[dir="rtl"] .font-display {
 .g7-nudge { translate: var(--g7-nx, 0) var(--g7-ny, 0); }
 @media (min-width: 768px) { .g7-nudge-md { translate: var(--g7-nx, 0) var(--g7-ny, 0); } }
 @media (min-width: 1280px) { .g7-nudge-xl { translate: var(--g7-nx, 0) var(--g7-ny, 0); } }
+
+/* G7 featured-products filter strip (phones): no visible scrollbar, faded edges hint at more. */
+.g7-tab-strip { scrollbar-width: none; }
+.g7-tab-strip::-webkit-scrollbar { display: none; }
+@media (max-width: 639px) {
+  .g7-tab-strip {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.25rem, #000 calc(100% - 1.25rem), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 1.25rem, #000 calc(100% - 1.25rem), transparent 100%);
+  }
+}

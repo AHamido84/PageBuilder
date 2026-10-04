@@ -21,8 +21,9 @@ export function G7HeroRender({ data, locale }: BlockRenderProps<G7HeroData>) {
   const mobileImage = data.mobileImage?.url || image;
   const text = (
     <div className="text-[var(--g7-cream-50)]">
-      {data.eyebrow ? <p className="g7-t40 font-light text-[var(--g7-gold-500)]">{data.eyebrow}</p> : null}
-      <h1 className="g7-display mt-[clamp(1rem,2.2vw,3rem)] ltr:text-[clamp(2.25rem,calc(2.85vw*var(--g7-k)),calc(3.4rem*var(--g7-k)))] xl:whitespace-nowrap">
+      {data.eyebrow ? <p className="t-h3 font-light text-[var(--g7-gold-500)]">{data.eyebrow}</p> : null}
+      {/* Largest text on the page (finding 02). Arabic keeps its intentional 2-line break unwrapped. */}
+      <h1 className="t-hero mt-[clamp(0.75rem,1.6vw,2rem)] xl:rtl:whitespace-nowrap">
         {data.headingLine1}
         {data.headingLine2 ? (
           <>
@@ -45,7 +46,7 @@ export function G7HeroRender({ data, locale }: BlockRenderProps<G7HeroData>) {
           </Link>
         ) : null}
       </div>
-      {data.caption ? <p className="mt-[clamp(1.25rem,1.8vw,2.4rem)] text-[clamp(0.8125rem,calc(0.83vw*var(--g7-k)),calc(1rem*var(--g7-k)))] font-light">{data.caption}</p> : null}
+      {data.caption ? <p className="t-small mt-[clamp(1.25rem,1.8vw,2.4rem)] font-light">{data.caption}</p> : null}
     </div>
   );
 
@@ -77,7 +78,7 @@ export function G7HeroRender({ data, locale }: BlockRenderProps<G7HeroData>) {
         dir="ltr"
         className={cn("g7-container bg-[var(--g7-teal-900)] py-10 sm:py-14 xl:absolute xl:inset-0 xl:flex xl:bg-transparent xl:px-[3.5vw] xl:pb-[7vw] xl:pt-[3vw]", g7OverlayClasses(data.textX, data.textY, "xl"))}
       >
-        <div dir={locale === "ar" ? "rtl" : "ltr"} className="g7-nudge-xl xl:w-max xl:max-w-[32vw]" style={g7OffsetStyle(data.offsetX, data.offsetY)}>
+        <div dir={locale === "ar" ? "rtl" : "ltr"} className="g7-nudge-xl xl:w-max xl:max-w-[32vw] xl:ltr:max-w-[40vw]" style={g7OffsetStyle(data.offsetX, data.offsetY)}>
           {text}
         </div>
       </div>
@@ -120,8 +121,9 @@ export function G7AboutRender({ data }: BlockRenderProps<G7AboutData>) {
   return (
     <section className="bg-[var(--g7-cream-50)] pb-[clamp(3.5rem,8vw,9.5rem)] pt-[clamp(3rem,4.7vw,5.6rem)]">
       <div className="g7-container">
-        {data.heading ? <h2 className={cn(g7H2, "max-w-[73vw] text-[var(--g7-teal-900)] max-md:max-w-none")}>{data.heading}</h2> : null}
-        {data.body ? <p className="g7-t28 g7-body mt-[clamp(1.25rem,2.9vw,3.5rem)] max-w-[58vw] text-[var(--g7-teal-900)] max-md:max-w-none">{data.body}</p> : null}
+        {/* Section H2 scale with a short measure, so it reads as two balanced lines (finding 03). */}
+        {data.heading ? <h2 className={cn(g7H2, "max-w-[13em] text-balance text-[var(--g7-teal-900)]")}>{data.heading}</h2> : null}
+        {data.body ? <p className="t-p mt-[clamp(1.25rem,2.4vw,3rem)] max-w-[65ch] text-[var(--g7-muted)]">{data.body}</p> : null}
       </div>
     </section>
   );

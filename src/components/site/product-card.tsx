@@ -130,7 +130,7 @@ export function ProductCard({
         <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
           <div className="flex-1">
           <p className="text-sm font-light text-[var(--g7-cream-50)]/75">{product.categoryName}</p>
-          <p className="mt-1.5 text-lg font-medium leading-snug transition-colors group-hover:text-[var(--g7-gold-500)]">{product.name}</p>
+          <p className="t-product mt-1.5 font-medium transition-colors group-hover:text-[var(--g7-gold-500)]">{product.name}</p>
           {product.shortDescription ? <p className="mt-1.5 line-clamp-2 text-sm font-light text-[var(--g7-cream-50)]/70">{product.shortDescription}</p> : null}
           </div>
           <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--g7-cream-50)]/20 pt-3">
