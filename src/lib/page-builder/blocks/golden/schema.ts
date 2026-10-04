@@ -36,7 +36,10 @@ export type G7HeroData = z.infer<typeof g7HeroSchema>;
 export const g7AboutSchema = z.object({ heading: text(240), body: text(1000) });
 export type G7AboutData = z.infer<typeof g7AboutSchema>;
 
-const categoryItem = z.object({ title: text(80), image: media.nullable().default(null), url: text(300) });
+/** `categoryId` / `productId` / `brandId`: catalog reference picked in the Page Builder (links and counts
+ * then come from the catalog; see resolve.ts). Empty = matched automatically by name. */
+const ref = z.string().max(40).optional().default("");
+const categoryItem = z.object({ title: text(80), image: media.nullable().default(null), url: text(300), categoryId: ref });
 export const g7CategoriesSchema = z.object({
   heading: text(160),
   linkLabel: text(40),
@@ -56,12 +59,15 @@ const productItem = z.object({
   /** Matches a tab key; empty = only shown under "All". */
   tab: text(40),
   url: text(300),
+  productId: ref,
 });
 export const g7ProductsSchema = z.object({
   heading: text(160),
   allLabel: text(40),
   tabs: z.array(productTab).max(8).default([]),
   linkLabel: text(40),
+  /** Shown when the selected filter has no products (empty = built-in localized text). */
+  emptyMessage: text(200),
   items: z.array(productItem).max(24).default([]),
   cta: z
     .object({
@@ -78,7 +84,8 @@ export type G7ProductsData = z.infer<typeof g7ProductsSchema>;
 export type G7ProductItem = z.infer<typeof productItem>;
 export type G7ProductTab = z.infer<typeof productTab>;
 
-const brandItem = z.object({ logo: media.nullable().default(null), name: text(80), count: text(40), url: text(300) });
+/** `count` is a manual fallback only -- with a catalog brand linked/matched the count is computed. */
+const brandItem = z.object({ logo: media.nullable().default(null), name: text(80), count: text(40), url: text(300), brandId: ref });
 export const g7BrandsSchema = z.object({ heading: text(160), items: z.array(brandItem).max(8).default([]) });
 export type G7BrandsData = z.infer<typeof g7BrandsSchema>;
 export type G7BrandItem = z.infer<typeof brandItem>;
@@ -127,6 +134,8 @@ export const g7QuoteSchema = z.object({
   companyPlaceholder: text(60),
   cityLabel: text(40),
   cityPlaceholder: text(60),
+  /** Shown under the city select when the "other" option (value "other") is chosen. */
+  otherCityLabel: text(60),
   phoneLabel: text(40),
   phonePlaceholder: text(60),
   productsLabel: text(40),
@@ -200,10 +209,10 @@ export const G7_DEFAULTS = {
       linkLabel: "تسوق الآن",
       labelPosition: "bottom-start",
       items: [
-        { title: "لحوم مجمدة", image: img("category-frozen-meat"), url: "/products" },
-        { title: "خضروات مجمده", image: img("category-frozen-vegetables"), url: "/products" },
-        { title: "فواكه مجمده", image: img("category-frozen-fruits"), url: "/products" },
-        { title: "بطاطس مجمده", image: img("category-frozen-potatoes"), url: "/products" },
+        { title: "لحوم مجمدة", image: img("category-frozen-meat"), url: "/products", categoryId: "" },
+        { title: "خضروات مجمدة", image: img("category-frozen-vegetables"), url: "/products", categoryId: "" },
+        { title: "فواكه مجمدة", image: img("category-frozen-fruits"), url: "/products", categoryId: "" },
+        { title: "بطاطس مجمدة", image: img("category-frozen-potatoes"), url: "/products", categoryId: "" },
       ],
     },
     en: {
@@ -211,10 +220,10 @@ export const G7_DEFAULTS = {
       linkLabel: "Shop now",
       labelPosition: "bottom-start",
       items: [
-        { title: "Frozen meat", image: img("category-frozen-meat"), url: "/products" },
-        { title: "Frozen vegetables", image: img("category-frozen-vegetables"), url: "/products" },
-        { title: "Frozen fruits", image: img("category-frozen-fruits"), url: "/products" },
-        { title: "Frozen potatoes", image: img("category-frozen-potatoes"), url: "/products" },
+        { title: "Frozen meat", image: img("category-frozen-meat"), url: "/products", categoryId: "" },
+        { title: "Frozen vegetables", image: img("category-frozen-vegetables"), url: "/products", categoryId: "" },
+        { title: "Frozen fruits", image: img("category-frozen-fruits"), url: "/products", categoryId: "" },
+        { title: "Frozen potatoes", image: img("category-frozen-potatoes"), url: "/products", categoryId: "" },
       ],
     },
   } satisfies Record<"ar" | "en", G7CategoriesData>,
@@ -228,12 +237,13 @@ export const G7_DEFAULTS = {
         { key: "meat", label: "اللحوم المجمدة" },
       ],
       linkLabel: "عرض المنتج",
+      emptyMessage: "لا توجد منتجات في هذه الفئة حاليًا — اطلب عرض سعر وسنوفرها لك",
       items: [
-        { image: img("product-white-guava-pulp-1kg"), name: "لب الجوافة البيضاء جولدن سفن", categoryLabel: "لب فواكه مجمد", weight: "١ كجم", badge: "مجمد", tab: "pulp", url: "/products" },
-        { image: img("product-totapuri-mango-pulp-1kg"), name: "لب مانجو توتابوري جولدن سفن", categoryLabel: "لب فواكه مجمد", weight: "١ كجم", badge: "مجمد", tab: "pulp", url: "/products" },
-        { image: img("product-golden-seven-fries-2.5kg"), name: "بطاطس جولدن سفن", categoryLabel: "بطاطس مجمدة", weight: "٢٫٥ كجم", badge: "مجمد", tab: "potatoes", url: "/products" },
-        { image: img("product-absher-fries-10mm"), name: "أبشر بالبطاطس — ١٠ مم", categoryLabel: "بطاطس مجمدة", weight: "٢٫٥ كجم", badge: "مجمد", tab: "potatoes", url: "/products" },
-        { image: img("product-absher-fries-7mm"), name: "أبشر بالبطاطس — ٧ مم", categoryLabel: "بطاطس مجمدة", weight: "٢٫٥ كجم", badge: "مجمد", tab: "potatoes", url: "/products" },
+        { image: img("product-white-guava-pulp-1kg"), name: "لب الجوافة البيضاء جولدن سفن", categoryLabel: "لب فواكه مجمد", weight: "١ كجم", badge: "مجمد", tab: "pulp", url: "/products", productId: "" },
+        { image: img("product-totapuri-mango-pulp-1kg"), name: "لب مانجو توتابوري جولدن سفن", categoryLabel: "لب فواكه مجمد", weight: "١ كجم", badge: "مجمد", tab: "pulp", url: "/products", productId: "" },
+        { image: img("product-golden-seven-fries-2.5kg"), name: "بطاطس جولدن سفن", categoryLabel: "بطاطس مجمدة", weight: "٢٫٥ كجم", badge: "مجمد", tab: "potatoes", url: "/products", productId: "" },
+        { image: img("product-absher-fries-10mm"), name: "أبشر بالبطاطس — ١٠ مم", categoryLabel: "بطاطس مجمدة", weight: "٢٫٥ كجم", badge: "مجمد", tab: "potatoes", url: "/products", productId: "" },
+        { image: img("product-absher-fries-7mm"), name: "أبشر بالبطاطس — ٧ مم", categoryLabel: "بطاطس مجمدة", weight: "٢٫٥ كجم", badge: "مجمد", tab: "potatoes", url: "/products", productId: "" },
       ],
       cta: {
         enabled: true,
@@ -253,12 +263,13 @@ export const G7_DEFAULTS = {
         { key: "meat", label: "Frozen meat" },
       ],
       linkLabel: "View product",
+      emptyMessage: "No products in this category yet — request a quote and we'll source it for you",
       items: [
-        { image: img("product-white-guava-pulp-1kg"), name: "Golden Seven White Guava Pulp", categoryLabel: "Frozen fruit pulp", weight: "1 kg", badge: "Frozen", tab: "pulp", url: "/products" },
-        { image: img("product-totapuri-mango-pulp-1kg"), name: "Golden Seven Totapuri Mango Pulp", categoryLabel: "Frozen fruit pulp", weight: "1 kg", badge: "Frozen", tab: "pulp", url: "/products" },
-        { image: img("product-golden-seven-fries-2.5kg"), name: "Golden Seven Fries", categoryLabel: "Frozen potatoes", weight: "2.5 kg", badge: "Frozen", tab: "potatoes", url: "/products" },
-        { image: img("product-absher-fries-10mm"), name: "Absher Fries — 10 mm", categoryLabel: "Frozen potatoes", weight: "2.5 kg", badge: "Frozen", tab: "potatoes", url: "/products" },
-        { image: img("product-absher-fries-7mm"), name: "Absher Fries — 7 mm", categoryLabel: "Frozen potatoes", weight: "2.5 kg", badge: "Frozen", tab: "potatoes", url: "/products" },
+        { image: img("product-white-guava-pulp-1kg"), name: "Golden Seven White Guava Pulp", categoryLabel: "Frozen fruit pulp", weight: "1 kg", badge: "Frozen", tab: "pulp", url: "/products", productId: "" },
+        { image: img("product-totapuri-mango-pulp-1kg"), name: "Golden Seven Totapuri Mango Pulp", categoryLabel: "Frozen fruit pulp", weight: "1 kg", badge: "Frozen", tab: "pulp", url: "/products", productId: "" },
+        { image: img("product-golden-seven-fries-2.5kg"), name: "Golden Seven Fries", categoryLabel: "Frozen potatoes", weight: "2.5 kg", badge: "Frozen", tab: "potatoes", url: "/products", productId: "" },
+        { image: img("product-absher-fries-10mm"), name: "Absher Fries — 10 mm", categoryLabel: "Frozen potatoes", weight: "2.5 kg", badge: "Frozen", tab: "potatoes", url: "/products", productId: "" },
+        { image: img("product-absher-fries-7mm"), name: "Absher Fries — 7 mm", categoryLabel: "Frozen potatoes", weight: "2.5 kg", badge: "Frozen", tab: "potatoes", url: "/products", productId: "" },
       ],
       cta: {
         enabled: true,
@@ -274,15 +285,15 @@ export const G7_DEFAULTS = {
     ar: {
       heading: "علامات نعمل معها",
       items: [
-        { logo: img("brand-golden-seven-logo"), name: "جولدن سفن", count: "٨ منتجات", url: "/brands" },
-        { logo: img("brand-absher-logo"), name: "أبشر بالبطاطس", count: "منتج واحد", url: "/brands" },
+        { logo: img("brand-golden-seven-logo"), name: "جولدن سفن", count: "٨ منتجات", url: "/brands", brandId: "" },
+        { logo: img("brand-absher-logo"), name: "أبشر بالبطاطس", count: "منتج واحد", url: "/brands", brandId: "" },
       ],
     },
     en: {
       heading: "Brands we work with",
       items: [
-        { logo: img("brand-golden-seven-logo"), name: "Golden Seven", count: "8 products", url: "/brands" },
-        { logo: img("brand-absher-logo"), name: "Absher Fries", count: "1 product", url: "/brands" },
+        { logo: img("brand-golden-seven-logo"), name: "Golden Seven", count: "8 products", url: "/brands", brandId: "" },
+        { logo: img("brand-absher-logo"), name: "Absher Fries", count: "1 product", url: "/brands", brandId: "" },
       ],
     },
   } satisfies Record<"ar" | "en", G7BrandsData>,
@@ -375,6 +386,7 @@ export const G7_DEFAULTS = {
       companyPlaceholder: "اسم المنشأة",
       cityLabel: "المدينة",
       cityPlaceholder: "اختر المدينة",
+      otherCityLabel: "اكتب اسم المدينة",
       phoneLabel: "رقم التواصل",
       phonePlaceholder: "أدخل رقم التواصل",
       productsLabel: "المنتجات المطلوبة",
@@ -424,6 +436,7 @@ export const G7_DEFAULTS = {
       companyPlaceholder: "Business name",
       cityLabel: "City",
       cityPlaceholder: "Select a city",
+      otherCityLabel: "Enter the city name",
       phoneLabel: "Phone number",
       phonePlaceholder: "Enter your phone number",
       productsLabel: "Products needed",
