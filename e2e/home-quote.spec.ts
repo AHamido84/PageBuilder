@@ -27,6 +27,7 @@ test("product pills share one row", async ({ page }) => {
   await page.goto(home("ar"));
   // With variant products enabled the pills come from the catalog instead (see variants.spec.ts).
   test.skip((await page.locator("[data-quote-catalog]").count()) > 0, "catalog pills are on");
+  test.skip((await page.locator("[data-quote-products]").count()) > 0, "the products field is the dropdown (see quote-dropdown.spec.ts)");
   const tops = await page.locator('input[name="products"] + span').evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
   expect(tops.length).toBe(3);
   expect(new Set(tops).size).toBe(1);

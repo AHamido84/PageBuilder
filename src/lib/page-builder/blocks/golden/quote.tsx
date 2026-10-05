@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
-import { SelectField, TextField, styledProps } from "@/components/admin/ui/field";
+import { CheckboxField, NumberField, SelectField, TextField, styledProps } from "@/components/admin/ui/field";
+import { MULTI_SELECT_LABELS, MultiSelectDropdown } from "@/components/ui/multi-select-dropdown";
+import { prefillKey, validKeys, type QuoteCatalogGroup } from "@/lib/quote/products-field";
+import { QuotePrefillContext } from "./quote-prefill";
 import { useFormAction } from "@/lib/use-form-action";
 import { cn } from "@/lib/cn";
 import { StyledText } from "@/components/text/styled-text";
@@ -13,7 +16,7 @@ import { submitQuoteRequestAction } from "@/app/[locale]/page-builder-lead-actio
 import type { LeadFormState } from "@/lib/leads/submit-lead";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { G7Option, G7QuoteData } from "./schema";
-import type { QuoteCatalogItem } from "./resolve";
+import type { G7QuoteResolved, QuoteCatalogItem } from "./resolve";
 import { G7Arrow, G7ImageField, G7ListEditor, G7PositionFields, g7Eyebrow, g7GoldButton, g7OffsetStyle, g7OverlayClasses } from "./shared";
 
 const initialState: LeadFormState = {};
@@ -24,6 +27,7 @@ const MESSAGES = {
     phoneRequired: "يرجى إدخال رقم التواصل.",
     phoneInvalid: "يرجى إدخال رقم تواصل صحيح.",
     cityOtherRequired: "يرجى كتابة اسم المدينة.",
+    productsRequired: "اختر منتجًا واحدًا على الأقل",
     sending: "جارٍ الإرسال…",
     success: "شكرًا لك! استلمنا طلبك وسنتواصل معك قريبًا.",
     another: "إرسال طلب آخر",
@@ -34,6 +38,7 @@ const MESSAGES = {
     phoneRequired: "Please enter your phone number.",
     phoneInvalid: "Please enter a valid phone number.",
     cityOtherRequired: "Please enter the city name.",
+    productsRequired: "Select at least one product",
     sending: "Sending…",
     success: "Thank you! We've received your request and will be in touch soon.",
     another: "Send another request",
@@ -41,7 +46,7 @@ const MESSAGES = {
   },
 };
 
-type FieldErrors = Partial<Record<"contactName" | "phone" | "cityOther", string>>;
+type FieldErrors = Partial<Record<"contactName" | "phone" | "cityOther" | "products", string>>;
 
 /** Three stacked outlined diamonds (design ornament), drawn in SVG. */
 function DiamondOrnament({ className }: { className?: string }) {
@@ -150,11 +155,68 @@ function CatalogPicker({ legend, catalog, locale }: { legend: string; catalog: Q
   );
 }
 
+/**
+ * «المنتجات المطلوبة» as a multi-select dropdown (default field type): catalog products grouped by
+ * category, variants nested. Preselects the product page's product (QuotePrefillContext) or
+ * `?product=<slug>&variant=<id>`. Submits `productItems` keys + `productsRequired`.
+ */
+function ProductsDropdown({ data, groups, locale, error, onPick }: { data: G7QuoteData; groups: QuoteCatalogGroup[]; locale: string; error?: string; onPick: () => void }) {
+  const searchParams = useSearchParams();
+  const prefill = useContext(QuotePrefillContext);
+  const lang = locale === "ar" ? "ar" : "en";
+  const [value, setValue] = useState<string[]>(() => {
+    const catalog = groups.flatMap((g) => g.items);
+    const key = prefillKey(catalog, prefill?.product ?? searchParams.get("product"), prefill?.variant ?? searchParams.get("variant"));
+    return key ? validKeys(catalog, [key]) : [];
+  });
+  const placeholder = data.productsPlaceholder ? (
+    <StyledText text={data.productsPlaceholder} rich={richOf(data, "productsPlaceholder")} />
+  ) : lang === "ar" ? (
+    "اختر المنتجات المطلوبة"
+  ) : (
+    "Select products"
+  );
+  return (
+    <div data-quote-products>
+      <span id="g7q-products-label" className={labelClass}>
+        <StyledText text={data.productsLabel} rich={richOf(data, "productsLabel")} />
+      </span>
+      <MultiSelectDropdown
+        id="g7q-products"
+        name="productItems"
+        groups={groups}
+        value={value}
+        onChange={(next) => {
+          setValue(next);
+          onPick();
+        }}
+        dir={lang === "ar" ? "rtl" : "ltr"}
+        labels={{ ...MULTI_SELECT_LABELS[lang], placeholder, searchPlaceholder: data.productsSearchPlaceholder || (lang === "ar" ? "ابحث عن منتج…" : "Search products…") }}
+        showThumbnails={data.productsThumbnails !== false}
+        showGroupHeaders={data.productsGrouped !== false}
+        maxSelections={data.productsMax ?? 0}
+        invalid={Boolean(error)}
+        labelledBy="g7q-products-label"
+        describedBy={error ? "g7q-products-error" : undefined}
+        triggerClassName={inputClass}
+      />
+      <input type="hidden" name="productsRequired" value="1" />
+      {error ? (
+        <p id="g7q-products-error" className="mt-1.5 text-sm text-red-800">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 /* 09 -- Quote form + CTA image (split). Image is the inline-start ~60%, the form panel the rest. */
 export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7QuoteData>) {
   const t = locale === "ar" ? MESSAGES.ar : MESSAGES.en;
   // Catalog pills (resolveG7Quote, while variants are enabled); otherwise the typed `products` pills.
-  const catalog = (data as G7QuoteData & { catalog?: QuoteCatalogItem[] }).catalog ?? [];
+  const resolved = data as G7QuoteResolved;
+  const catalog = resolved.catalog ?? [];
+  const dropdownGroups = (data.productsField ?? "dropdown") === "dropdown" ? resolved.catalogGroups ?? [] : [];
   const [state, formAction, pending, submitKeepingInput] = useFormAction(submitQuoteRequestAction, initialState);
   const [errors, setErrors] = useState<FieldErrors>({});
   // The success panel shows for the latest successful result until the visitor asks for a new form.
@@ -175,6 +237,7 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
     const next: FieldErrors = {};
     if (!value("contactName")) next.contactName = t.nameRequired;
     if (otherCity && !value("cityOther")) next.cityOther = t.cityOtherRequired;
+    if (dropdownGroups.length > 0 && new FormData(form).getAll("productItems").length === 0) next.products = t.productsRequired;
     const phone = value("phone");
     if (!phone) next.phone = t.phoneRequired;
     else if (!/^[+\d][\d\s()-]{6,}$/.test(phone.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))))) next.phone = t.phoneInvalid;
@@ -187,7 +250,7 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
     if (Object.keys(next).length > 0) {
       event.preventDefault();
       const first = Object.keys(next)[0];
-      event.currentTarget.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
+      event.currentTarget.querySelector<HTMLElement>(first === "products" ? "#g7q-products" : `[name="${first}"]`)?.focus();
       return;
     }
     submitKeepingInput(event);
@@ -295,7 +358,9 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                   {fieldError("phone")}
                 </div>
 
-                {catalog.length > 0 ? (
+                {dropdownGroups.length > 0 ? (
+                  <ProductsDropdown data={data} groups={dropdownGroups} locale={locale} error={errors.products} onPick={() => errors.products && setErrors((e) => ({ ...e, products: undefined }))} />
+                ) : catalog.length > 0 ? (
                   <CatalogPicker legend={data.productsLabel ?? ""} catalog={catalog} locale={locale} />
                 ) : (
                 <fieldset>
@@ -413,7 +478,30 @@ export function G7QuoteEdit({ data, onChange, locale }: BlockEditProps<G7QuoteDa
         ))}
       </div>
       <OptionsEditor label="Cities" items={data.cities ?? []} onChange={set("cities")} dir={dir} />
-      <OptionsEditor label="Products" items={data.products ?? []} onChange={set("products")} dir={dir} />
+      <div className="space-y-2 rounded-md border border-neutral-700 p-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">«المنتجات المطلوبة» · Products field</p>
+        <SelectField
+          label="Field type"
+          value={data.productsField ?? "dropdown"}
+          onChange={(productsField) => onChange({ ...data, productsField })}
+          options={[
+            { value: "dropdown", label: "Dropdown (multi-select, from the catalog)" },
+            { value: "pills", label: "Pills (legacy look)" },
+          ]}
+        />
+        {(data.productsField ?? "dropdown") === "dropdown" ? (
+          <>
+            <TextField label="Placeholder" {...styledProps(data, "productsPlaceholder", onChange)} dir={dir} placeholder={locale === "ar" ? "اختر المنتجات المطلوبة" : "Select products"} />
+            <TextField label="Search placeholder" value={data.productsSearchPlaceholder ?? ""} onChange={(v) => onChange({ ...data, productsSearchPlaceholder: v })} dir={dir} placeholder={locale === "ar" ? "ابحث عن منتج…" : "Search products…"} />
+            <CheckboxField label="Show thumbnails" checked={data.productsThumbnails !== false} onChange={(v) => onChange({ ...data, productsThumbnails: v })} />
+            <CheckboxField label="Group by category" checked={data.productsGrouped !== false} onChange={(v) => onChange({ ...data, productsGrouped: v })} />
+            <CheckboxField label="Include variants (when variants are enabled)" checked={data.productsVariants !== false} onChange={(v) => onChange({ ...data, productsVariants: v })} />
+            <NumberField label="Maximum selections (0 = no limit)" value={data.productsMax ?? 0} min={0} max={30} onChange={(v) => onChange({ ...data, productsMax: v })} />
+          </>
+        ) : (
+          <OptionsEditor label="Products (pills; the catalog is used instead while variants are enabled)" items={data.products ?? []} onChange={set("products")} dir={dir} />
+        )}
+      </div>
       <OptionsEditor label="Quantities" items={data.quantities ?? []} onChange={set("quantities")} dir={dir} />
       <TextField label="Note under the button" {...styledProps(data, "note", onChange)} dir={dir} />
     </div>

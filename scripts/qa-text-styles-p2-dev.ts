@@ -55,6 +55,9 @@ const SECTIONS: { type: string; data: Record<string, unknown> }[] = [
   { type: "CONTACT_FORM", data: withRich({ heading: "QA contact form", body: "QA body", nameLabel: "QA name", showMessage: true }, "heading", "nameLabel") },
   { type: "PRODUCT_GRID", data: withRich({ heading: "QA product grid", promo: withRich({ enabled: true, eyebrow: "QA promo", title: "QA promo title", body: "Promo body", ctaLabel: "QA promo button", ctaUrl: "/contact", position: 1 }, "title", "ctaLabel") }, "heading") },
   { type: "HERO", data: withRich({ eyebrow: "QA hero eyebrow", headline: "QA hero headline", subheading: "QA hero text" }, "eyebrow", "headline", "subheading") },
+  // feat/products-page-builder: the quote form's products dropdown and the contact-details card alignment.
+  { type: "G7_QUOTE", data: {} },
+  { type: "CONTACT_INFO", data: { heading: "بيانات التواصل" } },
 ];
 
 async function main() {
@@ -70,9 +73,12 @@ async function main() {
   const rows = SECTIONS.map(({ type, data }, order) => {
     const block = getBlock(type);
     if (!block) throw new Error(`Unknown block ${type}`);
-    const full = { ...structuredClone(block.defaultData), ...data };
-    if (!block.dataSchema.safeParse(full).success) throw new Error(`${type}: QA data does not validate`);
-    return { type, order, dataEn: full, dataAr: full, settings: block.defaultSettings, isVisible: true };
+    // Defaults are per locale ({ en, ar }) for most blocks.
+    const defaults = structuredClone(block.defaultData) as { en?: object; ar?: object };
+    const dataEn = { ...(defaults.en ?? defaults), ...data };
+    const dataAr = { ...(defaults.ar ?? defaults), ...data };
+    for (const d of [dataEn, dataAr]) if (!block.dataSchema.safeParse(d).success) throw new Error(`${type}: QA data does not validate`);
+    return { type, order, dataEn, dataAr, settings: block.defaultSettings, isVisible: true };
   });
 
   const page = await prisma.page.upsert({ where: { slug: SLUG }, update: {}, create: { slug: SLUG, status: "DRAFT", titleEn: "QA text styles P2", titleAr: "QA text styles P2" } });

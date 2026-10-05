@@ -2,6 +2,9 @@ import { prisma } from "@/lib/prisma";
 import type { G7BrandItem, G7BrandsData, G7CategoriesData, G7CategoryItem, G7ProductItem, G7ProductsData, G7QuoteData } from "./schema";
 import { areVariantsEnabled, buildVariantsView, variantGraphInclude } from "@/lib/catalog/variants/load";
 import { pluralize, PRODUCT_NOUN, VARIANT_NOUN, variantQuery, variantSummaryLine } from "@/lib/catalog/variants/core";
+import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
+import { normalizeArabic } from "@/lib/text/arabic-normalize";
+import { groupCatalog, type QuoteCatalogGroup, type QuoteCatalogItem } from "@/lib/quote/products-field";
 
 /**
  * Server-side hydration for the G7 catalog blocks: every card links to (and counts from) the real
@@ -21,23 +24,10 @@ export type G7Resolved<T> = T & { href?: string; countLabel?: string; resolvedTi
 const GENERIC_URLS = new Set(["", "/", "/products", "/products/", "/brands", "/brands/"]);
 const isGeneric = (url: string | undefined) => GENERIC_URLS.has((url ?? "").trim());
 
-const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 const UNITS: Record<string, string> = { مم: "mm", مللي: "mm", ملم: "mm", ملي: "mm", mm: "mm", كجم: "kg", كيلو: "kg", kg: "kg", جم: "g", g: "g" };
 
-export function normalizeName(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d)))
-    .replace(/٫/g, ".")
-    .replace(/[ً-ٰٟـ]/g, "") // diacritics + tatweel
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ة/g, "ه")
-    .replace(/ى/g, "ي")
-    .replace(/(\d)([a-z؀-ۿ])/g, "$1 $2") // "10mm" -> "10 mm"
-    .replace(/[^\p{L}\p{N}.\s]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+/** Shared with the quote form's product search -- see src/lib/text/arabic-normalize.ts. */
+export const normalizeName = normalizeArabic;
 
 function tokens(text: string): string[] {
   return normalizeName(text)
@@ -154,30 +144,48 @@ export async function resolveG7Categories(data: G7CategoriesData, locale: string
   return { ...data, items };
 }
 
-/** Quote form pills from the catalog (only while variants are enabled; otherwise the typed pills stay). */
-export interface QuoteCatalogItem {
-  slug: string;
-  label: string;
-  variants: { id: string; label: string }[];
-}
+export type { QuoteCatalogItem } from "@/lib/quote/products-field";
+export type G7QuoteResolved = G7QuoteData & { catalog?: QuoteCatalogItem[]; catalogGroups?: QuoteCatalogGroup[] };
 
-export async function resolveG7Quote(data: G7QuoteData, locale: string): Promise<G7QuoteData & { catalog?: QuoteCatalogItem[] }> {
-  if (!(await areVariantsEnabled())) return data;
+/**
+ * «المنتجات المطلوبة» from the catalog. The dropdown (default) always lists the published products,
+ * grouped by category, with variants nested while variants are enabled. The legacy pills keep their
+ * old behavior: catalog pills while variants are enabled, otherwise the typed `products` list.
+ */
+export async function resolveG7Quote(data: G7QuoteData, locale: string): Promise<G7QuoteResolved> {
+  const variantsEnabled = await areVariantsEnabled();
+  const dropdown = (data.productsField ?? "dropdown") === "dropdown";
+  if (!dropdown && !variantsEnabled) return data;
   const products = await prisma.product.findMany({
     where: { isPublished: true },
     orderBy: [{ category: { order: "asc" } }, { createdAt: "asc" }],
-    include: { translations: true, images: { take: 0, select: { url: true } }, ...variantGraphInclude },
+    include: {
+      translations: true,
+      category: { select: { id: true, translations: { select: { locale: true, name: true } } } },
+      ...productCardImageInclude,
+      ...variantGraphInclude,
+    },
   });
+  const withVariants = variantsEnabled && (!dropdown || data.productsVariants !== false);
   const catalog = products.map((p): QuoteCatalogItem => {
     const view = buildVariantsView(p, locale, true);
     const name = p.translations.find((t) => t.locale === upper(locale))?.name ?? p.sku;
     return {
       slug: p.slug,
       label: name,
-      variants: view.type === "VARIANT" && view.variants.length > 1 ? view.variants.map((v) => ({ id: v.id, label: v.label || v.name })) : [],
+      thumbUrl: resolveProductCardImage(p).imageUrl,
+      categoryId: p.categoryId,
+      variants: withVariants && view.type === "VARIANT" && view.variants.length > 1 ? view.variants.map((v) => ({ id: v.id, label: v.label || v.name })) : [],
     };
   });
-  return catalog.length ? { ...data, catalog } : data;
+  if (!catalog.length) return data;
+  const categories: { id: string; label: string }[] = [];
+  for (const p of products) {
+    if (categories.some((c) => c.id === p.category.id)) continue;
+    categories.push({ id: p.category.id, label: p.category.translations.find((t) => t.locale === upper(locale))?.name ?? "" });
+  }
+  const catalogGroups = groupCatalog(catalog, categories, data.productsGrouped !== false, locale === "ar" ? "المنتجات" : "Products");
+  return { ...data, catalog, catalogGroups };
 }
 
 /** "منتج واحد" / "منتجان" / "٣ منتجات" / "١١ منتجًا" -- or "1 product" / "8 products". */

@@ -142,6 +142,16 @@ export const g7QuoteSchema = z.object({
   phoneLabel: text(40),
   phonePlaceholder: text(60),
   productsLabel: text(40),
+  /** «المنتجات المطلوبة» field: "dropdown" (default when missing) or the legacy "pills". */
+  productsField: z.enum(["dropdown", "pills"]).optional(),
+  productsPlaceholder: z.string().max(80).optional(),
+  productsSearchPlaceholder: z.string().max(80).optional(),
+  /** Dropdown options; a missing value means on. */
+  productsThumbnails: z.boolean().optional(),
+  productsGrouped: z.boolean().optional(),
+  productsVariants: z.boolean().optional(),
+  /** Maximum picks (0 / missing = no limit). */
+  productsMax: z.number().int().min(0).max(30).optional(),
   quantityLabel: text(40),
   quantityPlaceholder: text(60),
   cities: z.array(option).max(30).default([]),
