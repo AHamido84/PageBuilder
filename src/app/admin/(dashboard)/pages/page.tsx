@@ -73,7 +73,7 @@ export default async function PagesListPage() {
                 <td className="px-4 py-2">{page.status}</td>
                 <td className="px-4 py-2 text-neutral-500">{page.updatedAt.toLocaleDateString()}</td>
                 <td className="px-4 py-2 text-right">
-                  <PageRowActions pageId={page.id} status={page.status} canDelete={canDelete && !page.isSystem && !SYSTEM_PAGES[page.slug] && page.slug !== HOMEPAGE_SLUG} />
+                  <PageRowActions pageId={page.id} status={page.status} canDelete={canDelete && !page.isSystem && !SYSTEM_PAGES[page.slug] && page.slug !== HOMEPAGE_SLUG} canDuplicate={!page.isSystem && !SYSTEM_PAGES[page.slug]} />
                 </td>
               </tr>
             ))}

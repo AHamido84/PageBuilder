@@ -62,3 +62,6 @@ next-env.d.ts
 
 # Variant migration revert logs (scripts/migrate-variants.ts) -- keep locally, never commit
 scripts/.migrate-variants-*.json
+
+# Playwright screenshot baselines (regression.spec.ts) -- large, environment-specific
+e2e/*-snapshots/

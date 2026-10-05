@@ -6,7 +6,7 @@ import { setPageStatusAction, duplicatePageAction, deletePageAction } from "./ac
 import { DeleteButton } from "@/components/admin/ui/delete-button";
 import { useAdminToast } from "@/components/admin/ui/toast";
 
-export function PageRowActions({ pageId, status, canDelete }: { pageId: string; status: string; canDelete: boolean }) {
+export function PageRowActions({ pageId, status, canDelete, canDuplicate = true }: { pageId: string; status: string; canDelete: boolean; canDuplicate?: boolean }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const toast = useAdminToast();
@@ -27,6 +27,7 @@ export function PageRowActions({ pageId, status, canDelete }: { pageId: string; 
           Archive
         </button>
       ) : null}
+      {canDuplicate ? (
       <button
         type="button"
         disabled={pending}
@@ -44,6 +45,7 @@ export function PageRowActions({ pageId, status, canDelete }: { pageId: string; 
       >
         Duplicate
       </button>
+      ) : null}
       {canDelete ? <DeleteButton onDelete={() => deletePageAction(pageId)} itemLabel="this page" /> : null}
     </div>
   );

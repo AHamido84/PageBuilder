@@ -122,6 +122,8 @@ export async function duplicatePageAction(pageId: string): Promise<{ error?: str
 
   const source = await prisma.page.findUnique({ where: { id: pageId }, include: { sections: true } });
   if (!source) return { error: "Page not found." };
+  // A system page backs a built-in route (and the template holds template-only blocks) -- no copies.
+  if (source.isSystem || isSystemPageSlug(source.slug)) return { error: "System pages can't be duplicated." };
 
   let suffix = 2;
   let newSlug = `${source.slug}-copy`;

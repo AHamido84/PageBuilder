@@ -67,6 +67,12 @@ test("'other city' asks for the city name and sends it instead of 'other'", asyn
   expect(posts.length, "nothing is sent while the city name is missing").toBe(0);
 
   await page.locator("#g7q-city-other").fill("ينبع");
+  // The products dropdown requires a pick (quote-dropdown.spec.ts covers it in detail).
+  if (await page.locator("#g7q-products").count()) {
+    await page.locator("#g7q-products").click({ position: { x: 8, y: 8 } });
+    await page.locator('[role="listbox"] [role="option"]').first().click();
+    await page.keyboard.press("Escape");
+  }
   await page.locator('[id="quote"] button[type="submit"]').first().click();
   await expect.poll(() => posts.length).toBeGreaterThan(0);
   const body = posts[0].postData() ?? "";

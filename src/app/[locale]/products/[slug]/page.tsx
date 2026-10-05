@@ -104,6 +104,7 @@ export default async function ProductDetailPage({
     ]),
   ];
 
+  const variantInUrl = Boolean(query.variant) || view.options.some((o) => query[o.key] !== undefined);
   const context: ProductPageContext = { product, initialVariantId: initialVariant.id, variantsEnabled, related, locale };
 
   // The Page Builder product template (Admin -> Pages -> «قالب صفحة المنتج») when switched on and
@@ -114,8 +115,8 @@ export default async function ProductDetailPage({
     return (
       <div>
         <JsonLd data={structuredData} />
-        {/* The template's quote form preselects this product (and the variant in the URL). */}
-        <QuotePrefillProvider product={product.slug} variant={initialVariant.id}>
+        {/* The template's quote form preselects this product -- a specific variant only when the URL picks one. */}
+        <QuotePrefillProvider product={product.slug} variant={variantInUrl ? initialVariant.id : null}>
           <SectionRenderer sections={template.sections} locale={locale} context={{ searchParams: query, product: context }} />
         </QuotePrefillProvider>
         {template.draft ? <DraftPreviewBanner /> : null}

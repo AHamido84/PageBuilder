@@ -488,7 +488,8 @@ function SelectedChips({ catalog, value, labels, onRemove }: { catalog: QuoteCat
       const nodes = Array.from(box.querySelectorAll<HTMLElement>("[data-measure-chip]"));
       const more = box.querySelector<HTMLElement>("[data-measure-more]");
       const gap = parseFloat(getComputedStyle(box).columnGap) || 0;
-      setVisible(fitChips(nodes.map((n) => n.offsetWidth), more?.offsetWidth ?? 0, box.clientWidth, gap));
+      // A few px of slack: the real «+n» text and sub-pixel widths can differ slightly from the measured copy.
+      setVisible(fitChips(nodes.map((n) => n.offsetWidth + 1), (more?.offsetWidth ?? 0) + 6, box.clientWidth - 2, gap));
     };
     measure();
     const ro = new ResizeObserver(measure);
