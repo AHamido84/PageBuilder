@@ -27,6 +27,8 @@ Short, current handoff (2026-10-05). `HANDOFF.md` is the long history; read only
 
 ## 2. Current state (all on `main`, deployed to goldensevenfoods)
 
+**2026-10-05 -- Text styling P1 deployed to production** (`feat/text-styling` -> local `main`, commit `dd4f670`, deploy `goldensevenfoods-xdf76nclg`; previous deploy for rollback = the variants deploy). Migration `20261005081606_text_styles` (13 `rich Json?` columns + `SiteSetting.textStylesEnabled`) applied on dev + prod; prod backup `design-assets/backups/prod-pre-text-styles-2026-10-05.json`. **Switch is OFF on prod** (Settings -> «تنسيق النصوص»; `TEXT_STYLES_ENABLED=off` forces off). Code: `src/lib/text-style/` (format, zod, `__rich` pass-through, flag), `src/components/text/styled-text.tsx` (renderer), `src/components/admin/text/styled-text-field.tsx` (TipTap editor), `styledProps` in `components/admin/ui/field.tsx`. P1 = G7 home blocks, product texts, variants, options. TODO: P2 (other 35 page-builder blocks), P3 (categories, brands, solutions, FAQ, certifications, menus, footer/settings, forms, blog); admin editor not yet browser-tested (needs a login). Dev DB has the switch ON + QA styling on absher-french-fries.
+
 **2026-10-05 -- Variant products deployed to production** (branch `feat/admin-variant-products`, fast-forwarded into local `main`, NOT pushed yet). Previous production deploy for rollback: `goldensevenfoods-6h2y5bgrv` (commit `d43d145`).
 - Migrations `20261004225505_product_variants` + `20261005044548_variant_descriptions` applied on dev AND prod (additive only).
 - Prod backup before the change: `design-assets/backups/prod-pre-variants-2026-10-05.json` (all tables, via `scripts/backup-db-json.ts`; no Neon branch was made).
