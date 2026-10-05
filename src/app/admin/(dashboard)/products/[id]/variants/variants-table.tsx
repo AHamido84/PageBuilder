@@ -285,6 +285,26 @@ function VariantDetails({
           <input dir="ltr" value={variant.nameEn} onChange={(e) => setVariant({ nameEn: e.target.value })} className={adminInput} />
         </div>
         <div>
+          <label className={adminLabel}>وصف قصير بالعربية (اختياري — وإلا وصف المنتج)</label>
+          <input value={variant.shortDescriptionAr} onChange={(e) => setVariant({ shortDescriptionAr: e.target.value })} className={adminInput} />
+          {errorFor("shortDescriptionAr") ? <p className={fieldError}>{errorFor("shortDescriptionAr")}</p> : null}
+        </div>
+        <div>
+          <label className={adminLabel}>Short description (English, optional)</label>
+          <input dir="ltr" value={variant.shortDescriptionEn} onChange={(e) => setVariant({ shortDescriptionEn: e.target.value })} className={adminInput} />
+          {errorFor("shortDescriptionEn") ? <p className={fieldError}>{errorFor("shortDescriptionEn")}</p> : null}
+        </div>
+        <div>
+          <label className={adminLabel}>الوصف بالعربية (اختياري — وإلا وصف المنتج)</label>
+          <textarea rows={3} value={variant.descriptionAr} onChange={(e) => setVariant({ descriptionAr: e.target.value })} className={adminInput} />
+          {errorFor("descriptionAr") ? <p className={fieldError}>{errorFor("descriptionAr")}</p> : null}
+        </div>
+        <div>
+          <label className={adminLabel}>Description (English, optional)</label>
+          <textarea dir="ltr" rows={3} value={variant.descriptionEn} onChange={(e) => setVariant({ descriptionEn: e.target.value })} className={adminInput} />
+          {errorFor("descriptionEn") ? <p className={fieldError}>{errorFor("descriptionEn")}</p> : null}
+        </div>
+        <div>
           <label className={adminLabel}>التعبئة بالعربية</label>
           <textarea rows={2} value={variant.packagingAr} onChange={(e) => setVariant({ packagingAr: e.target.value })} className={adminInput} />
         </div>

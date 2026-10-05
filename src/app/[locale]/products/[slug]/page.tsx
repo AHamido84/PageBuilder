@@ -14,7 +14,7 @@ import { productSchema, productGroupSchema, breadcrumbSchema } from "@/lib/seo/s
 import { JsonLd } from "@/components/site/json-ld";
 import { areVariantsEnabled, buildVariantsView, cardVariantFields, variantGraphInclude } from "@/lib/catalog/variants/load";
 import { resolveVariantFromParams, variantQuery } from "@/lib/catalog/variants/core";
-import { VariantDetails, VariantGallery, VariantProvider, VariantQuoteLink, VariantSelectorIsland, VariantTitle, VariantsTable } from "./variant-islands";
+import { VariantDescription, VariantDetails, VariantGallery, VariantProvider, VariantQuoteLink, VariantSelectorIsland, VariantTitle, VariantsTable } from "./variant-islands";
 import { buttonClasses } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -206,6 +206,7 @@ export default async function ProductDetailPage({
             const qs = variantQuery(view, v);
             return {
               name: v.name,
+              description: v.shortDescription ?? v.description,
               sku: v.sku,
               imageUrls: v.images.map((img) => img.url),
               url: qs ? `${productUrl}?${qs}` : productUrl,
@@ -288,8 +289,7 @@ export default async function ProductDetailPage({
           <div>
             <p className="manifest-strip mb-2 text-harbor">{product.categoryName}</p>
             <VariantTitle productName={product.name} className="font-display text-3xl leading-[1.1] sm:text-4xl" />
-            {product.shortDescription ? <p className="mt-3 text-lg text-ink/60">{product.shortDescription}</p> : null}
-            {product.description ? <p className="mt-4 text-base leading-relaxed text-ink/70">{product.description}</p> : null}
+            <VariantDescription />
 
             <VariantSelectorIsland labels={{ unavailableCombo: t("variantUnavailableCombo"), currentlyUnavailable: t("variantCurrentlyUnavailable") }} />
             {variantsEnabled ? (

@@ -443,6 +443,11 @@ model ProductVariant {
   sku         String?  @unique
   nameAr      String?
   nameEn      String?
+  /** Per-variant descriptions; empty = the product's own (ProductTranslation). */
+  shortDescriptionAr String?
+  shortDescriptionEn String?
+  descriptionAr      String?
+  descriptionEn      String?
   weightAr    String?
   weightEn    String?
   packagingAr String?

@@ -56,6 +56,10 @@ export interface EditorVariant {
   sku: string;
   nameAr: string;
   nameEn: string;
+  shortDescriptionAr: string;
+  shortDescriptionEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
   weightAr: string;
   weightEn: string;
   packagingAr: string;
@@ -98,6 +102,10 @@ export function emptyVariant(options: Record<string, string> = {}): EditorVarian
     sku: "",
     nameAr: "",
     nameEn: "",
+    shortDescriptionAr: "",
+    shortDescriptionEn: "",
+    descriptionAr: "",
+    descriptionEn: "",
     weightAr: "",
     weightEn: "",
     packagingAr: "",
@@ -174,6 +182,10 @@ export function toPayload(productId: string, state: EditorState, publish: boolea
       sku: v.sku || null,
       nameAr: v.nameAr || null,
       nameEn: v.nameEn || null,
+      shortDescriptionAr: v.shortDescriptionAr || null,
+      shortDescriptionEn: v.shortDescriptionEn || null,
+      descriptionAr: v.descriptionAr || null,
+      descriptionEn: v.descriptionEn || null,
       weightAr: v.weightAr || null,
       weightEn: v.weightEn || null,
       packagingAr: v.packagingAr || null,
@@ -194,7 +206,7 @@ export function toPreviewView(state: EditorState, productNameAr: string, legacy:
     return {
       type: "SIMPLE",
       options: [],
-      variants: [{ id: "simple", sku: null, name: productNameAr, label: "", options: {}, images: legacyImages, weight: legacy.weight || null, packaging: legacy.packagingAr || null, storage: legacy.storageAr || null, specs: [], available: true }],
+      variants: [{ id: "simple", sku: null, name: productNameAr, label: "", options: {}, images: legacyImages, shortDescription: null, description: null, weight: legacy.weight || null, packaging: legacy.packagingAr || null, storage: legacy.storageAr || null, specs: [], available: true }],
       defaultVariantId: "simple",
     };
   }
@@ -213,6 +225,8 @@ export function toPreviewView(state: EditorState, productNameAr: string, legacy:
       label,
       options: v.options,
       images: v.images.length ? v.images.map((i) => ({ url: i.url, alt: productNameAr })) : legacyImages,
+      shortDescription: v.shortDescriptionAr || null,
+      description: v.descriptionAr || null,
       weight: v.weightAr || legacy.weight || null,
       packaging: v.packagingAr || legacy.packagingAr || null,
       storage: v.storageAr || legacy.storageAr || null,

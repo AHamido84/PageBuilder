@@ -87,6 +87,7 @@ interface ProductGroupSchemaInput {
   variesBy: string[];
   variants: {
     name: string;
+    description?: string | null;
     sku: string | null;
     imageUrls: string[];
     url: string;
@@ -109,6 +110,7 @@ export function productGroupSchema(input: ProductGroupSchemaInput) {
     hasVariant: input.variants.map((v) => ({
       "@type": "Product",
       name: v.name,
+      ...(v.description ? { description: v.description } : {}),
       ...(v.sku ? { sku: v.sku } : {}),
       ...(v.imageUrls.length ? { image: v.imageUrls } : {}),
       url: v.url,

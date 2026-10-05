@@ -42,6 +42,7 @@ export function VariantsPreview({
           <div className="rounded-md bg-[var(--g7-cream-50)] p-4 text-[var(--g7-teal-900)]" dir="rtl">
             <p className="mb-1 text-lg font-medium">{card.name}</p>
             {view.type === "VARIANT" && current.label ? <p className="mb-3 text-sm opacity-70">{current.label}</p> : null}
+            {current.shortDescription ? <p className="mb-3 text-sm">{current.shortDescription}</p> : null}
             {view.type === "VARIANT" && view.variants.length > 1 ? (
               <VariantSelector
                 view={view}

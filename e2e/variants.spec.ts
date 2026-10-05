@@ -89,6 +89,24 @@ test.describe("variant products -- public site", () => {
     expect(posts[0]).toContain("absher-french-fries");
   });
 
+  test("switching size updates name, URL, image and description without a reload", async ({ page }) => {
+    await page.goto(`/ar${ABSHER}?size=7mm`);
+    const group = page.getByRole("radiogroup").first();
+    const ten = group.getByRole("radio", { name: "١٠ مم" });
+    const description = () => page.locator("h1 ~ p.text-lg").allTextContents();
+    const before = { image: await mainImageSrc(page), description: await description() };
+    await page.evaluate(() => ((window as unknown as { __marker: number }).__marker = 1));
+    await ten.click();
+    await expect(ten).toHaveAttribute("aria-checked", "true");
+    await expect(page).toHaveURL(/[?&]size=10mm/);
+    await expect(page.locator("[data-variant-name]")).toContainText("١٠ مم");
+    await expect.poll(() => mainImageSrc(page)).not.toBe(before.image);
+    // Each variant shows its own description (or the product's when it has none).
+    const after = await description();
+    if (before.description.join() !== "") expect(after.join()).not.toBe(before.description.join());
+    expect(await page.evaluate(() => (window as unknown as { __marker?: number }).__marker), "no page reload").toBe(1);
+  });
+
   test("invalid params fall back to the default variant", async ({ page }) => {
     await page.goto(`/ar${ABSHER}?size=99mm&color=red`);
     const checked = page.getByRole("radiogroup").first().locator('[aria-checked="true"]');

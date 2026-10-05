@@ -24,6 +24,8 @@ const v = (id: string, options: Record<string, string>, available = true): Varia
   label: "",
   options,
   images: [],
+  shortDescription: null,
+  description: null,
   weight: null,
   packaging: null,
   storage: null,

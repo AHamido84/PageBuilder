@@ -61,7 +61,14 @@ export interface VariantViewSource {
   type: "SIMPLE" | "VARIANT";
   defaultVariantId: string | null;
   weight: string | null;
-  translations: { locale: string; name: string; packagingInfo?: string | null; storageInfo?: string | null }[];
+  translations: {
+    locale: string;
+    name: string;
+    shortDescription?: string | null;
+    description?: string | null;
+    packagingInfo?: string | null;
+    storageInfo?: string | null;
+  }[];
   mainImage?: { url: string } | null;
   images: { url: string }[];
   options?: Graph["options"];
@@ -82,6 +89,8 @@ export function buildVariantsView(source: VariantViewSource, locale: string, ena
   const productName = tr?.name ?? source.sku;
   const fallback = {
     images: legacyImages(source, productName),
+    shortDescription: tr?.shortDescription ?? null,
+    description: tr?.description ?? null,
     weight: source.weight,
     packaging: tr?.packagingInfo ?? null,
     storage: tr?.storageInfo ?? null,
@@ -126,6 +135,8 @@ export function buildVariantsView(source: VariantViewSource, locale: string, ena
       label,
       options: selection,
       images: images.length ? images : fallback.images,
+      shortDescription: pick(locale, v.shortDescriptionAr, v.shortDescriptionEn) ?? fallback.shortDescription,
+      description: pick(locale, v.descriptionAr, v.descriptionEn) ?? fallback.description,
       weight: pick(locale, v.weightAr, v.weightEn) ?? fallback.weight,
       packaging: pick(locale, v.packagingAr, v.packagingEn) ?? fallback.packaging,
       storage: pick(locale, v.storageAr, v.storageEn) ?? fallback.storage,

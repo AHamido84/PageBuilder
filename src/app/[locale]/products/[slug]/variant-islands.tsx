@@ -86,6 +86,17 @@ export function VariantTitle({ productName, className }: { productName: string; 
   );
 }
 
+/** Short + full description: the selected variant's own, else the product's (same markup as before). */
+export function VariantDescription() {
+  const { current } = useVariant();
+  return (
+    <>
+      {current.shortDescription ? <p className="mt-3 text-lg text-ink/60">{current.shortDescription}</p> : null}
+      {current.description ? <p className="mt-4 text-base leading-relaxed text-ink/70">{current.description}</p> : null}
+    </>
+  );
+}
+
 export function VariantSelectorIsland({ labels }: { labels: VariantSelectorLabels }) {
   const { view, current, select } = useVariant();
   if (view.type !== "VARIANT" || view.variants.length < 2) return null;

@@ -37,6 +37,9 @@ export interface VariantView {
   /** optionKey -> valueKey */
   options: Record<string, string>;
   images: VariantImageView[];
+  /** The variant's own descriptions, else the product's. */
+  shortDescription: string | null;
+  description: string | null;
   weight: string | null;
   packaging: string | null;
   storage: string | null;
