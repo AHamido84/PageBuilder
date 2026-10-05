@@ -25,12 +25,12 @@ export function ProductListFilters({ categories, brands }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
       <input
         type="search"
         defaultValue={searchParams.get("q") ?? ""}
         onChange={(e) => update("q", e.target.value)}
-        placeholder="Search by name or SKU..."
+        placeholder="Search by name or SKU (incl. variant SKUs)..."
         className={`${selectClass} sm:col-span-2`}
       />
       <select defaultValue={searchParams.get("category") ?? ""} onChange={(e) => update("category", e.target.value)} className={selectClass}>
@@ -53,6 +53,11 @@ export function ProductListFilters({ categories, brands }: Props) {
         <option value="">All statuses</option>
         <option value="published">Published</option>
         <option value="draft">Draft</option>
+      </select>
+      <select defaultValue={searchParams.get("type") ?? ""} onChange={(e) => update("type", e.target.value)} className={selectClass} aria-label="النوع / Type">
+        <option value="">كل الأنواع / All types</option>
+        <option value="simple">بسيط / Simple</option>
+        <option value="variant">بأنواع / With variants</option>
       </select>
     </div>
   );

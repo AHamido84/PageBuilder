@@ -35,6 +35,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Catalog",
     items: [
       { href: "/admin/products", label: "Products", resource: "products" },
+      { href: "/admin/options", label: "Product options", resource: "products" },
       { href: "/admin/categories", label: "Categories", resource: "categories" },
       { href: "/admin/brands", label: "Brands", resource: "brands" },
       { href: "/admin/certifications", label: "Certifications", resource: "certifications" },

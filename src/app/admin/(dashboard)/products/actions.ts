@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { logActivity } from "@/lib/activity-log";
+import { copyVariantGraph } from "@/lib/catalog/variants/copy";
 
 const slugSchema = z
   .string()
@@ -387,40 +388,45 @@ export async function duplicateProductAction(productId: string): Promise<{ error
     suffix += 1;
   }
 
-  const copy = await prisma.product.create({
-    data: {
-      sku: newSku,
-      slug: newSlug,
-      categoryId: source.categoryId,
-      brandId: source.brandId,
-      temperatureClass: source.temperatureClass,
-      originCountry: source.originCountry,
-      weight: source.weight,
-      dimensions: source.dimensions,
-      relatedProductIds: source.relatedProductIds,
-      isPublished: false,
-      isFeatured: false,
-      mainImageId: source.mainImageId,
-      mobileImageId: source.mobileImageId,
-      images: { connect: source.images.map((m) => ({ id: m.id })) },
-      videos: { connect: source.videos.map((m) => ({ id: m.id })) },
-      documents: { connect: source.documents.map((m) => ({ id: m.id })) },
-      certifications: { connect: source.certifications.map((c) => ({ id: c.id })) },
-      translations: {
-        create: source.translations.map((t) => ({
-          locale: t.locale,
-          name: t.name,
-          shortDescription: t.shortDescription,
-          description: t.description,
-          packagingInfo: t.packagingInfo,
-          storageInfo: t.storageInfo,
-          ingredients: t.ingredients,
-          nutritionInfo: t.nutritionInfo,
-          allergens: t.allergens,
-        })),
+  // One transaction: the product copy plus its options/variants (variant products).
+  const copy = await prisma.$transaction(async (tx) => {
+    const created = await tx.product.create({
+      data: {
+        sku: newSku,
+        slug: newSlug,
+        categoryId: source.categoryId,
+        brandId: source.brandId,
+        temperatureClass: source.temperatureClass,
+        originCountry: source.originCountry,
+        weight: source.weight,
+        dimensions: source.dimensions,
+        relatedProductIds: source.relatedProductIds,
+        isPublished: false,
+        isFeatured: false,
+        mainImageId: source.mainImageId,
+        mobileImageId: source.mobileImageId,
+        images: { connect: source.images.map((m) => ({ id: m.id })) },
+        videos: { connect: source.videos.map((m) => ({ id: m.id })) },
+        documents: { connect: source.documents.map((m) => ({ id: m.id })) },
+        certifications: { connect: source.certifications.map((c) => ({ id: c.id })) },
+        translations: {
+          create: source.translations.map((t) => ({
+            locale: t.locale,
+            name: t.name,
+            shortDescription: t.shortDescription,
+            description: t.description,
+            packagingInfo: t.packagingInfo,
+            storageInfo: t.storageInfo,
+            ingredients: t.ingredients,
+            nutritionInfo: t.nutritionInfo,
+            allergens: t.allergens,
+          })),
+        },
       },
-    },
-  });
+    });
+    await copyVariantGraph(tx, source.id, created.id);
+    return created;
+  }, { timeout: 30_000, maxWait: 10_000 });
 
   await logActivity({ userId: currentUser.id, action: "product.duplicate", entityType: "Product", entityId: copy.id });
   revalidatePath("/admin/products");

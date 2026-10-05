@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import type { G7BrandItem, G7BrandsData, G7CategoriesData, G7CategoryItem, G7ProductItem, G7ProductsData } from "./schema";
+import type { G7BrandItem, G7BrandsData, G7CategoriesData, G7CategoryItem, G7ProductItem, G7ProductsData, G7QuoteData } from "./schema";
+import { areVariantsEnabled, buildVariantsView, variantGraphInclude } from "@/lib/catalog/variants/load";
+import { pluralize, PRODUCT_NOUN, VARIANT_NOUN, variantQuery, variantSummaryLine } from "@/lib/catalog/variants/core";
 
 /**
  * Server-side hydration for the G7 catalog blocks: every card links to (and counts from) the real
@@ -14,7 +16,7 @@ import type { G7BrandItem, G7BrandsData, G7CategoriesData, G7CategoryItem, G7Pro
  *   4. the card's own URL (generic list) as the last resort.
  */
 
-export type G7Resolved<T> = T & { href?: string; countLabel?: string; resolvedTitle?: string };
+export type G7Resolved<T> = T & { href?: string; countLabel?: string; resolvedTitle?: string; variantSummary?: string | null };
 
 const GENERIC_URLS = new Set(["", "/", "/products", "/products/", "/brands", "/brands/"]);
 const isGeneric = (url: string | undefined) => GENERIC_URLS.has((url ?? "").trim());
@@ -103,21 +105,35 @@ const upper = (locale: string) => (locale === "ar" ? "AR" : "EN");
 /* ------------------------------------------------------------------------------------------------ */
 
 export async function resolveG7Products(data: G7ProductsData, locale: string): Promise<G7ProductsData> {
+  const variantsEnabled = await areVariantsEnabled();
   const products = await prisma.product.findMany({
     where: { isPublished: true },
-    select: { id: true, slug: true, translations: { select: { locale: true, name: true } } },
+    include: { translations: true, mainImage: { select: { url: true } }, images: { take: 1, orderBy: { createdAt: "asc" }, select: { url: true } }, ...variantGraphInclude },
   });
-  const candidates = products.map((p) => ({ id: p.id, slug: p.slug, names: p.translations.filter((t) => t.locale === upper(locale)).map((t) => t.name) }));
+  type Candidate = { id: string; slug: string; names: string[]; query?: string; summary?: string | null };
+  const candidates: Candidate[] = products.flatMap((p) => {
+    const names = p.translations.filter((t) => t.locale === upper(locale)).map((t) => t.name);
+    // Matching always knows the variants (even with the public flag off), so cards typed per variant
+    // keep linking after a merge; the summary line is only shown while variants are enabled.
+    const view = buildVariantsView(p, locale, true);
+    const base: Candidate = { id: p.id, slug: p.slug, names, summary: variantsEnabled ? variantSummaryLine(view, locale) : null };
+    if (view.type !== "VARIANT") return [base];
+    // A merged variant product still matches cards typed per variant ("أبشر بالبطاطس — ١٠ مم"),
+    // linking to that variant preselected.
+    const perVariant = view.variants.map((v) => ({ id: `${p.id}:${v.id}`, slug: p.slug, names: [v.name, ...names.map((n) => `${n} ${v.label}`)], query: variantQuery(view, v) }));
+    return [base, ...perVariant];
+  });
+  const hrefOf = (c: Candidate) => `/products/${c.slug}${c.query ? `?${c.query}` : ""}`;
   const items = (data.items ?? []).map((item): G7Resolved<G7ProductItem> => {
     const explicit = item.productId ? candidates.find((c) => c.id === item.productId) : undefined;
-    if (explicit) return { ...item, href: `/products/${explicit.slug}` };
+    if (explicit) return { ...item, href: hrefOf(explicit), variantSummary: explicit.summary ?? null };
     // A typed /products/<slug> URL only counts if that product exists -- a stale or mistyped slug
     // falls back to the catalog match instead of shipping a dead link.
     const typedSlug = /^\/products\/([^/?#]+)\/?$/.exec((item.url ?? "").trim())?.[1];
     const typedValid = typedSlug ? candidates.some((c) => c.slug === typedSlug) : true;
     if (!isGeneric(item.url) && typedValid) return { ...item, href: item.url };
     const match = bestMatch(item.name ?? "", candidates, "product");
-    return { ...item, href: match ? `/products/${match.slug}` : item.url || "/products" };
+    return { ...item, href: match ? hrefOf(match) : item.url || "/products", variantSummary: match?.summary ?? null };
   });
   return { ...data, items };
 }
@@ -138,38 +154,68 @@ export async function resolveG7Categories(data: G7CategoriesData, locale: string
   return { ...data, items };
 }
 
+/** Quote form pills from the catalog (only while variants are enabled; otherwise the typed pills stay). */
+export interface QuoteCatalogItem {
+  slug: string;
+  label: string;
+  variants: { id: string; label: string }[];
+}
+
+export async function resolveG7Quote(data: G7QuoteData, locale: string): Promise<G7QuoteData & { catalog?: QuoteCatalogItem[] }> {
+  if (!(await areVariantsEnabled())) return data;
+  const products = await prisma.product.findMany({
+    where: { isPublished: true },
+    orderBy: [{ category: { order: "asc" } }, { createdAt: "asc" }],
+    include: { translations: true, images: { take: 0, select: { url: true } }, ...variantGraphInclude },
+  });
+  const catalog = products.map((p): QuoteCatalogItem => {
+    const view = buildVariantsView(p, locale, true);
+    const name = p.translations.find((t) => t.locale === upper(locale))?.name ?? p.sku;
+    return {
+      slug: p.slug,
+      label: name,
+      variants: view.type === "VARIANT" && view.variants.length > 1 ? view.variants.map((v) => ({ id: v.id, label: v.label || v.name })) : [],
+    };
+  });
+  return catalog.length ? { ...data, catalog } : data;
+}
+
 /** "منتج واحد" / "منتجان" / "٣ منتجات" / "١١ منتجًا" -- or "1 product" / "8 products". */
 export function productCountLabel(count: number, locale: string): string {
-  if (locale !== "ar") return count === 1 ? "1 product" : `${count} products`;
-  const n = new Intl.NumberFormat("ar-EG", { useGrouping: false }).format(count);
-  if (count === 0) return "لا توجد منتجات";
-  if (count === 1) return "منتج واحد";
-  if (count === 2) return "منتجان";
-  if (count % 100 >= 3 && count % 100 <= 10) return `${n} منتجات`;
-  return `${n} منتجًا`;
+  if (count === 0) return locale === "ar" ? "لا توجد منتجات" : "0 products";
+  return pluralize(count, PRODUCT_NOUN, locale);
+}
+
+/** Brand card count: products, plus variants when any product has several -- «منتج واحد · نوعان». */
+export function brandCountLabel(products: number, variants: number, locale: string): string {
+  const base = productCountLabel(products, locale);
+  return variants > products ? `${base} · ${pluralize(variants, VARIANT_NOUN, locale)}` : base;
 }
 
 export async function resolveG7Brands(data: G7BrandsData, locale: string): Promise<G7BrandsData> {
+  const variantsEnabled = await areVariantsEnabled();
   const brands = await prisma.brand.findMany({
     where: { isActive: true },
     select: {
       id: true,
       slug: true,
       translations: { select: { locale: true, name: true } },
-      _count: { select: { products: { where: { isPublished: true } } } },
+      products: { where: { isPublished: true }, select: { type: true, _count: { select: { variants: true } } } },
     },
   });
   const candidates = brands.map((b) => ({
     id: b.id,
     slug: b.slug,
-    count: b._count.products,
+    count: b.products.length,
+    // A SIMPLE product (or any product while variants are off) counts as one variant.
+    variants: b.products.reduce((sum, p) => sum + (variantsEnabled && p.type === "VARIANT" && p._count.variants > 0 ? p._count.variants : 1), 0),
     names: [...b.translations.filter((t) => t.locale === upper(locale)).map((t) => t.name), b.slug.replace(/-/g, " ")],
   }));
   const items = (data.items ?? []).map((item): G7Resolved<G7BrandItem> => {
     const explicit = item.brandId ? candidates.find((c) => c.id === item.brandId) : undefined;
     const match = explicit ?? bestMatch(item.name ?? "", candidates, "name");
     if (!match) return { ...item, href: item.url || "/brands" };
-    return { ...item, href: isGeneric(item.url) ? `/brands/${match.slug}` : item.url, countLabel: productCountLabel(match.count, locale) };
+    return { ...item, href: isGeneric(item.url) ? `/brands/${match.slug}` : item.url, countLabel: brandCountLabel(match.count, match.variants, locale) };
   });
   return { ...data, items };
 }

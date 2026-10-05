@@ -137,6 +137,11 @@ export function ProductGridEdit({ data, onChange, locale }: BlockEditProps<Produ
 
       <div className="space-y-1.5 border-t border-neutral-800 pt-3">
         <CheckboxField label="Show specifications (weight/dimensions, when set)" checked={data.showSpecs ?? true} onChange={(showSpecs) => onChange({ ...data, showSpecs })} />
+        <CheckboxField
+          label="Variant products: one card per variant (default: one card per product)"
+          checked={data.variantDisplay === "variants"}
+          onChange={(checked) => onChange({ ...data, variantDisplay: checked ? "variants" : "product" })}
+        />
         <CheckboxField label="Show CTA" checked={data.showCta ?? true} onChange={(showCta) => onChange({ ...data, showCta })} />
         {data.showCta ? (
           <TextField label="CTA label (optional)" value={data.ctaLabel ?? ""} onChange={(ctaLabel) => onChange({ ...data, ctaLabel })} dir={dir} placeholder="View product" />

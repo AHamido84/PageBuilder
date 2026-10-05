@@ -7,13 +7,14 @@ import { Pagination } from "@/components/admin/ui/pagination";
 import { CreateProductForm } from "./create-product-form";
 import { ProductRowActions } from "./product-row-actions";
 import { ProductListFilters } from "./product-list-filters";
+import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
 
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 20;
 
 interface ProductsPageProps {
-  searchParams: Promise<{ q?: string; category?: string; brand?: string; status?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; brand?: string; status?: string; type?: string; page?: string }>;
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
@@ -25,8 +26,14 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
   const where: Prisma.ProductWhereInput = {};
   if (params.q) {
-    where.OR = [{ sku: { contains: params.q, mode: "insensitive" } }, { translations: { some: { name: { contains: params.q, mode: "insensitive" } } } }];
+    where.OR = [
+      { sku: { contains: params.q, mode: "insensitive" } },
+      { translations: { some: { name: { contains: params.q, mode: "insensitive" } } } },
+      { variants: { some: { sku: { contains: params.q, mode: "insensitive" } } } },
+    ];
   }
+  if (params.type === "simple") where.type = "SIMPLE";
+  else if (params.type === "variant") where.type = "VARIANT";
   if (params.category) where.categoryId = params.category;
   if (params.brand) where.brandId = params.brand;
   if (params.status === "published") where.isPublished = true;
@@ -38,7 +45,14 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      include: { translations: true, category: { include: { translations: true } } },
+      include: {
+        translations: true,
+        category: { include: { translations: true } },
+        ...productCardImageInclude,
+        _count: { select: { variants: true } },
+        // Thumbnail of a variant product = its default variant's first image (else the product's own).
+        variants: { select: { id: true, images: { take: 1, orderBy: { sortOrder: "asc" }, select: { url: true } } } },
+      },
     }),
     prisma.product.count({ where }),
     prisma.category.findMany({ select: { id: true, slug: true, parentId: true, translations: true }, orderBy: { order: "asc" } }),
@@ -56,6 +70,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     if (params.category) sp.set("category", params.category);
     if (params.brand) sp.set("brand", params.brand);
     if (params.status) sp.set("status", params.status);
+    if (params.type) sp.set("type", params.type);
     sp.set("page", String(p));
     return `/admin/products?${sp.toString()}`;
   }
@@ -77,7 +92,11 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         <table className="w-full text-sm">
           <thead className="bg-neutral-900 text-left text-neutral-400">
             <tr>
+              <th className="w-14 px-4 py-2">
+                <span className="sr-only">Image</span>
+              </th>
               <th className="px-4 py-2">Name (EN)</th>
+              <th className="px-4 py-2">النوع / Type</th>
               <th className="px-4 py-2">SKU</th>
               <th className="px-4 py-2">Category</th>
               <th className="px-4 py-2">Class</th>
@@ -89,12 +108,32 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             {products.map((product) => {
               const nameEn = product.translations.find((t) => t.locale === "EN")?.name ?? "—";
               const categoryNameEn = product.category.translations.find((t) => t.locale === "EN")?.name ?? product.category.slug;
+              const isVariant = product.type === "VARIANT";
+              const defaultVariant = product.variants.find((v) => v.id === product.defaultVariantId) ?? product.variants[0];
+              const thumb = (isVariant ? defaultVariant?.images[0]?.url : null) ?? resolveProductCardImage(product).imageUrl;
               return (
                 <tr key={product.id} className="border-t border-neutral-800">
+                  <td className="px-4 py-2">
+                    {thumb ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={thumb} alt="" className="h-10 w-10 rounded object-cover" />
+                    ) : (
+                      <span className="block h-10 w-10 rounded bg-neutral-800" />
+                    )}
+                  </td>
                   <td className="px-4 py-2">
                     <Link href={`/admin/products/${product.id}`} className="hover:underline">
                       {nameEn}
                     </Link>
+                  </td>
+                  <td className="px-4 py-2" dir="rtl">
+                    {isVariant ? (
+                      <span className="rounded bg-amber-950 px-2 py-0.5 text-xs text-amber-300">
+                        بأنواع · {product._count.variants}
+                      </span>
+                    ) : (
+                      <span className="rounded bg-neutral-800 px-2 py-0.5 text-xs text-neutral-400">بسيط</span>
+                    )}
                   </td>
                   <td className="px-4 py-2 text-neutral-400">{product.sku}</td>
                   <td className="px-4 py-2">{categoryNameEn}</td>
@@ -106,6 +145,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                       isPublished={product.isPublished}
                       isFeatured={product.isFeatured}
                       canDelete={canDelete}
+                      isVariant={isVariant}
                     />
                   </td>
                 </tr>
@@ -113,7 +153,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             })}
             {products.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-neutral-500">
+                <td colSpan={8} className="px-4 py-8 text-center text-neutral-500">
                   No products match these filters.
                 </td>
               </tr>

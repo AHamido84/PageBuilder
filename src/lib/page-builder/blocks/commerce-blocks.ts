@@ -56,6 +56,9 @@ const productGridSchema = z.object({
   showCta: z.boolean().optional().default(true),
   /** Empty = the block's own localized default ("View product" / "عرض المنتج"), set inline in ProductCard. */
   ctaLabel: z.string().max(60).optional().default(""),
+  /** Variant products: one card per product (default, today's behavior) or one card per variant.
+   * Only applies while variants are enabled in Admin -> Product options. */
+  variantDisplay: z.enum(["product", "variants"]).optional().default("product"),
 });
 export type ProductGridData = z.infer<typeof productGridSchema>;
 
@@ -170,8 +173,8 @@ export const commerceBlocks: BlockDefinition<any>[] = [
     icon: ShoppingBag,
     dataSchema: productGridSchema,
     defaultData: {
-      en: { heading: "Featured products", description: "", mode: "latest", productIds: [], categoryId: "", limit: 8, showCategoryFilter: false, filterAllLabel: "", columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "" },
-      ar: { heading: "منتجات مميزة", description: "", mode: "latest", productIds: [], categoryId: "", limit: 8, showCategoryFilter: false, filterAllLabel: "", columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "" },
+      en: { heading: "Featured products", description: "", mode: "latest", productIds: [], categoryId: "", limit: 8, showCategoryFilter: false, filterAllLabel: "", columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "", variantDisplay: "product" },
+      ar: { heading: "منتجات مميزة", description: "", mode: "latest", productIds: [], categoryId: "", limit: 8, showCategoryFilter: false, filterAllLabel: "", columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "", variantDisplay: "product" },
     },
     defaultSettings: defaultSectionSettings(),
     Edit: ProductGridEdit,
@@ -185,8 +188,8 @@ export const commerceBlocks: BlockDefinition<any>[] = [
     icon: GalleryHorizontal,
     dataSchema: productGridSchema,
     defaultData: {
-      en: { heading: "Featured products", description: "", mode: "latest", productIds: [], categoryId: "", limit: 8, showCategoryFilter: false, filterAllLabel: "", columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "" },
-      ar: { heading: "منتجات مميزة", description: "", mode: "latest", productIds: [], categoryId: "", limit: 8, showCategoryFilter: false, filterAllLabel: "", columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "" },
+      en: { heading: "Featured products", description: "", mode: "latest", productIds: [], categoryId: "", limit: 8, showCategoryFilter: false, filterAllLabel: "", columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "", variantDisplay: "product" },
+      ar: { heading: "منتجات مميزة", description: "", mode: "latest", productIds: [], categoryId: "", limit: 8, showCategoryFilter: false, filterAllLabel: "", columns: 4, imageFit: "cover", imagePosition: "center", hoverEffect: "zoom", showSpecs: true, showCta: true, ctaLabel: "", variantDisplay: "product" },
     },
     defaultSettings: defaultSectionSettings(),
     Edit: ProductGridEdit,

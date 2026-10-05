@@ -59,3 +59,6 @@ next-env.d.ts
 # Playwright output
 /test-results/
 /playwright-report/
+
+# Variant migration revert logs (scripts/migrate-variants.ts) -- keep locally, never commit
+scripts/.migrate-variants-*.json

@@ -243,6 +243,7 @@ function ProductCard({ item, locale, linkLabel }: { item: G7Resolved<G7ProductIt
       <div className="flex flex-1 flex-col px-[clamp(1.25rem,1.5vw,1.75rem)] pb-[clamp(1.25rem,1.6vw,1.9rem)] pt-[clamp(1rem,1.4vw,1.6rem)]">
         {item.categoryLabel ? <p className="t-small font-light text-[var(--g7-cream-50)]/80">{item.categoryLabel}</p> : null}
         <p className="t-product mt-[clamp(0.4rem,0.9vw,1.1rem)] font-medium">{item.name}</p>
+        {item.variantSummary ? <p data-variant-summary className="t-small mt-1 font-light text-[var(--g7-cream-50)]/80">{item.variantSummary}</p> : null}
         <div className="mt-[clamp(1rem,1.8vw,2.1rem)] flex items-center justify-between gap-3 border-t border-[var(--g7-cream-50)]/25 pt-[clamp(0.75rem,1.2vw,1.4rem)]">
           <span className="t-small font-light">{item.weight}</span>
           {item.badge ? <span className="rounded-[6px] bg-[var(--g7-gold-500)] px-[clamp(0.75rem,1.1vw,1.3rem)] py-0.5 text-sm font-bold text-[var(--g7-cream-50)]">{item.badge}</span> : null}

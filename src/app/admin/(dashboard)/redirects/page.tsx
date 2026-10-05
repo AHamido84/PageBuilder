@@ -19,7 +19,9 @@ export default async function RedirectsPage() {
     <div>
       <h1 className="mb-2 text-lg font-semibold">Redirects</h1>
       <p className="mb-6 text-sm text-neutral-500">
-        Applies to CMS page URLs (the catch-all route). Doesn&apos;t cover built-in routes like /products or /blog.
+
+        Applies to CMS page URLs (the catch-all route) and to product URLs that no longer exist or are unpublished (from
+        <span className="font-mono"> /products/&lt;old-slug&gt;</span>). Doesn&apos;t cover other built-in routes like /blog.
       </p>
 
       {canCreate ? (

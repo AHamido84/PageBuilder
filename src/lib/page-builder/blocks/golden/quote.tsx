@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 import { TextField } from "@/components/admin/ui/field";
 import { useFormAction } from "@/lib/use-form-action";
@@ -10,6 +11,7 @@ import { submitQuoteRequestAction } from "@/app/[locale]/page-builder-lead-actio
 import type { LeadFormState } from "@/lib/leads/submit-lead";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { G7Option, G7QuoteData } from "./schema";
+import type { QuoteCatalogItem } from "./resolve";
 import { G7Arrow, G7ImageField, G7ListEditor, G7PositionFields, g7Eyebrow, g7GoldButton, g7OffsetStyle, g7OverlayClasses } from "./shared";
 
 const initialState: LeadFormState = {};
@@ -67,9 +69,90 @@ const anchorOffset = "scroll-mt-[calc(clamp(4.5rem,7.3vw,8.75rem)+1rem)]";
 
 const isOtherCity = (o: G7Option) => o.value === "other" || /أخرى|other/i.test(o.label ?? "");
 
+const pillClass =
+  "t-ui flex h-[clamp(2.875rem,2.7vw,3.25rem)] w-full items-center justify-center truncate rounded-full border border-[var(--g7-teal-900)]/25 bg-[var(--g7-white)] px-2 text-[var(--g7-teal-900)] transition-colors hover:border-[var(--g7-gold-500)] peer-checked:border-[var(--g7-teal-900)] peer-checked:bg-[var(--g7-teal-900)] peer-checked:text-[var(--g7-cream-50)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--g7-gold-500)]";
+
+/**
+ * «المنتجات المطلوبة» from the catalog: one pill per published product (several can be picked); a
+ * picked product with variants shows an optional variant select («أبشر — ٧ مم»). Submits
+ * `productSlugs` + `variant.<slug>` = variant id; the action turns them into readable lead lines.
+ * `?product=<slug>&variant=<id>` (the product page's «اطلب عرض سعر لهذا المنتج») preselects both.
+ */
+function CatalogPicker({ legend, catalog, locale }: { legend: string; catalog: QuoteCatalogItem[]; locale: string }) {
+  // Pages hosting this block render per request, so the query is known on the server too (no flash).
+  const searchParams = useSearchParams();
+  const [picked, setPicked] = useState<Record<string, string>>(() => {
+    const slug = searchParams.get("product");
+    const item = slug ? catalog.find((c) => c.slug === slug) : undefined;
+    if (!item) return {};
+    const variant = searchParams.get("variant");
+    return { [item.slug]: item.variants.some((v) => v.id === variant) ? variant! : "" };
+  });
+
+  const anyVariant = locale === "ar" ? "أي نوع" : "Any variant";
+  const withVariants = catalog.filter((c) => c.slug in picked && c.variants.length > 0);
+
+  return (
+    <fieldset className="sm:col-span-2" data-quote-catalog>
+      <legend className={labelClass}>{legend}</legend>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {catalog.map((item) => (
+          <label key={item.slug} className="min-w-0 cursor-pointer" title={item.label}>
+            <input
+              type="checkbox"
+              name="productSlugs"
+              value={item.slug}
+              checked={item.slug in picked}
+              onChange={(e) =>
+                setPicked((p) => {
+                  const next = { ...p };
+                  if (e.target.checked) next[item.slug] = "";
+                  else delete next[item.slug];
+                  return next;
+                })
+              }
+              className="peer sr-only"
+            />
+            <span className={pillClass}>{item.label}</span>
+          </label>
+        ))}
+      </div>
+      {withVariants.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {withVariants.map((item) => (
+            <div key={item.slug} className="flex flex-wrap items-center gap-2">
+              <label htmlFor={`g7q-variant-${item.slug}`} className="t-ui min-w-0 flex-1 truncate text-[var(--g7-teal-900)]">
+                {item.label}
+              </label>
+              <SelectBox>
+                <select
+                  id={`g7q-variant-${item.slug}`}
+                  name={`variant.${item.slug}`}
+                  value={picked[item.slug] ?? ""}
+                  onChange={(e) => setPicked((p) => ({ ...p, [item.slug]: e.target.value }))}
+                  className={cn(inputClass, "w-auto min-w-[12rem] appearance-none pe-11")}
+                >
+                  <option value="">{anyVariant}</option>
+                  {item.variants.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.label}
+                    </option>
+                  ))}
+                </select>
+              </SelectBox>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </fieldset>
+  );
+}
+
 /* 09 -- Quote form + CTA image (split). Image is the inline-start ~60%, the form panel the rest. */
 export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7QuoteData>) {
   const t = locale === "ar" ? MESSAGES.ar : MESSAGES.en;
+  // Catalog pills (resolveG7Quote, while variants are enabled); otherwise the typed `products` pills.
+  const catalog = (data as G7QuoteData & { catalog?: QuoteCatalogItem[] }).catalog ?? [];
   const [state, formAction, pending, submitKeepingInput] = useFormAction(submitQuoteRequestAction, initialState);
   const [errors, setErrors] = useState<FieldErrors>({});
   // The success panel shows for the latest successful result until the visitor asks for a new form.
@@ -210,6 +293,9 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                   {fieldError("phone")}
                 </div>
 
+                {catalog.length > 0 ? (
+                  <CatalogPicker legend={data.productsLabel ?? ""} catalog={catalog} locale={locale} />
+                ) : (
                 <fieldset>
                   <legend className={labelClass}>{data.productsLabel}</legend>
                   {/* One even row of pills -- never a single orphan pill on its own line (finding 09). */}
@@ -217,13 +303,14 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                     {(data.products ?? []).map((p) => (
                       <label key={p.value} className="min-w-0 cursor-pointer">
                         <input type="checkbox" name="products" value={p.label} className="peer sr-only" />
-                        <span className="t-ui flex h-[clamp(2.875rem,2.7vw,3.25rem)] w-full items-center justify-center truncate rounded-full border border-[var(--g7-teal-900)]/25 bg-[var(--g7-white)] px-2 text-[var(--g7-teal-900)] transition-colors hover:border-[var(--g7-gold-500)] peer-checked:border-[var(--g7-teal-900)] peer-checked:bg-[var(--g7-teal-900)] peer-checked:text-[var(--g7-cream-50)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--g7-gold-500)]">
+                        <span className={pillClass}>
                           {p.label}
                         </span>
                       </label>
                     ))}
                   </div>
                 </fieldset>
+                )}
                 <div>
                   <label htmlFor="g7q-quantity" className={labelClass}>{data.quantityLabel}</label>
                   <SelectBox>

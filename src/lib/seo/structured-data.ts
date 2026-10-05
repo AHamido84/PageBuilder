@@ -67,6 +67,57 @@ export function productSchema(input: ProductSchemaInput) {
   };
 }
 
+/** schema.org properties for `variesBy`; other (admin-created) option keys are passed as plain text. */
+const VARIES_BY: Record<string, string> = {
+  size: "https://schema.org/size",
+  color: "https://schema.org/color",
+  weight: "https://schema.org/weight",
+  shape: "https://schema.org/pattern",
+  packaging: "https://schema.org/size",
+  flavor: "https://schema.org/flavor",
+};
+
+interface ProductGroupSchemaInput {
+  name: string;
+  description?: string | null;
+  productGroupId: string;
+  brandName?: string | null;
+  url: string;
+  /** Option keys, e.g. ["cut", "weight"]. */
+  variesBy: string[];
+  variants: {
+    name: string;
+    sku: string | null;
+    imageUrls: string[];
+    url: string;
+    properties: { name: string; value: string }[];
+  }[];
+}
+
+/** Variant product: ProductGroup + hasVariant Products. Quote-based catalog: no offers, no price. */
+export function productGroupSchema(input: ProductGroupSchemaInput) {
+  const brand = input.brandName ? { brand: { "@type": "Brand", name: input.brandName } } : {};
+  return {
+    "@context": "https://schema.org",
+    "@type": "ProductGroup",
+    name: input.name,
+    ...(input.description ? { description: input.description } : {}),
+    productGroupID: input.productGroupId,
+    url: input.url,
+    ...brand,
+    variesBy: [...new Set(input.variesBy.map((key) => VARIES_BY[key] ?? key))],
+    hasVariant: input.variants.map((v) => ({
+      "@type": "Product",
+      name: v.name,
+      ...(v.sku ? { sku: v.sku } : {}),
+      ...(v.imageUrls.length ? { image: v.imageUrls } : {}),
+      url: v.url,
+      ...brand,
+      additionalProperty: v.properties.map((p) => ({ "@type": "PropertyValue", name: p.name, value: p.value })),
+    })),
+  };
+}
+
 interface ArticleSchemaInput {
   headline: string;
   description?: string | null;

@@ -25,6 +25,10 @@ export interface ProductCardData {
   /** Phase 5: short spec line (e.g. weight/dimensions) -- only ever real catalog data, never invented. */
   weight?: string | null;
   dimensions?: string | null;
+  /** Variant products: «مقاسان: ٧ مم · ١٠ مم» / «٤ قطعيات» (src/lib/catalog/variants/core.ts). */
+  variantSummary?: string | null;
+  /** Variant products: query that preselects the card's variant on the product page ("size=10mm"). */
+  variantQuery?: string | null;
 }
 
 export type ProductCardImageFit = "cover" | "contain" | "natural";
@@ -76,7 +80,12 @@ export function ProductCard({
     // Phase 10: reveals in place on scroll -- `as={Link}` renders the SAME <a> element (no extra
     // wrapper), so this is safe inside any grid (including bento layouts with col-span/row-span)
     // and the carousel track alike. `href` passes straight through via ScrollReveal's rest-spread.
-    <ScrollReveal as={Link} href={`/${locale}/products/${product.slug}`} variant="fade-up" className="group block">
+    <ScrollReveal
+      as={Link}
+      href={`/${locale}/products/${product.slug}${product.variantQuery ? `?${product.variantQuery}` : ""}`}
+      variant="fade-up"
+      className="group block"
+    >
       {/* Golden Seven v7 card (design 04): photo on top, dark teal body with cream text. */}
       <div data-ui-card className={`flex h-full flex-col overflow-hidden rounded-[12px] bg-[var(--g7-teal-900)] text-[var(--g7-cream-50)] transition-transform duration-300 ease-[var(--ease-premium)] ${hoverCardClass}`}>
         <div
@@ -131,6 +140,11 @@ export function ProductCard({
           <div className="flex-1">
           <p className="text-sm font-light text-[var(--g7-cream-50)]/75">{product.categoryName}</p>
           <p className="t-product mt-1.5 font-medium transition-colors group-hover:text-[var(--g7-gold-500)]">{product.name}</p>
+          {product.variantSummary ? (
+            <p data-variant-summary className="mt-1 text-sm font-light text-[var(--g7-cream-50)]/80">
+              {product.variantSummary}
+            </p>
+          ) : null}
           {product.shortDescription ? <p className="mt-1.5 line-clamp-2 text-sm font-light text-[var(--g7-cream-50)]/70">{product.shortDescription}</p> : null}
           </div>
           <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--g7-cream-50)]/20 pt-3">

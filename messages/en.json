@@ -210,6 +210,7 @@
     "allCategories": "All categories",
     "allBrands": "All brands",
     "allTemperatures": "All classes",
+    "allOptionValues": "All",
     "tempFrozen": "Frozen",
     "tempChilled": "Chilled",
     "tempAmbient": "Ambient",
@@ -253,7 +254,16 @@
     "galleryShowImage": "Show image {index}",
     "galleryClose": "Close",
     "galleryPrevious": "Previous",
-    "galleryNext": "Next"
+    "galleryNext": "Next",
+    "variantUnavailableCombo": "Not available with your current selection",
+    "variantCurrentlyUnavailable": "Currently unavailable",
+    "variantAvailable": "Available",
+    "requestQuoteForProduct": "Request a quote for this product",
+    "variantsTableTitle": "Available variants",
+    "variantsTableVariant": "Variant",
+    "variantsTableAvailability": "Availability",
+    "variantsTableSelect": "Select",
+    "variantsTableSelected": "Selected"
   },
   "blog": {
     "eyebrow": "Insights",

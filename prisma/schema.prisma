@@ -62,6 +62,20 @@ enum LeadInquiryType {
   SALES_INQUIRY
 }
 
+/** Variant products: SIMPLE = one implicit/explicit variant, no options (today's behavior). */
+enum ProductType {
+  SIMPLE
+  VARIANT
+}
+
+/** How an option type's values render in the public product-page selector. */
+enum OptionDisplay {
+  PILL
+  SWATCH
+  IMAGE
+  SELECT
+}
+
 enum RedirectStatusCode {
   MOVED_PERMANENTLY
   FOUND
@@ -332,6 +346,11 @@ model Product {
   weight           String?
   dimensions       String?
   relatedProductIds String[]        @default([])
+  /** Variant products (additive). SIMPLE products with no ProductVariant rows render from the
+   * product's own fields exactly as before -- see src/lib/catalog/variants/load.ts. */
+  type             ProductType      @default(SIMPLE)
+  /** Plain id (no FK, to avoid a Product<->ProductVariant cycle); validated by the admin save. */
+  defaultVariantId String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -356,6 +375,8 @@ model Product {
   seo          SEO?
   leads        Lead[]
   menuItems    MenuItem[]
+  options      ProductOption[]
+  variants     ProductVariant[]
 
   @@index([categoryId])
   @@index([brandId])
@@ -363,6 +384,126 @@ model Product {
   @@index([mobileImageId])
   @@index([isPublished])
   @@index([isFeatured])
+}
+
+// ---------------------------------------------------------------------------
+// Variant products (all additive; children cascade with their parent)
+// ---------------------------------------------------------------------------
+
+/** Global, reusable option library (الوزن، المقاس، القطعية ...), managed at /admin/options. */
+model OptionType {
+  id        String        @id @default(cuid())
+  key       String        @unique
+  labelAr   String
+  labelEn   String
+  display   OptionDisplay @default(PILL)
+  sortOrder Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  productOptions ProductOption[]
+}
+
+/** An option type used by one product, with that product's own values. */
+model ProductOption {
+  id           String @id @default(cuid())
+  productId    String
+  optionTypeId String
+  sortOrder    Int    @default(0)
+
+  product    Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionType OptionType           @relation(fields: [optionTypeId], references: [id], onDelete: Restrict)
+  values     ProductOptionValue[]
+
+  @@unique([productId, optionTypeId])
+  @@index([productId])
+  @@index([optionTypeId])
+}
+
+model ProductOptionValue {
+  id              String  @id @default(cuid())
+  productOptionId String
+  key             String
+  valueAr         String
+  valueEn         String
+  swatchHex       String?
+  imageUrl        String?
+  sortOrder       Int     @default(0)
+
+  productOption ProductOption        @relation(fields: [productOptionId], references: [id], onDelete: Cascade)
+  variants      VariantOptionValue[]
+
+  @@unique([productOptionId, key])
+  @@index([productOptionId])
+}
+
+model ProductVariant {
+  id          String   @id @default(cuid())
+  productId   String
+  sku         String?  @unique
+  nameAr      String?
+  nameEn      String?
+  weightAr    String?
+  weightEn    String?
+  packagingAr String?
+  packagingEn String?
+  storageAr   String?
+  storageEn   String?
+  available   Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product      Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionValues VariantOptionValue[]
+  images       VariantImage[]
+  specs        VariantSpec[]
+
+  @@index([productId])
+}
+
+/** One value per option per variant and one combination per product are enforced by the admin
+ * save (src/lib/catalog/variants/schema.ts), not the DB. */
+model VariantOptionValue {
+  variantId     String
+  optionValueId String
+
+  variant     ProductVariant     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  optionValue ProductOptionValue @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
+
+  @@id([variantId, optionValueId])
+  @@index([optionValueId])
+}
+
+model VariantImage {
+  id        String  @id @default(cuid())
+  variantId String
+  url       String
+  /** The Media Library item the URL came from (kept for usage tracking); optional. */
+  mediaId   String?
+  altAr     String?
+  altEn     String?
+  sortOrder Int     @default(0)
+
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  media   Media?         @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+
+  @@index([variantId])
+  @@index([mediaId])
+}
+
+model VariantSpec {
+  id        String @id @default(cuid())
+  variantId String
+  labelAr   String
+  labelEn   String
+  valueAr   String
+  valueEn   String
+  sortOrder Int    @default(0)
+
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId])
 }
 
 model ProductTranslation {
@@ -428,6 +569,7 @@ model Media {
   siteSettingFaviconOf SiteSetting[]   @relation("SiteSettingFavicon")
   siteSettingOgImageOf SiteSetting[]   @relation("SiteSettingOgImage")
   siteSettingFooterLogoOf SiteSetting[] @relation("SiteSettingFooterLogo")
+  variantImagesOf      VariantImage[]
   seoOgImageOf         SEO[]
 
   @@index([uploadedById])
@@ -732,6 +874,10 @@ model SiteSetting {
    * src/lib/design-tokens/schema.ts. Null/malformed rows resolve to "no overrides" (today's exact
    * existing appearance), same safe-default pattern as headerLogo/businessHours above. */
   designTokens Json?
+
+  /** Variant products public-site switch (admin Settings). Off = the public site renders exactly
+   * as before variants existed. The VARIANTS_ENABLED=off env var forces it off. */
+  variantsEnabled Boolean @default(false)
 }
 
 model SEO {

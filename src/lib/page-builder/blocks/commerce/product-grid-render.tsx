@@ -6,6 +6,8 @@ import { ProductGridFilterable } from "./product-grid-filterable";
 import type { BlockRenderProps } from "../../types";
 import type { ProductGridData } from "../commerce-blocks";
 import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
+import { areVariantsEnabled, buildVariantsView, cardVariantFields, variantGraphInclude } from "@/lib/catalog/variants/load";
+import { variantQuery } from "@/lib/catalog/variants/core";
 
 async function loadCards(data: ProductGridData, locale: string): Promise<ProductCardData[]> {
   const limit = Number(data.limit) || 8;
@@ -27,26 +29,42 @@ async function loadCards(data: ProductGridData, locale: string): Promise<Product
       translations: true,
       category: { include: { translations: true } },
       ...productCardImageInclude,
+      ...variantGraphInclude,
     },
   });
 
   // Manual mode: the editor's chosen order, not the database's.
   const products = mode === "manual" ? manualIds.map((id) => found.find((p) => p.id === id)).filter((p): p is (typeof found)[number] => Boolean(p)) : found;
+  const variantsEnabled = await areVariantsEnabled();
 
-  return products.map((product) => ({
-    id: product.id,
-    slug: product.slug,
-    sku: product.sku,
-    temperatureClass: product.temperatureClass,
-    name: product.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.sku,
-    categoryName: product.category.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.category.slug,
-    ...resolveProductCardImage(product),
-    shortDescription: product.translations.find((t) => t.locale === locale.toUpperCase())?.shortDescription ?? null,
-    isFeatured: product.isFeatured,
-    createdAt: product.createdAt,
-    weight: product.weight,
-    dimensions: product.dimensions,
-  }));
+  return products.flatMap((product): ProductCardData[] => {
+    const card: ProductCardData = {
+      id: product.id,
+      slug: product.slug,
+      sku: product.sku,
+      temperatureClass: product.temperatureClass,
+      name: product.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.sku,
+      categoryName: product.category.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.category.slug,
+      ...resolveProductCardImage(product),
+      shortDescription: product.translations.find((t) => t.locale === locale.toUpperCase())?.shortDescription ?? null,
+      isFeatured: product.isFeatured,
+      createdAt: product.createdAt,
+      weight: product.weight,
+      dimensions: product.dimensions,
+    };
+    if (!variantsEnabled || product.type !== "VARIANT" || product.variants.length === 0) return [card];
+    if (data.variantDisplay !== "variants") return [{ ...card, ...cardVariantFields(product, locale, true) }];
+    // One card per variant: the variant's own name/image/weight, linking to it preselected.
+    const view = buildVariantsView(product, locale, true);
+    return view.variants.map((variant) => ({
+      ...card,
+      ...cardVariantFields(product, locale, true, () => variant),
+      id: `${product.id}:${variant.id}`,
+      name: variant.name,
+      variantSummary: null,
+      variantQuery: variantQuery(view, variant) || null,
+    }));
+  }).slice(0, limit);
 }
 
 export async function ProductGridRender({ data, locale }: BlockRenderProps<ProductGridData>) {

@@ -17,6 +17,8 @@ import { isDraftPreviewRequest } from "@/lib/page-builder/render-page";
 import { DraftPreviewBanner } from "@/components/site/draft-preview-banner";
 import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
 import { pageTitle } from "@/lib/page-builder/page-title";
+import { areVariantsEnabled, cardVariantFields, loadOptionFilters, optionFilterSelection, optionFilterWhere, variantGraphInclude } from "@/lib/catalog/variants/load";
+import type { ProductVariantsView } from "@/lib/catalog/variants/core";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +58,8 @@ export async function generateMetadata({
 const PAGE_SIZE = 12;
 
 interface ProductsPageProps {
-  searchParams: Promise<{ q?: string; category?: string; brand?: string; temp?: string; sort?: string; page?: string }>;
+  /** Known filters, plus any variant option filters (?size=7mm) -- see src/lib/catalog/variants/load.ts. */
+  searchParams: Promise<{ q?: string; category?: string; brand?: string; temp?: string; sort?: string; page?: string } & Record<string, string | string[] | undefined>>;
 }
 
 async function getCategories(locale: string) {
@@ -91,9 +94,11 @@ async function getBrands(locale: string) {
 
 async function getProducts(
   locale: string,
-  params: Awaited<ProductsPageProps["searchParams"]>
+  params: Awaited<ProductsPageProps["searchParams"]>,
+  variantsEnabled: boolean,
+  optionSelection: Record<string, string>
 ): Promise<{ items: ProductCardData[]; total: number }> {
-  const where: Prisma.ProductWhereInput = { isPublished: true };
+  const where: Prisma.ProductWhereInput = { isPublished: true, ...optionFilterWhere(optionSelection) };
 
   if (params.category) {
     where.category = { slug: params.category };
@@ -119,10 +124,19 @@ async function getProducts(
       orderBy,
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      include: { translations: true, category: { include: { translations: true } }, ...productCardImageInclude },
+      include: {
+        translations: true,
+        category: { include: { translations: true } },
+        ...productCardImageInclude,
+        ...variantGraphInclude,
+      },
     }),
     prisma.product.count({ where }),
   ]);
+
+  // With option filters active, each card shows the variant that matched them.
+  const matching = (view: ProductVariantsView) =>
+    Object.keys(optionSelection).length ? view.variants.find((v) => Object.entries(optionSelection).every(([k, val]) => v.options[k] === val)) : undefined;
 
   let mapped: ProductCardData[] = products.map((product) => ({
     id: product.id,
@@ -135,6 +149,7 @@ async function getProducts(
     ...resolveProductCardImage(product),
     isFeatured: product.isFeatured,
     createdAt: product.createdAt,
+    ...cardVariantFields(product, locale, variantsEnabled, matching),
   }));
 
   if (params.sort === "name-asc" || params.sort === "name-desc") {
@@ -148,10 +163,13 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const params = await searchParams;
   const locale = await getLocale();
   const t = await getTranslations("products");
+  const variantsEnabled = await areVariantsEnabled();
+  const optionFilters = variantsEnabled ? await loadOptionFilters(locale, params.category) : [];
+  const optionSelection = optionFilterSelection(optionFilters, params);
   const [categories, brands, { items: products, total }, activeCategory] = await Promise.all([
     getCategories(locale),
     getBrands(locale),
-    getProducts(locale, params),
+    getProducts(locale, params, variantsEnabled, optionSelection),
     params.category ? getCategoryIntro(params.category, locale) : Promise.resolve(null),
   ]);
 
@@ -165,13 +183,14 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     if (params.brand) sp.set("brand", params.brand);
     if (params.temp) sp.set("temp", params.temp);
     if (params.sort) sp.set("sort", params.sort);
+    for (const [key, value] of Object.entries(optionSelection)) sp.set(key, value);
     sp.set("page", String(p));
     return `?${sp.toString()}`;
   }
 
   const results = (
     <>
-      <FilterBar categories={categories} brands={brands} />
+      <FilterBar categories={categories} brands={brands} optionFilters={optionFilters} />
       <p className="font-mono-data mb-6 text-xs text-ink/40">{t("resultsCount", { count: total })}</p>
       {products.length > 0 ? (
         <>

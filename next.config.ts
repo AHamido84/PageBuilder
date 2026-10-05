@@ -38,6 +38,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  // Variant products: the two Absher products merged into one (scripts/migrate-variants.ts). A real
+  // 301 here -- the in-page Redirect-table fallback can only redirect after the page starts streaming.
+  // Run the migration script BEFORE deploying this (the target must exist); a --revert also needs
+  // this code rolled back.
+  async redirects() {
+    return [
+      { source: "/:locale(ar|en)/products/absher-frensh-fries-7mm", destination: "/:locale/products/absher-french-fries?size=7mm", statusCode: 301 },
+      { source: "/:locale(ar|en)/products/absher-frensh-fries-10mm", destination: "/:locale/products/absher-french-fries?size=10mm", statusCode: 301 },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);

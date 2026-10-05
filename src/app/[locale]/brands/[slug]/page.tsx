@@ -12,6 +12,7 @@ import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
 import { breadcrumbSchema } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
 import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
+import { areVariantsEnabled, cardVariantFields, variantGraphInclude } from "@/lib/catalog/variants/load";
 
 export const dynamic = "force-dynamic";
 
@@ -57,8 +58,9 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ sl
 
   const products = await prisma.product.findMany({
     where: { brandId: brand.id, isPublished: true },
-    include: { translations: true, category: { include: { translations: true } }, ...productCardImageInclude },
+    include: { translations: true, category: { include: { translations: true } }, ...productCardImageInclude, ...variantGraphInclude },
   });
+  const variantsEnabled = await areVariantsEnabled();
 
   const productCards: ProductCardData[] = products.map((product) => ({
     id: product.id,
@@ -70,6 +72,7 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ sl
     ...resolveProductCardImage(product),
     isFeatured: product.isFeatured,
     createdAt: product.createdAt,
+    ...cardVariantFields(product, locale, variantsEnabled),
   }));
 
   return (

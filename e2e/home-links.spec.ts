@@ -37,7 +37,8 @@ for (const locale of ["ar", "en"] as const) {
       const hrefs = await page.locator("[data-g7-product-card]").evaluateAll((els) => els.map((el) => el.getAttribute("href") ?? ""));
       expect(hrefs.length, "product cards on the homepage").toBeGreaterThan(0);
       for (const href of hrefs) {
-        expect(href, "product card links to a product detail page").toMatch(new RegExp(`^/${locale}/products/[^/?#]+$`));
+        // A card for one variant of a variant product preselects it (?size=10mm).
+        expect(href, "product card links to a product detail page").toMatch(new RegExp(`^/${locale}/products/[^/?#]+(\\?[a-z0-9-]+=[a-z0-9.-]+(&[a-z0-9-]+=[a-z0-9.-]+)*)?$`));
         const response = await page.goto(href);
         expect(response?.status(), `${href} responds 200`).toBe(200);
         // A missing product renders a soft 404 (200 + noindex) -- treat that as a dead link.

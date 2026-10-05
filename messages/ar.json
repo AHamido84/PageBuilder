@@ -210,6 +210,7 @@
     "allCategories": "جميع الفئات",
     "allBrands": "جميع العلامات التجارية",
     "allTemperatures": "جميع الفئات الحرارية",
+    "allOptionValues": "الكل",
     "tempFrozen": "مجمد",
     "tempChilled": "مبرد",
     "tempAmbient": "عادي",
@@ -253,7 +254,16 @@
     "galleryShowImage": "عرض الصورة {index}",
     "galleryClose": "إغلاق",
     "galleryPrevious": "السابق",
-    "galleryNext": "التالي"
+    "galleryNext": "التالي",
+    "variantUnavailableCombo": "غير متوفر مع اختيارك الحالي",
+    "variantCurrentlyUnavailable": "غير متوفر حاليًا",
+    "variantAvailable": "متوفر",
+    "requestQuoteForProduct": "اطلب عرض سعر لهذا المنتج",
+    "variantsTableTitle": "الأنواع المتاحة",
+    "variantsTableVariant": "النوع",
+    "variantsTableAvailability": "التوفر",
+    "variantsTableSelect": "اختيار",
+    "variantsTableSelected": "المحدد"
   },
   "blog": {
     "eyebrow": "رؤى",

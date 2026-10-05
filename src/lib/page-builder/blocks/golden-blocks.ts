@@ -26,7 +26,7 @@ import { G7AboutEdit, G7AboutRender, G7HeroEdit, G7HeroRender } from "./golden/h
 import { G7BrandsEdit, G7BrandsRender, G7CategoriesEdit, G7CategoriesRender, G7ProductsEdit, G7ProductsRender } from "./golden/catalog";
 import { G7BannerEdit, G7BannerRender, G7SectorsEdit, G7SectorsRender, G7StepsEdit, G7StepsRender } from "./golden/story";
 import { G7QuoteEdit, G7QuoteRender } from "./golden/quote";
-import { resolveG7Brands, resolveG7Categories, resolveG7Products } from "./golden/resolve";
+import { resolveG7Brands, resolveG7Categories, resolveG7Products, resolveG7Quote } from "./golden/resolve";
 
 /**
  * Golden Seven home v7 (design-assets/reference): one block per design section. Each owns its
@@ -47,7 +47,7 @@ export const goldenBlocks: BlockDefinition<any>[] = [
   { type: "G7_BANNER", label: "G7 · Lifestyle banner", category: "golden", icon: ImageIcon, dataSchema: g7BannerSchema, defaultData: G7_DEFAULTS.banner, defaultSettings: settings(), Edit: G7BannerEdit, Render: G7BannerRender, bleedsWhen: always } as BlockDefinition<G7BannerData>,
   { type: "G7_STEPS", label: "G7 · Why us (steps)", category: "golden", icon: Footprints, dataSchema: g7StepsSchema, defaultData: G7_DEFAULTS.steps, defaultSettings: settings(), Edit: G7StepsEdit, Render: G7StepsRender, bleedsWhen: always } as BlockDefinition<G7StepsData>,
   { type: "G7_SECTORS", label: "G7 · Business sectors", category: "golden", icon: Building2, dataSchema: g7SectorsSchema, defaultData: G7_DEFAULTS.sectors, defaultSettings: settings(), Edit: G7SectorsEdit, Render: G7SectorsRender, bleedsWhen: always } as BlockDefinition<G7SectorsData>,
-  { type: "G7_QUOTE", label: "G7 · Quote form", category: "golden", icon: Send, dataSchema: g7QuoteSchema, defaultData: G7_DEFAULTS.quote, defaultSettings: settings(), Edit: G7QuoteEdit, Render: G7QuoteRender, bleedsWhen: always } as BlockDefinition<G7QuoteData>,
+  { type: "G7_QUOTE", label: "G7 · Quote form", category: "golden", icon: Send, dataSchema: g7QuoteSchema, defaultData: G7_DEFAULTS.quote, defaultSettings: settings(), Edit: G7QuoteEdit, Render: G7QuoteRender, resolveData: resolveG7Quote, bleedsWhen: always } as BlockDefinition<G7QuoteData>,
 ];
 
 /** Design order of the v7 homepage (used by scripts/build-home-v7.ts). */

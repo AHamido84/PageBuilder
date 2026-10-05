@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
@@ -7,12 +7,15 @@ import { Section } from "@/components/ui/section";
 import { TemperatureBadge } from "@/components/ui/badge";
 import { BackArrow } from "@/components/ui/arrow";
 import { ProductCard, type ProductCardData } from "@/components/site/product-card";
-import { ProductGallery } from "./product-gallery";
-import { orderProductGallery, productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
+import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
 import { InquiryForm } from "./inquiry-form";
 import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
-import { productSchema, breadcrumbSchema } from "@/lib/seo/structured-data";
+import { productSchema, productGroupSchema, breadcrumbSchema } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
+import { areVariantsEnabled, buildVariantsView, cardVariantFields, variantGraphInclude } from "@/lib/catalog/variants/load";
+import { resolveVariantFromParams, variantQuery } from "@/lib/catalog/variants/core";
+import { VariantDetails, VariantGallery, VariantProvider, VariantQuoteLink, VariantSelectorIsland, VariantTitle, VariantsTable } from "./variant-islands";
+import { buttonClasses } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +55,20 @@ function localizedOrigin(origin: string, locale: string): string {
   return locale === "ar" ? entry.ar : entry.en;
 }
 
-async function getProduct(slug: string, locale: string) {
+/**
+ * An unknown/unpublished product slug first checks Admin -> Redirects (e.g. the merged Absher
+ * product's old URLs -> `/products/absher-french-fries?size=7mm`) before 404ing. Rows are
+ * locale-less ("/products/<slug>"), like the catch-all page route's.
+ */
+async function redirectIfMoved(slug: string, locale: string) {
+  const rule = await prisma.redirect.findUnique({ where: { fromPath: `/products/${slug}` } });
+  if (!rule || !rule.isActive) return;
+  const to = /^\/(ar|en)(\/|$|\?)/.test(rule.toPath) || /^https?:\/\//.test(rule.toPath) ? rule.toPath : `/${locale}${rule.toPath}`;
+  if (rule.statusCode === "MOVED_PERMANENTLY") permanentRedirect(to);
+  redirect(to);
+}
+
+async function getProduct(slug: string, locale: string, variantsEnabled: boolean) {
   const product = await prisma.product.findUnique({
     where: { slug },
     include: {
@@ -65,6 +81,7 @@ async function getProduct(slug: string, locale: string) {
       videos: { select: { id: true, url: true } },
       documents: { select: { id: true, url: true, originalName: true } },
       certifications: { where: { isPublished: true }, include: { image: { select: { url: true } } } },
+      ...variantGraphInclude,
     },
   });
 
@@ -77,7 +94,7 @@ async function getProduct(slug: string, locale: string) {
     product.relatedProductIds.length > 0
       ? await prisma.product.findMany({
           where: { id: { in: product.relatedProductIds }, isPublished: true },
-          include: { translations: true, category: { include: { translations: true } }, ...productCardImageInclude },
+          include: { translations: true, category: { include: { translations: true } }, ...productCardImageInclude, ...variantGraphInclude },
         })
       : [];
 
@@ -92,8 +109,9 @@ async function getProduct(slug: string, locale: string) {
     categoryId: product.categoryId,
     categoryName: product.category.translations.find((t) => t.locale === upperLocale)?.name ?? product.category.slug,
     brandName: product.brand?.translations.find((t) => t.locale === upperLocale)?.name ?? product.brand?.slug ?? null,
-    // Main image first (PHASE 7), then the rest of the gallery in upload order.
-    images: orderProductGallery(product.mainImage, product.images),
+    // One view for both product types: SIMPLE = the product's own fields (main image first, then
+    // the gallery in upload order -- PHASE 7), VARIANT = per-variant data with product fallbacks.
+    variants: buildVariantsView(product, locale, variantsEnabled),
     mobileImageUrl: product.mobileImage?.url ?? null,
     videos: product.videos,
     documents: product.documents,
@@ -114,11 +132,11 @@ async function getProduct(slug: string, locale: string) {
   };
 }
 
-async function getRelated(categoryId: string, excludeId: string, locale: string): Promise<ProductCardData[]> {
+async function getRelated(categoryId: string, excludeId: string, locale: string, variantsEnabled: boolean): Promise<ProductCardData[]> {
   const products = await prisma.product.findMany({
     where: { categoryId, isPublished: true, NOT: { id: excludeId } },
     take: 4,
-    include: { translations: true, category: { include: { translations: true } }, ...productCardImageInclude },
+    include: { translations: true, category: { include: { translations: true } }, ...productCardImageInclude, ...variantGraphInclude },
   });
 
   return products.map((product) => ({
@@ -131,17 +149,28 @@ async function getRelated(categoryId: string, excludeId: string, locale: string)
     ...resolveProductCardImage(product),
     isFeatured: product.isFeatured,
     createdAt: product.createdAt,
+    ...cardVariantFields(product, locale, variantsEnabled),
   }));
 }
 
-export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ProductDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug } = await params;
   const locale = await getLocale();
   const t = await getTranslations("productDetail");
   const tCommon = await getTranslations("common");
+  const variantsEnabled = await areVariantsEnabled();
 
-  const product = await getProduct(slug, locale);
-  if (!product) notFound();
+  const product = await getProduct(slug, locale, variantsEnabled);
+  if (!product) {
+    await redirectIfMoved(slug, locale);
+    notFound();
+  }
 
   const curatedRelatedCards: ProductCardData[] = product.curatedRelated.map((p) => ({
     id: p.id,
@@ -153,38 +182,65 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     ...resolveProductCardImage(p),
     isFeatured: p.isFeatured,
     createdAt: p.createdAt,
+    ...cardVariantFields(p, locale, variantsEnabled),
   }));
 
-  const related = curatedRelatedCards.length > 0 ? curatedRelatedCards : await getRelated(product.categoryId, product.id, locale);
+  const related = curatedRelatedCards.length > 0 ? curatedRelatedCards : await getRelated(product.categoryId, product.id, locale, variantsEnabled);
+
+  const view = product.variants;
+  // Invalid/unknown params fall back to the default variant (resolveVariantFromParams).
+  const initialVariant = resolveVariantFromParams(view, await searchParams);
+  const productUrl = `${SITE_URL}/${locale}/products/${product.slug}`;
 
   const structuredData = [
-    productSchema({
-      name: product.name,
-      description: product.shortDescription ?? product.description,
-      sku: product.sku,
-      imageUrls: product.images.map((img) => img.url),
-      brandName: product.brandName,
-      url: `${SITE_URL}/${locale}/products/${product.slug}`,
-      isAvailable: true,
-    }),
+    view.type === "VARIANT"
+      ? productGroupSchema({
+          name: product.name,
+          description: product.shortDescription ?? product.description,
+          productGroupId: product.sku,
+          brandName: product.brandName,
+          // The canonical (query-less) URL identifies the group; each variant gets its own deep link.
+          url: productUrl,
+          variesBy: view.options.map((o) => o.key),
+          variants: view.variants.map((v) => {
+            const qs = variantQuery(view, v);
+            return {
+              name: v.name,
+              sku: v.sku,
+              imageUrls: v.images.map((img) => img.url),
+              url: qs ? `${productUrl}?${qs}` : productUrl,
+              properties: view.options.map((o) => ({ name: o.label, value: o.values.find((val) => val.key === v.options[o.key])?.label ?? "" })),
+            };
+          }),
+        })
+      : productSchema({
+          name: product.name,
+          description: product.shortDescription ?? product.description,
+          sku: product.sku,
+          imageUrls: view.variants[0].images.map((img) => img.url),
+          brandName: product.brandName,
+          url: productUrl,
+          isAvailable: true,
+        }),
     breadcrumbSchema([
       { name: "Home", url: `${SITE_URL}/${locale}` },
       { name: tCommon("backToProducts"), url: `${SITE_URL}/${locale}/products` },
-      { name: product.name, url: `${SITE_URL}/${locale}/products/${product.slug}` },
+      { name: product.name, url: productUrl },
     ]),
   ];
 
+  // Variant-independent "additional info" rows (weight moved into VariantDetails).
   const additionalInfo = [
-    { label: t("weight"), value: product.weight },
     { label: t("dimensions"), value: product.dimensions },
     { label: t("ingredients"), value: product.ingredients },
     { label: t("nutritionInfo"), value: product.nutritionInfo },
     { label: t("allergens"), value: product.allergens },
-  ].filter((row) => row.value);
+  ].filter((row): row is { label: string; value: string } => Boolean(row.value));
 
   return (
     <div>
       <JsonLd data={structuredData} />
+      <VariantProvider view={view} initialVariantId={initialVariant.id}>
       <Section tone="paper" className="border-t-0 pb-10 pt-10 sm:pb-12 sm:pt-14">
         <Link href={`/${locale}/products`} className="text-sm text-ink/50 hover:text-harbor">
           <BackArrow /> {tCommon("backToProducts")}
@@ -193,7 +249,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         <div className="mt-6 grid gap-10 lg:grid-cols-2 lg:gap-16">
           {/* Gallery */}
           <div>
-            <ProductGallery images={product.images} mobileMainUrl={product.mobileImageUrl} videos={product.videos} productName={product.name} />
+            <VariantGallery videos={product.videos} mobileMainUrl={product.mobileImageUrl} />
 
             {product.certifications.length > 0 ? (
               <div className="mt-6">
@@ -231,48 +287,55 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           {/* Info */}
           <div>
             <p className="manifest-strip mb-2 text-harbor">{product.categoryName}</p>
-            <h1 className="font-display text-3xl leading-[1.1] sm:text-4xl">{product.name}</h1>
+            <VariantTitle productName={product.name} className="font-display text-3xl leading-[1.1] sm:text-4xl" />
             {product.shortDescription ? <p className="mt-3 text-lg text-ink/60">{product.shortDescription}</p> : null}
             {product.description ? <p className="mt-4 text-base leading-relaxed text-ink/70">{product.description}</p> : null}
 
-            {/* Specifications */}
-            <div className="mt-8 rounded-[var(--card-radius)] border border-line">
-              <p className="border-b border-line px-5 py-3 text-sm font-medium">{t("specifications")}</p>
-              <dl className="divide-y divide-ink/10">
-                <SpecRow label={t("sku")} value={<span className="font-mono-data">{product.sku}</span>} />
-                <SpecRow label={t("category")} value={product.categoryName} />
-                {product.brandName ? <SpecRow label={t("brand")} value={product.brandName} /> : null}
-                <SpecRow label={t("temperatureClass")} value={<TemperatureBadge value={product.temperatureClass} locale={locale} />} />
-                {product.originCountry ? <SpecRow label={t("origin")} value={localizedOrigin(product.originCountry, locale)} /> : null}
-              </dl>
-            </div>
-
-            {product.packagingInfo ? (
-              <div className="mt-6">
-                <p className="mb-1.5 text-sm font-medium">{t("packaging")}</p>
-                <p className="text-sm leading-relaxed text-ink/65">{product.packagingInfo}</p>
-              </div>
-            ) : null}
-            {product.storageInfo ? (
-              <div className="mt-6">
-                <p className="mb-1.5 text-sm font-medium">{t("storage")}</p>
-                <p className="text-sm leading-relaxed text-ink/65">{product.storageInfo}</p>
-              </div>
+            <VariantSelectorIsland labels={{ unavailableCombo: t("variantUnavailableCombo"), currentlyUnavailable: t("variantCurrentlyUnavailable") }} />
+            {variantsEnabled ? (
+              <VariantQuoteLink locale={locale} slug={product.slug} label={t("requestQuoteForProduct")} className={`${buttonClasses("primary", "md")} mt-7 min-h-11`} />
             ) : null}
 
-            {additionalInfo.length > 0 ? (
-              <div className="mt-6 rounded-[var(--card-radius)] border border-line">
-                <p className="border-b border-line px-5 py-3 text-sm font-medium">{t("additionalInfo")}</p>
-                <dl className="divide-y divide-ink/10">
-                  {additionalInfo.map((row) => (
-                    <SpecRow key={row.label} label={row.label} value={row.value!} />
-                  ))}
-                </dl>
-              </div>
-            ) : null}
+            {/* Specifications + per-variant details */}
+            <VariantDetails
+              productSku={product.sku}
+              labels={{
+                specifications: t("specifications"),
+                sku: t("sku"),
+                weight: t("weight"),
+                packaging: t("packaging"),
+                storage: t("storage"),
+                additionalInfo: t("additionalInfo"),
+              }}
+              fixedSpecRows={
+                <>
+                  <SpecRow label={t("category")} value={product.categoryName} />
+                  {product.brandName ? <SpecRow label={t("brand")} value={product.brandName} /> : null}
+                  <SpecRow label={t("temperatureClass")} value={<TemperatureBadge value={product.temperatureClass} locale={locale} />} />
+                  {product.originCountry ? <SpecRow label={t("origin")} value={localizedOrigin(product.originCountry, locale)} /> : null}
+                </>
+              }
+              extraInfoRows={additionalInfo}
+            />
           </div>
         </div>
+
+        <VariantsTable
+          labels={{
+            title: t("variantsTableTitle"),
+            variant: t("variantsTableVariant"),
+            sku: t("sku"),
+            weight: t("weight"),
+            packaging: t("packaging"),
+            availability: t("variantsTableAvailability"),
+            available: t("variantAvailable"),
+            unavailable: t("variantCurrentlyUnavailable"),
+            select: t("variantsTableSelect"),
+            selected: t("variantsTableSelected"),
+          }}
+        />
       </Section>
+      </VariantProvider>
 
       {/* Inquiry */}
       <Section tone="frost" title={t("inquiryTitle")} description={t("inquiryBody")} containerClassName="max-w-3xl">
