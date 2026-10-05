@@ -5,6 +5,8 @@ import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboa
 import { CSS } from "@dnd-kit/utilities";
 import { Copy, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
 import { getBlock } from "@/lib/page-builder/registry";
+import { isRequiredSection } from "@/lib/page-builder/system-pages";
+import { useBuilderPage } from "./builder-page-context";
 import type { BuilderSection, EditorLocale } from "@/lib/page-builder/types";
 
 /** The first human-readable text a section carries (heading/headline/title/...), so the layer list
@@ -98,6 +100,7 @@ function LayerRow({
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: section.id });
   const block = getBlock(section.type);
+  const required = isRequiredSection(section.type, useBuilderPage().slug);
   const label = block?.label ?? section.type;
   const snippet = sectionSnippet(section, locale);
 
@@ -139,12 +142,18 @@ function LayerRow({
           <button type="button" onClick={() => onToggleVisible(section.id)} className="rounded p-0.5 text-neutral-500 hover:text-neutral-200" title={section.isVisible ? "Hide" : "Show"} aria-label={section.isVisible ? `Hide ${label}` : `Show ${label}`}>
             {section.isVisible ? <Eye size={13} /> : <EyeOff size={13} />}
           </button>
-          <button type="button" onClick={() => onDuplicate(section.id)} className="rounded p-0.5 text-neutral-500 hover:text-neutral-200" title="Duplicate" aria-label={`Duplicate ${label}`}>
-            <Copy size={13} />
-          </button>
-          <button type="button" onClick={() => onDelete(section.id)} className="rounded p-0.5 text-neutral-500 hover:text-red-400" title="Delete" aria-label={`Delete ${label}`}>
-            <Trash2 size={13} />
-          </button>
+          {required ? (
+            <span className="rounded bg-amber-900/50 px-1 text-[10px] text-amber-200" title="Required on this system page -- can't be deleted or duplicated">مطلوب</span>
+          ) : (
+            <>
+              <button type="button" onClick={() => onDuplicate(section.id)} className="rounded p-0.5 text-neutral-500 hover:text-neutral-200" title="Duplicate" aria-label={`Duplicate ${label}`}>
+                <Copy size={13} />
+              </button>
+              <button type="button" onClick={() => onDelete(section.id)} className="rounded p-0.5 text-neutral-500 hover:text-red-400" title="Delete" aria-label={`Delete ${label}`}>
+                <Trash2 size={13} />
+              </button>
+            </>
+          )}
         </div>
       </div>
     </li>

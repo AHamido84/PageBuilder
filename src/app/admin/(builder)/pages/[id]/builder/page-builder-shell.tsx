@@ -8,6 +8,8 @@ import type { BuilderSection, Breakpoint, EditorLocale, SectionSettings } from "
 import { useAdminToast } from "@/components/admin/ui/toast";
 import { useConfirm } from "@/components/admin/ui/confirm-dialog";
 import { publicPathForPageSlug } from "@/lib/page-builder/public-path";
+import { canAddBlock, isRequiredSection, SYSTEM_PAGES } from "@/lib/page-builder/system-pages";
+import { BuilderPageContext } from "./builder-page-context";
 import type { SaveStatus } from "@/components/admin/ui/status-label";
 import { Toolbar } from "./toolbar";
 import { ComponentPanel } from "./component-panel";
@@ -21,6 +23,8 @@ import type { DraftState } from "@/lib/page-builder/draft-state";
 interface Props {
   pageId: string;
   slug: string;
+  /** Where a template page previews (the product template: a real product's page). */
+  samplePath?: string | null;
   /** PHASE 8: the page's English title, shown in the toolbar when set. */
   title?: string | null;
   /** PHASE 10: server fingerprint of the stored draft + whether it differs from the live page. */
@@ -31,7 +35,7 @@ interface Props {
   referenceData: ReferenceData;
 }
 
-export function PageBuilderShell({ pageId, slug, title, initialDraftState, initialStatus, initialSections, initialRevisions, referenceData }: Props) {
+export function PageBuilderShell({ pageId, slug, samplePath, title, initialDraftState, initialStatus, initialSections, initialRevisions, referenceData }: Props) {
   const router = useRouter();
   const toast = useAdminToast();
   const confirm = useConfirm();
@@ -152,6 +156,7 @@ export function PageBuilderShell({ pageId, slug, title, initialDraftState, initi
   function addBlock(type: string, preset?: Record<string, unknown>) {
     const block = getBlock(type);
     if (!block) return;
+    if (!canAddBlock(type, slug, sections.map((s) => s.type))) return;
     const withPreset = (data: unknown) => (preset ? { ...(data as Record<string, unknown>), ...structuredClone(preset) } : data);
     const newSection: BuilderSection = {
       id: crypto.randomUUID(),
@@ -174,6 +179,7 @@ export function PageBuilderShell({ pageId, slug, title, initialDraftState, initi
   }
 
   function duplicate(id: string) {
+    if (isRequiredSection(sections.find((s) => s.id === id)?.type ?? "", slug)) return;
     commit((prev) => {
       const idx = prev.findIndex((s) => s.id === id);
       if (idx === -1) return prev;
@@ -189,12 +195,16 @@ export function PageBuilderShell({ pageId, slug, title, initialDraftState, initi
     // the draft once the latest edits are saved -- the preview always shows what was just edited.
     const tab = window.open("about:blank", "_blank");
     await save();
-    const url = `/${locale}${publicPathForPageSlug(slug)}?preview=draft`;
+    const url = `/${locale}${publicPathForPageSlug(slug, samplePath)}?preview=draft`;
     if (tab) tab.location.href = url;
     else toast.push({ title: "Pop-up blocked", description: `Allow pop-ups for this site, or open ${url} yourself.`, tone: "error" });
   }
 
   async function remove(id: string) {
+    if (isRequiredSection(sections.find((s) => s.id === id)?.type ?? "", slug)) {
+      toast.push({ title: "This section is required", description: `The ${SYSTEM_PAGES[slug]?.labelEn ?? "page"} always keeps it -- add or move other sections around it.`, tone: "error" });
+      return;
+    }
     const label = getBlock(sections.find((s) => s.id === id)?.type ?? "")?.label ?? "this section";
     const ok = await confirm({
       title: `Delete ${label}?`,
@@ -250,6 +260,7 @@ export function PageBuilderShell({ pageId, slug, title, initialDraftState, initi
 
   return (
     <ReferenceDataProvider value={referenceData}>
+    <BuilderPageContext.Provider value={{ slug }}>
       <div className="flex h-full flex-col">
         <Toolbar
           pageId={pageId}
@@ -299,7 +310,7 @@ export function PageBuilderShell({ pageId, slug, title, initialDraftState, initi
             onDuplicate={duplicate}
             onDelete={remove}
             onToggleVisible={toggleVisible}
-            previewUrl={`/${editorLocale}${publicPathForPageSlug(slug)}?preview=draft`}
+            previewUrl={`/${editorLocale}${publicPathForPageSlug(slug, samplePath)}?preview=draft`}
             previewVersion={previewVersion}
           />
           {selectedSection ? (
@@ -338,6 +349,7 @@ export function PageBuilderShell({ pageId, slug, title, initialDraftState, initi
           window.location.reload();
         }}
       />
+    </BuilderPageContext.Provider>
     </ReferenceDataProvider>
   );
 }

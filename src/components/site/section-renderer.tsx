@@ -1,6 +1,6 @@
 import { getBlock } from "@/lib/page-builder/registry";
 import { SectionShell } from "@/lib/page-builder/section-shell";
-import { normalizeLocaleSettings } from "@/lib/page-builder/types";
+import { normalizeLocaleSettings, type PageRenderContext } from "@/lib/page-builder/types";
 import { parseWithRich, stripRich } from "@/lib/text-style/block-rich";
 import { areTextStylesEnabled } from "@/lib/text-style/flag";
 
@@ -21,7 +21,7 @@ export interface SectionRow {
  * Media ids to real URLs) that needs a Prisma round-trip before its
  * otherwise-sync Render ever mounts.
  */
-export async function SectionRenderer({ sections, locale }: { sections: SectionRow[]; locale: string }) {
+export async function SectionRenderer({ sections, locale, context }: { sections: SectionRow[]; locale: string; context?: PageRenderContext }) {
   const visible = sections.filter((s) => s.isVisible);
   // Text styling off -> every `__rich` map is dropped, so blocks render their plain strings exactly as before.
   const textStyles = await areTextStylesEnabled();
@@ -40,6 +40,7 @@ export async function SectionRenderer({ sections, locale }: { sections: SectionR
         return null;
       }
       const data = block.resolveData ? await block.resolveData(parsed.data, locale) : parsed.data;
+      if (block.hiddenWhen?.(data, context ?? {})) return null;
       // Each locale renders its own independent style settings (alignment, padding, background,
       // animation, ...) -- never the other locale's, and never a shared blob. See
       // normalizeLocaleSettings in types.ts for why this also safely reads pre-fix rows.
@@ -51,7 +52,7 @@ export async function SectionRenderer({ sections, locale }: { sections: SectionR
       const Render = block.Render;
       return (
         <SectionShell key={section.id} settings={settings} bleed={block.bleedsWhen?.(data) ?? false}>
-          <Render data={data} locale={locale} interactive settings={settings} />
+          <Render data={data} locale={locale} interactive settings={settings} {...(block.usesContext ? { context: context ?? {} } : {})} />
         </SectionShell>
       );
     })

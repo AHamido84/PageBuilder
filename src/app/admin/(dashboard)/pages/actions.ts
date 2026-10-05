@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { logActivity } from "@/lib/activity-log";
 import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
+import { isSystemPageSlug } from "@/lib/page-builder/system-pages";
 
 const slugSchema = z
   .string()
@@ -54,11 +55,11 @@ export async function updatePageSlugAction(_prev: FormActionState, formData: For
   const titles = readTitles(formData);
   if ("error" in titles) return { error: titles.error };
 
-  const current = await prisma.page.findUnique({ where: { id }, select: { slug: true } });
+  const current = await prisma.page.findUnique({ where: { id }, select: { slug: true, isSystem: true } });
   if (!current) return { error: "Page not found." };
 
-  // The homepage (and the reserved header/solution pages) keep their slug; only titles change.
-  if (current.slug === HOMEPAGE_SLUG || current.slug.startsWith("__")) {
+  // The homepage, system pages and the reserved header/solution pages keep their slug; only titles change.
+  if (current.slug === HOMEPAGE_SLUG || current.slug.startsWith("__") || current.isSystem || isSystemPageSlug(current.slug)) {
     await prisma.page.update({ where: { id }, data: titles });
   } else {
     const parsed = slugSchema.safeParse(formData.get("slug"));
@@ -105,8 +106,9 @@ export async function deletePageAction(pageId: string): Promise<{ error?: string
   const currentUser = await getCurrentUser();
   assertCan(currentUser, "pages", "delete");
 
-  const page = await prisma.page.findUnique({ where: { id: pageId }, select: { slug: true } });
+  const page = await prisma.page.findUnique({ where: { id: pageId }, select: { slug: true, isSystem: true } });
   if (page?.slug === HOMEPAGE_SLUG) return { error: "The homepage can't be deleted." };
+  if (page && (page.isSystem || isSystemPageSlug(page.slug))) return { error: "System pages can't be deleted." };
 
   await prisma.page.delete({ where: { id: pageId } });
   await logActivity({ userId: currentUser.id, action: "page.delete", entityType: "Page", entityId: pageId });

@@ -13,7 +13,7 @@ const toneClasses: Record<SectionTone, string> = {
 
 interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
   tone?: SectionTone;
-  eyebrow?: string;
+  eyebrow?: React.ReactNode;
   title?: React.ReactNode;
   description?: React.ReactNode;
   containerClassName?: string;

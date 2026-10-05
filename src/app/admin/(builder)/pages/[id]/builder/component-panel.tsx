@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Layers, Search, SquarePlus } from "lucide-react";
 import { BLOCK_CATEGORIES, BLOCK_REGISTRY, getBlock } from "@/lib/page-builder/registry";
+import { canAddBlock } from "@/lib/page-builder/system-pages";
+import { useBuilderPage } from "./builder-page-context";
 import { SECTION_TYPES } from "@/lib/page-builder/section-types";
 import type { BuilderSection, EditorLocale } from "@/lib/page-builder/types";
 import { LayersList } from "./layers-list";
@@ -22,6 +24,8 @@ interface Props {
 
 export function ComponentPanel({ sections, selectedId, onAdd, onSelect, onToggleVisible, locale, onReorder, onDuplicate, onDelete }: Props) {
   const [tab, setTab] = useState<"add" | "layers">("add");
+  const { slug } = useBuilderPage();
+  const existingTypes = sections.map((s) => s.type);
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
 
@@ -93,7 +97,7 @@ export function ComponentPanel({ sections, selectedId, onAdd, onSelect, onToggle
               );
             })()}
             {BLOCK_CATEGORIES.map((cat) => {
-              const blocks = Object.values(BLOCK_REGISTRY).filter((b) => b.category === cat.key && (!q || b.label.toLowerCase().includes(q)));
+              const blocks = Object.values(BLOCK_REGISTRY).filter((b) => b.category === cat.key && canAddBlock(b.type, slug, existingTypes) && (!q || b.label.toLowerCase().includes(q)));
               if (blocks.length === 0) return null;
               return (
                 <div key={cat.key} className="mb-4">

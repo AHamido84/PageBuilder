@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 
 interface StateProps {
-  title: string;
+  title: React.ReactNode;
   description?: string;
   action?: React.ReactNode;
   className?: string;

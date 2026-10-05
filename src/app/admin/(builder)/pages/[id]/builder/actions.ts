@@ -3,6 +3,7 @@
 import { z } from "zod";
 import sanitizeHtml from "sanitize-html";
 import { parseWithRich } from "@/lib/text-style/block-rich";
+import { validateSystemPageSections } from "@/lib/page-builder/system-pages";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -55,6 +56,10 @@ export async function saveDraftAction(pageId: string, sections: unknown[], baseD
 
   const parsed = z.array(sectionInputSchema).safeParse(sections);
   if (!parsed.success) return { success: false, error: "Invalid section payload." };
+  // System pages (system-pages.ts): template-only blocks, required sections exactly once.
+  const pageRow = await prisma.page.findUnique({ where: { id: pageId }, select: { slug: true } });
+  const systemError = pageRow ? validateSystemPageSections(pageRow.slug, parsed.data.map((s) => s.type)) : null;
+  if (systemError) return { success: false, error: systemError };
 
   // Persist the *parsed* (enResult.data/arResult.data), not the raw client payload -- Zod strips
   // any key a block's schema doesn't declare, which matters because a block's Render may receive

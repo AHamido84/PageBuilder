@@ -19,6 +19,8 @@ export interface BrandOption extends ReferenceOption {
 /** Lets the Category Grid block's Edit panel show real Featured status/order (and an empty-state
  * hint) without a separate live query -- see category-brand-grid.tsx. */
 export interface CategoryOption extends ReferenceOption {
+  /** For blocks that filter by URL slug (Products Catalog's default category). */
+  slug?: string;
   isFeatured: boolean;
   featuredOrder: number | null;
 }

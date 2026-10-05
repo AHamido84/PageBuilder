@@ -8,6 +8,7 @@ import { socialProofBlocks } from "./blocks/social-proof-blocks";
 import { formsBlocks } from "./blocks/forms-blocks";
 import { miscBlocks } from "./blocks/misc-blocks";
 import { goldenBlocks } from "./blocks/golden-blocks";
+import { catalogBlocks } from "./blocks/catalog-blocks";
 
 // `any` is required through this file, not a shortcut: the registry holds BlockDefinition<T> for many
 // different T (each block module's own array is individually typed via `as BlockDefinition<XData>`
@@ -26,6 +27,7 @@ const ALL_BLOCKS: BlockDefinition<any>[] = [
   ...formsBlocks,
   ...miscBlocks,
   ...goldenBlocks,
+  ...catalogBlocks,
 ];
 
 export const BLOCK_REGISTRY: Record<string, BlockDefinition<any>> = Object.fromEntries(ALL_BLOCKS.map((b) => [b.type, b]));

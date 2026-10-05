@@ -13,8 +13,10 @@ const HEADER_PATHS: Record<string, string> = {
   __header__faq: "/faq",
 };
 
-export function publicPathForPageSlug(slug: string): string {
+/** `samplePath` is where a template previews (the product template: one real product's page). */
+export function publicPathForPageSlug(slug: string, samplePath?: string | null): string {
   if (slug === HOMEPAGE_SLUG) return "";
+  if (slug.startsWith("__template__")) return samplePath ?? "/products";
   if (slug.startsWith("__solution__")) return `/solutions/${slug.slice("__solution__".length)}`;
   return HEADER_PATHS[slug] ?? `/${slug}`;
 }

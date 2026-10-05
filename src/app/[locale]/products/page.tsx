@@ -1,25 +1,25 @@
 import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
 import { Section } from "@/components/ui/section";
 import { Container } from "@/components/ui/container";
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { buttonClasses } from "@/components/ui/button";
 import { Pagination } from "@/components/admin/ui/pagination";
-import { ProductCard, type ProductCardData } from "@/components/site/product-card";
+import { ProductCard } from "@/components/site/product-card";
 import { FilterBar } from "./filter-bar";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { SectionRenderer } from "@/components/site/section-renderer";
 import { loadPageHeaderSections, loadPageHeaderMeta } from "@/lib/page-builder/page-headers";
 import { isDraftPreviewRequest } from "@/lib/page-builder/render-page";
 import { DraftPreviewBanner } from "@/components/site/draft-preview-banner";
-import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
 import { pageTitle } from "@/lib/page-builder/page-title";
-import { areTextStylesEnabled } from "@/lib/text-style/flag";
-import { areVariantsEnabled, cardTextFields, cardVariantFields, loadOptionFilters, optionFilterSelection, optionFilterWhere, variantGraphInclude } from "@/lib/catalog/variants/load";
-import type { ProductVariantsView } from "@/lib/catalog/variants/core";
+import { areVariantsEnabled, loadOptionFilters, optionFilterSelection } from "@/lib/catalog/variants/load";
+import { getCategoryIntro, getListingBrands, getListingCategories, getListingProducts } from "@/lib/catalog/products-listing";
+import { pageHref, parseListingParams } from "@/lib/catalog/products-listing-params";
+import { loadSystemPageMeta, loadSystemPageSections } from "@/lib/page-builder/system-pages-server";
+import { PRODUCTS_PAGE_SLUG } from "@/lib/page-builder/system-pages";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +52,9 @@ export async function generateMetadata({
       });
     }
   }
+  // The Page Builder products page (when switched on and published) has its own title/SEO.
+  const system = await loadSystemPageMeta(PRODUCTS_PAGE_SLUG);
+  if (system) return buildMetadata({ locale, path: "/products", seo: system.seo, fallbackTitle: pageTitle(system, locale) ?? t("title"), fallbackDescription: tHome("heroSubtitle") });
   const header = await loadPageHeaderMeta("products");
   return buildMetadata({ locale, path: "/products", seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title"), fallbackDescription: tHome("heroSubtitle") });
 }
@@ -63,133 +66,38 @@ interface ProductsPageProps {
   searchParams: Promise<{ q?: string; category?: string; brand?: string; temp?: string; sort?: string; page?: string } & Record<string, string | string[] | undefined>>;
 }
 
-async function getCategories(locale: string) {
-  const categories = await prisma.category.findMany({
-    where: { isActive: true },
-    orderBy: { order: "asc" },
-    include: { translations: true },
-  });
-  return categories.map((c) => ({
-    slug: c.slug,
-    name: c.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? c.slug,
-  }));
-}
-
-async function getCategoryIntro(slug: string, locale: string) {
-  const category = await prisma.category.findUnique({
-    where: { slug, isActive: true },
-    include: { translations: true, banner: { select: { url: true } } },
-  });
-  if (!category) return null;
-  const translation = category.translations.find((t) => t.locale === locale.toUpperCase());
-  return { name: translation?.name ?? category.slug, description: translation?.description ?? null, bannerUrl: category.banner?.url ?? null };
-}
-
-async function getBrands(locale: string) {
-  const brands = await prisma.brand.findMany({ where: { isActive: true }, orderBy: [{ order: "asc" }, { slug: "asc" }], include: { translations: true } });
-  return brands.map((b) => ({
-    slug: b.slug,
-    name: b.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? b.slug,
-  }));
-}
-
-async function getProducts(
-  locale: string,
-  params: Awaited<ProductsPageProps["searchParams"]>,
-  variantsEnabled: boolean,
-  optionSelection: Record<string, string>
-): Promise<{ items: ProductCardData[]; total: number }> {
-  const where: Prisma.ProductWhereInput = { isPublished: true, ...optionFilterWhere(optionSelection) };
-
-  if (params.category) {
-    where.category = { slug: params.category };
-  }
-  if (params.brand) {
-    where.brand = { slug: params.brand };
-  }
-  if (params.temp && ["FROZEN", "CHILLED", "AMBIENT"].includes(params.temp)) {
-    where.temperatureClass = params.temp as "FROZEN" | "CHILLED" | "AMBIENT";
-  }
-  if (params.q) {
-    where.translations = { some: { name: { contains: params.q, mode: "insensitive" } } };
-  }
-
-  const orderBy: Prisma.ProductOrderByWithRelationInput =
-    params.sort === "name-asc" || params.sort === "name-desc" ? { sku: params.sort === "name-asc" ? "asc" : "desc" } : { createdAt: "desc" };
-
-  const page = Math.max(1, Number(params.page) || 1);
-
-  const [products, total] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      orderBy,
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      include: {
-        translations: true,
-        category: { include: { translations: true } },
-        ...productCardImageInclude,
-        ...variantGraphInclude,
-      },
-    }),
-    prisma.product.count({ where }),
-  ]);
-
-  const textStyles = await areTextStylesEnabled();
-  // With option filters active, each card shows the variant that matched them.
-  const matching = (view: ProductVariantsView) =>
-    Object.keys(optionSelection).length ? view.variants.find((v) => Object.entries(optionSelection).every(([k, val]) => v.options[k] === val)) : undefined;
-
-  let mapped: ProductCardData[] = products.map((product) => ({
-    id: product.id,
-    slug: product.slug,
-    sku: product.sku,
-    temperatureClass: product.temperatureClass,
-    name: product.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.sku,
-    shortDescription: product.translations.find((t) => t.locale === locale.toUpperCase())?.shortDescription ?? null,
-    categoryName: product.category.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? product.category.slug,
-    ...resolveProductCardImage(product),
-    isFeatured: product.isFeatured,
-    createdAt: product.createdAt,
-    ...cardTextFields(product, locale, textStyles),
-    ...cardVariantFields(product, locale, variantsEnabled, matching),
-  }));
-
-  if (params.sort === "name-asc" || params.sort === "name-desc") {
-    mapped = mapped.sort((a, b) => (params.sort === "name-asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)));
-  }
-
-  return { items: mapped, total };
-}
-
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const params = await searchParams;
   const locale = await getLocale();
+  const draftPreview = await isDraftPreviewRequest(params);
+
+  // The Page Builder products page (Admin -> Pages -> «المنتجات») when switched on and published,
+  // or for an editor's ?preview=draft. Otherwise the built-in page below, unchanged.
+  const system = await loadSystemPageSections(PRODUCTS_PAGE_SLUG, draftPreview);
+  if (system) {
+    return (
+      <>
+        <SectionRenderer sections={system.sections} locale={locale} context={{ searchParams: params }} />
+        {system.draft ? <DraftPreviewBanner /> : null}
+      </>
+    );
+  }
+
   const t = await getTranslations("products");
   const variantsEnabled = await areVariantsEnabled();
+  const listing = parseListingParams(params, { pageSize: PAGE_SIZE });
   const optionFilters = variantsEnabled ? await loadOptionFilters(locale, params.category) : [];
   const optionSelection = optionFilterSelection(optionFilters, params);
   const [categories, brands, { items: products, total }, activeCategory] = await Promise.all([
-    getCategories(locale),
-    getBrands(locale),
-    getProducts(locale, params, variantsEnabled, optionSelection),
+    getListingCategories(locale),
+    getListingBrands(locale),
+    getListingProducts(locale, listing, variantsEnabled, optionSelection, { pageSize: PAGE_SIZE }),
     params.category ? getCategoryIntro(params.category, locale) : Promise.resolve(null),
   ]);
 
-  const page = Math.max(1, Number(params.page) || 1);
+  const page = listing.page;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  function hrefForPage(p: number) {
-    const sp = new URLSearchParams();
-    if (params.q) sp.set("q", params.q);
-    if (params.category) sp.set("category", params.category);
-    if (params.brand) sp.set("brand", params.brand);
-    if (params.temp) sp.set("temp", params.temp);
-    if (params.sort) sp.set("sort", params.sort);
-    for (const [key, value] of Object.entries(optionSelection)) sp.set(key, value);
-    sp.set("page", String(p));
-    return `?${sp.toString()}`;
-  }
+  const hrefForPage = (p: number) => pageHref(listing, optionSelection, p);
 
   const results = (
     <>
@@ -257,7 +165,6 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   // section (see src/lib/page-builder/page-headers.ts) -- falls back to the exact original
   // hardcoded text if the one-time seed script hasn't been run in this environment yet, so the
   // page never renders with a missing header.
-  const draftPreview = await isDraftPreviewRequest(params);
   const headerSections = await loadPageHeaderSections("products", draftPreview);
   if (!headerSections) {
     return (

@@ -302,6 +302,17 @@ export async function updateFooterSettingsAction(_prev: FormActionState, formDat
   return { success: true };
 }
 
+/** Public switch for the Page Builder products pages (src/lib/page-builder/products-flag.ts). PRODUCTS_PAGE_BUILDER=off still forces it off. */
+export async function setProductsPageBuilderEnabledAction(enabled: boolean): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "settings", "update");
+  await prisma.siteSetting.update({ where: { id: "singleton" }, data: { productsPageBuilderEnabled: Boolean(enabled) } });
+  await logSettingsUpdate(currentUser.id, "products-page-builder");
+  revalidatePath("/admin/settings");
+  revalidatePath("/", "layout");
+  return {};
+}
+
 /** Public-site switch for admin text styling (src/lib/text-style). TEXT_STYLES_ENABLED=off still forces it off. */
 export async function setTextStylesEnabledAction(enabled: boolean): Promise<{ error?: string }> {
   const currentUser = await getCurrentUser();

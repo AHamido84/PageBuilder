@@ -4,6 +4,8 @@ import { Tabs } from "@/components/admin/ui/tabs";
 import { normalizeHeaderLogoSettings } from "@/lib/site-settings/header-logo";
 import Link from "next/link";
 import { TextStylesToggle } from "./text-styles-toggle";
+import { ProductsPageToggle } from "./products-page-toggle";
+import { SYSTEM_PAGES } from "@/lib/page-builder/system-pages";
 import { parseFooterSettings } from "@/lib/site-settings/footer";
 import { GeneralForm, ContactForm, SocialForm, HoursForm, SeoForm, FooterForm, type Settings } from "./settings-forms";
 
@@ -24,6 +26,8 @@ export default async function SettingsPage() {
       include: { logo: true, favicon: true, defaultOgImage: true, footerLogo: true },
     });
   }
+
+  const systemPages = await prisma.page.findMany({ where: { slug: { in: Object.keys(SYSTEM_PAGES) } }, select: { id: true, slug: true, status: true } });
 
   const settings: Settings = {
     siteNameEn: record.siteNameEn,
@@ -75,6 +79,17 @@ export default async function SettingsPage() {
             key: "text-styles",
             label: "تنسيق النصوص",
             content: <TextStylesToggle enabled={record.textStylesEnabled} envOverride={process.env.TEXT_STYLES_ENABLED?.trim().toLowerCase() || null} />,
+          },
+          {
+            key: "products-page",
+            label: "صفحات المنتجات",
+            content: (
+              <ProductsPageToggle
+                enabled={record.productsPageBuilderEnabled}
+                envOverride={process.env.PRODUCTS_PAGE_BUILDER?.trim().toLowerCase() || null}
+                pages={systemPages.map((p) => ({ id: p.id, status: p.status, label: `${SYSTEM_PAGES[p.slug]?.labelAr ?? p.slug} · ${SYSTEM_PAGES[p.slug]?.labelEn ?? ""}` }))}
+              />
+            ),
           },
           {
             key: "appearance",

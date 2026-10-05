@@ -1,12 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { ProductCard, type ProductCardData } from "@/components/site/product-card";
-import { buttonClasses } from "@/components/ui/button";
-import { StyledText } from "@/components/text/styled-text";
-import { richOf } from "@/lib/text-style/rich-text";
-import { resolveHref } from "../../href";
+import { withPromo } from "./grid-promo-card";
 import type { ProductGridData } from "../commerce-blocks";
 
 const ALL_LABEL = { en: "All", ar: "الكل" };
@@ -39,26 +35,11 @@ export function ProductGridFilterable({
   const categories = [...new Set(cards.map((c) => c.categoryName).filter(Boolean))];
   const visible = active ? cards.filter((c) => c.categoryName === active) : cards;
 
-  const items: React.ReactNode[] = visible.map((card) => <ProductCard key={card.id} product={card} locale={locale} {...cardOptions} />);
-  if (promo?.enabled && (promo.title || promo.body)) {
-    const slot = Math.min(Math.max((promo.position ?? 4) - 1, 0), items.length);
-    items.splice(
-      slot,
-      0,
-      <div key="promo" className="flex flex-col justify-between gap-6 rounded-[var(--card-radius-lg)] bg-petrol p-6 text-paper sm:p-8">
-        <div>
-          {promo.eyebrow ? <p className="manifest-strip mb-3 text-wheat"><StyledText text={promo.eyebrow} rich={richOf(promo, "eyebrow")} /></p> : null}
-          {promo.title ? <p className="font-display text-h3 leading-tight"><StyledText text={promo.title} rich={richOf(promo, "title")} /></p> : null}
-          {promo.body ? <p className="mt-3 text-sm leading-relaxed text-paper/75"><StyledText text={promo.body} rich={richOf(promo, "body")} /></p> : null}
-        </div>
-        {promo.ctaLabel && promo.ctaUrl ? (
-          <Link href={resolveHref(promo.ctaUrl, locale)} className={buttonClasses("gold", "md", "self-start whitespace-nowrap")}>
-            <StyledText text={promo.ctaLabel} rich={richOf(promo, "ctaLabel")} />
-          </Link>
-        ) : null}
-      </div>
-    );
-  }
+  const items = withPromo(
+    visible.map((card) => <ProductCard key={card.id} product={card} locale={locale} {...cardOptions} />),
+    promo,
+    locale
+  );
 
   const chip = (label: string, value: string | null) => (
     <button

@@ -6,6 +6,7 @@ import { parseWithRich } from "@/lib/text-style/block-rich";
 import type { BuilderSection } from "@/lib/page-builder/types";
 import { normalizeLocaleSettings } from "@/lib/page-builder/types";
 import { PageBuilderShell } from "./page-builder-shell";
+import { PRODUCT_TEMPLATE_SLUG } from "@/lib/page-builder/system-pages";
 import { getDraftState } from "@/lib/page-builder/draft-state";
 import type { RevisionListItem } from "./revision-history-panel";
 
@@ -68,6 +69,7 @@ export default async function PageBuilderPage({ params }: { params: Promise<{ id
   const referenceData = {
     categories: categories.map((c) => ({
       id: c.id,
+      slug: c.slug,
       label: c.translations.find((t) => t.locale === "EN")?.name ?? c.slug,
       isFeatured: c.isFeatured,
       featuredOrder: c.featuredOrder,
@@ -83,10 +85,14 @@ export default async function PageBuilderPage({ params }: { params: Promise<{ id
     products: products.map((p) => ({ id: p.id, label: `${p.translations[0]?.name ?? p.sku} (${p.sku})` })),
   };
 
+  // The product template previews on a real product's page.
+  const sample = page.slug === PRODUCT_TEMPLATE_SLUG ? await prisma.product.findFirst({ where: { isPublished: true }, orderBy: { createdAt: "asc" }, select: { slug: true } }) : null;
+
   return (
     <PageBuilderShell
       pageId={page.id}
       slug={page.slug}
+      samplePath={sample ? `/products/${sample.slug}` : null}
       title={page.titleEn}
       initialDraftState={await getDraftState(page.id)}
       initialStatus={page.status}

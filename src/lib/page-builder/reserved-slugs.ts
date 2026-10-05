@@ -13,7 +13,8 @@ import { HOMEPAGE_SLUG } from "./homepage";
  * crawled. Centralized here so a future 4th convention only needs one edit, not a re-audit of
  * every call site that used to hand-roll its own prefix check.
  */
-const RESERVED_PAGE_SLUG_PREFIXES = ["__solution__", "__header__"] as const;
+// `__template__*` (system-pages.ts): the product page template, rendered on every /products/<slug>.
+const RESERVED_PAGE_SLUG_PREFIXES = ["__solution__", "__header__", "__template__"] as const;
 
 export function isReservedPageSlug(slug: string): boolean {
   return slug === HOMEPAGE_SLUG || RESERVED_PAGE_SLUG_PREFIXES.some((prefix) => slug.startsWith(prefix));

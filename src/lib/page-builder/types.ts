@@ -324,7 +324,19 @@ export interface BlockEditProps<TData> {
   locale: EditorLocale;
 }
 
+/**
+ * Request context for blocks on system pages (see system-pages.ts): the listing's search params on
+ * /products, the loaded product on the product template. Only passed to blocks with `usesContext`.
+ */
+export interface PageRenderContext {
+  searchParams?: Record<string, string | string[] | undefined>;
+  /** Product template: the page's product (server-only data, see products/[slug]/product-details-section.tsx). */
+  product?: unknown;
+}
+
 export interface BlockRenderProps<TData> {
+  /** System pages only, for blocks with `usesContext` (server components). */
+  context?: PageRenderContext;
   data: TData;
   /** Public route locale, "en" | "ar" (lowercase, matches next-intl routing). */
   locale: string;
@@ -386,6 +398,10 @@ export interface BlockDefinition<TData = unknown> {
    * bleed off the section's normal container.
    */
   bleedsWhen?: (data: TData) => boolean;
+  /** Receives `context` (search params / product) when rendered on a system page. Server components only. */
+  usesContext?: boolean;
+  /** Skips the whole section (shell included) for this request, e.g. a header on a filtered listing. */
+  hiddenWhen?: (data: TData, context: PageRenderContext) => boolean;
 }
 
 export function defaultStyleTokens(overrides?: Partial<StyleTokens>): StyleTokens {

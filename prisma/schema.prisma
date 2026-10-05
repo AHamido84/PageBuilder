@@ -156,6 +156,8 @@ model Page {
   /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
   rich Json?
   slug        String     @unique
+  /** System page (Products page, product template): can't be deleted, slug locked, «صفحة نظام» badge. */
+  isSystem    Boolean    @default(false)
   /** Redesign PHASE 8: human page title per locale (admin list, builder, metadata fallback). Null => derived from the slug. */
   titleEn     String?
   titleAr     String?
@@ -912,6 +914,8 @@ model SiteSetting {
 
   /** Admin text styling public switch; TEXT_STYLES_ENABLED=off forces it off. Off = plain text everywhere. */
   textStylesEnabled Boolean @default(false)
+  /** Public /products and /products/[slug] render their Page Builder system pages (Admin -> Settings; PRODUCTS_PAGE_BUILDER=off|on overrides). */
+  productsPageBuilderEnabled Boolean @default(false)
 }
 
 model SEO {

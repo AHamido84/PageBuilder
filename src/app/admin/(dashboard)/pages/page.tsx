@@ -5,6 +5,7 @@ import { CreatePageForm } from "./create-page-form";
 import { PageRowActions } from "./page-row-actions";
 import { HOMEPAGE_SLUG } from "@/lib/page-builder/homepage";
 import { PAGE_HEADER_SLUGS } from "@/lib/page-builder/page-headers";
+import { SYSTEM_PAGES } from "@/lib/page-builder/system-pages";
 
 const PAGE_HEADER_LABELS: Record<string, string> = {
   [PAGE_HEADER_SLUGS.products]: "Products page header",
@@ -54,8 +55,13 @@ export default async function PagesListPage() {
               <tr key={page.id} className="border-t border-neutral-800">
                 <td className="px-4 py-2">
                   <Link href={`/admin/pages/${page.id}`} className="hover:underline">
-                    {page.titleEn || (page.slug === HOMEPAGE_SLUG ? "Homepage (/)" : (PAGE_HEADER_LABELS[page.slug] ?? `/${page.slug}`))}
+                    {page.titleEn || (page.slug === HOMEPAGE_SLUG ? "Homepage (/)" : SYSTEM_PAGES[page.slug] ? `${SYSTEM_PAGES[page.slug].labelAr} · ${SYSTEM_PAGES[page.slug].labelEn}` : (PAGE_HEADER_LABELS[page.slug] ?? `/${page.slug}`))}
                   </Link>
+                  {page.isSystem || SYSTEM_PAGES[page.slug] ? (
+                    <span className="ms-2 rounded bg-amber-900/50 px-1.5 py-0.5 text-[11px] text-amber-200" title="System page: can't be deleted; its URL is fixed">
+                      صفحة نظام
+                    </span>
+                  ) : null}
                   {page.titleEn ? (
                     <span className="block text-xs text-neutral-500">
                       {page.slug === HOMEPAGE_SLUG ? "/" : `/${page.slug}`}
@@ -67,7 +73,7 @@ export default async function PagesListPage() {
                 <td className="px-4 py-2">{page.status}</td>
                 <td className="px-4 py-2 text-neutral-500">{page.updatedAt.toLocaleDateString()}</td>
                 <td className="px-4 py-2 text-right">
-                  <PageRowActions pageId={page.id} status={page.status} canDelete={canDelete} />
+                  <PageRowActions pageId={page.id} status={page.status} canDelete={canDelete && !page.isSystem && !SYSTEM_PAGES[page.slug] && page.slug !== HOMEPAGE_SLUG} />
                 </td>
               </tr>
             ))}

@@ -4,6 +4,8 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Copy, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
 import { getBlock } from "@/lib/page-builder/registry";
+import { isRequiredSection } from "@/lib/page-builder/system-pages";
+import { useBuilderPage } from "./builder-page-context";
 import { SectionShell } from "@/lib/page-builder/section-shell";
 import type { BuilderSection, EditorLocale } from "@/lib/page-builder/types";
 import { IconButton } from "@/components/admin/ui/icon-button";
@@ -22,6 +24,7 @@ interface Props {
 export function CanvasSectionFrame({ section, selected, mode, locale, onSelect, onDuplicate, onDelete, onToggleVisible }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id });
   const block = getBlock(section.type);
+  const required = isRequiredSection(section.type, useBuilderPage().slug);
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -67,9 +70,9 @@ export function CanvasSectionFrame({ section, selected, mode, locale, onSelect, 
             <GripVertical size={14} />
           </span>
           <span className="px-1.5 text-xs text-neutral-400">{block.label}</span>
-          <IconButton icon={Copy} label="Duplicate" onClick={(e) => { e.stopPropagation(); onDuplicate(); }} />
+          {required ? null : <IconButton icon={Copy} label="Duplicate" onClick={(e) => { e.stopPropagation(); onDuplicate(); }} />}
           <IconButton icon={section.isVisible ? Eye : EyeOff} label={section.isVisible ? "Hide" : "Show"} onClick={(e) => { e.stopPropagation(); onToggleVisible(); }} />
-          <IconButton icon={Trash2} label="Delete" danger onClick={(e) => { e.stopPropagation(); onDelete(); }} />
+          {required ? <span className="px-1.5 text-[10px] text-amber-300">مطلوب</span> : <IconButton icon={Trash2} label="Delete" danger onClick={(e) => { e.stopPropagation(); onDelete(); }} />}
         </div>
       ) : null}
 
