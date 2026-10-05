@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TEXT_ALIGNS } from "@/lib/align";
 
 /**
  * Admin text styling (feat/text-styling). Pure + client-safe.
@@ -53,6 +54,9 @@ export const textStyleSchema = z
     sizeMobile: sizeSchema.optional(),
     bold: z.boolean().optional(),
     italic: z.boolean().optional(),
+    /** Whole-field alignment (missing = «تلقائي», follows the language); `alignMobile` below 768px. */
+    align: z.enum(TEXT_ALIGNS).optional(),
+    alignMobile: z.enum(TEXT_ALIGNS).optional(),
   })
   .strict();
 export type TextStyle = z.infer<typeof textStyleSchema>;
@@ -153,7 +157,7 @@ export function normalizeDoc(json: unknown, multiline: boolean): RichDoc {
 export function hasStyling(rich: RichText | null | undefined): rich is RichText {
   if (!rich) return false;
   const s = rich.style;
-  if (s && (s.color || s.size || s.sizeMobile || s.bold || s.italic)) return true;
+  if (s && (s.color || s.size || s.sizeMobile || s.bold || s.italic || s.align || s.alignMobile)) return true;
   return rich.content.content.some((p) =>
     (p.content ?? []).some((n) => n.type === "text" && (n.marks ?? []).some((m) => m.type !== "textStyle" || Boolean(m.attrs.color || m.attrs.fontSize)))
   );

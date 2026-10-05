@@ -98,20 +98,33 @@ const MARGIN_Y_LG: Record<MarginToken, string> = {
 // `items-end` (align-items: flex-start/flex-end) were already logical/direction-aware and are
 // unchanged. Editor-facing labels for this token are "Start"/"Center"/"End" (see settings-panel.tsx)
 // so nobody reads "left" here and assumes it means physical left in Arabic.
+//
+// Each value also sets --pb-box-s / --pb-box-e (inline-start / inline-end margins) so a block with a
+// narrow box (e.g. the contact-details card) can follow the section's alignment:
+//   className="ms-[var(--pb-box-s,0)] me-[var(--pb-box-e,auto)]"
 const ALIGN_BASE: Record<AlignToken, string> = {
-  left: "text-start items-start",
-  center: "text-center items-center",
-  right: "text-end items-end",
+  left: "text-start items-start [--pb-box-s:0] [--pb-box-e:auto]",
+  center: "text-center items-center [--pb-box-s:auto] [--pb-box-e:auto]",
+  right: "text-end items-end [--pb-box-s:auto] [--pb-box-e:0]",
+  "phys-right": "text-right ltr:items-end rtl:items-start ltr:[--pb-box-s:auto] ltr:[--pb-box-e:0] rtl:[--pb-box-s:0] rtl:[--pb-box-e:auto]",
+  "phys-left": "text-left ltr:items-start rtl:items-end ltr:[--pb-box-s:0] ltr:[--pb-box-e:auto] rtl:[--pb-box-s:auto] rtl:[--pb-box-e:0]",
+  justify: "text-justify items-start [--pb-box-s:0] [--pb-box-e:auto]",
 };
 const ALIGN_MD: Record<AlignToken, string> = {
-  left: "md:text-start md:items-start",
-  center: "md:text-center md:items-center",
-  right: "md:text-end md:items-end",
+  left: "md:text-start md:items-start md:[--pb-box-s:0] md:[--pb-box-e:auto]",
+  center: "md:text-center md:items-center md:[--pb-box-s:auto] md:[--pb-box-e:auto]",
+  right: "md:text-end md:items-end md:[--pb-box-s:auto] md:[--pb-box-e:0]",
+  "phys-right": "md:text-right ltr:md:items-end rtl:md:items-start ltr:md:[--pb-box-s:auto] ltr:md:[--pb-box-e:0] rtl:md:[--pb-box-s:0] rtl:md:[--pb-box-e:auto]",
+  "phys-left": "md:text-left ltr:md:items-start rtl:md:items-end ltr:md:[--pb-box-s:0] ltr:md:[--pb-box-e:auto] rtl:md:[--pb-box-s:auto] rtl:md:[--pb-box-e:0]",
+  justify: "md:text-justify md:items-start md:[--pb-box-s:0] md:[--pb-box-e:auto]",
 };
 const ALIGN_LG: Record<AlignToken, string> = {
-  left: "lg:text-start lg:items-start",
-  center: "lg:text-center lg:items-center",
-  right: "lg:text-end lg:items-end",
+  left: "lg:text-start lg:items-start lg:[--pb-box-s:0] lg:[--pb-box-e:auto]",
+  center: "lg:text-center lg:items-center lg:[--pb-box-s:auto] lg:[--pb-box-e:auto]",
+  right: "lg:text-end lg:items-end lg:[--pb-box-s:auto] lg:[--pb-box-e:0]",
+  "phys-right": "lg:text-right ltr:lg:items-end rtl:lg:items-start ltr:lg:[--pb-box-s:auto] ltr:lg:[--pb-box-e:0] rtl:lg:[--pb-box-s:0] rtl:lg:[--pb-box-e:auto]",
+  "phys-left": "lg:text-left ltr:lg:items-start rtl:lg:items-end ltr:lg:[--pb-box-s:0] ltr:lg:[--pb-box-e:auto] rtl:lg:[--pb-box-s:auto] rtl:lg:[--pb-box-e:0]",
+  justify: "lg:text-justify lg:items-start lg:[--pb-box-s:0] lg:[--pb-box-e:auto]",
 };
 
 const COLUMNS_BASE: Record<ColumnsToken, string> = {
@@ -505,7 +518,7 @@ export const BACKGROUND_ATTACHMENT_OPTIONS = ["scroll", "fixed"] as const;
 
 export const PADDING_OPTIONS: PaddingToken[] = ["none", "sm", "md", "lg", "xl"];
 export const MARGIN_OPTIONS: MarginToken[] = ["none", "sm", "md", "lg"];
-export const ALIGN_OPTIONS: AlignToken[] = ["left", "center", "right"];
+export const ALIGN_OPTIONS: AlignToken[] = ["left", "phys-right", "center", "phys-left", "justify", "right"];
 export const COLUMNS_OPTIONS: ColumnsToken[] = ["1", "2", "3", "4"];
 export const HEADING_SIZE_OPTIONS: HeadingSizeToken[] = ["sm", "md", "lg", "xl", "2xl"];
 export const BODY_SIZE_OPTIONS: BodySizeToken[] = ["sm", "md", "lg"];

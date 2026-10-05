@@ -43,7 +43,7 @@ export function G7BannerRender({ data, locale }: BlockRenderProps<G7BannerData>)
       <div className="relative hidden aspect-[1920/640] min-h-[24rem] w-full overflow-hidden md:block">
         {image ? <Image src={image} alt={data.imageAlt ?? ""} fill sizes="100vw" className="object-cover object-left" /> : null}
         {/* dir="ltr" so the position presets mean physical sides of the photo; the text keeps the page dir. */}
-        <div dir="ltr" className={cn("g7-container relative flex h-full py-[3vw]", g7OverlayClasses(data.textX, data.textY))}>
+        <div dir="ltr" className={cn("g7-container relative flex h-full py-[3vw]", g7OverlayClasses(data.textX, data.textY, "base", locale))}>
           <div dir={locale === "ar" ? "rtl" : "ltr"} className="g7-nudge w-[min(26rem,48%)] lg:w-[31vw] lg:max-w-[37rem]" style={g7OffsetStyle(data.offsetX, data.offsetY)}>
             {text}
           </div>

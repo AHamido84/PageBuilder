@@ -119,7 +119,7 @@ export function G7ListEditor<T>({
  * Text-on-photo position (hero, banner, quote image, category cards)
  * -----------------------------------------------------------------------------------------------*/
 
-export type G7TextX = "left" | "center" | "right";
+export type G7TextX = "left" | "center" | "right" | "start" | "end";
 export type G7TextY = "top" | "center" | "bottom";
 
 /**
@@ -142,8 +142,15 @@ const OVERLAY = {
   },
 } as const;
 
-export function g7OverlayClasses(x: G7TextX, y: G7TextY, from: keyof typeof OVERLAY = "base"): string {
-  return `${OVERLAY[from].x[x]} ${OVERLAY[from].y[y]}`;
+/** "start"/"end" resolve per language to a physical side (the overlay itself is dir="ltr"). */
+export function g7PhysicalX(x: G7TextX, locale: string): "left" | "center" | "right" {
+  if (x === "start") return locale === "ar" ? "right" : "left";
+  if (x === "end") return locale === "ar" ? "left" : "right";
+  return x;
+}
+
+export function g7OverlayClasses(x: G7TextX, y: G7TextY, from: keyof typeof OVERLAY = "base", locale = "ar"): string {
+  return `${OVERLAY[from].x[g7PhysicalX(x, locale)]} ${OVERLAY[from].y[y]}`;
 }
 
 /** Nudge in vw (fine-tuning on top of the preset) as CSS variables; pair with the g7-nudge* classes
@@ -177,7 +184,14 @@ export function G7PositionFields({
       <div className="flex gap-1 rounded-md bg-neutral-900 p-1">
         {(["left", "center", "right"] as const).map((v) => (
           <button key={v} type="button" className={btn(x === v)} onClick={() => set({ x: v })}>
-            {v === "left" ? "Left" : v === "center" ? "Center" : "Right"}
+            {v === "left" ? "شمال · Left" : v === "center" ? "وسط · Center" : "يمين · Right"}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-1 rounded-md bg-neutral-900 p-1" title="Follows the language: start = right in Arabic, left in English">
+        {(["start", "end"] as const).map((v) => (
+          <button key={v} type="button" className={btn(x === v)} onClick={() => set({ x: v })}>
+            {v === "start" ? "بداية السطر · Start" : "نهاية السطر · End"}
           </button>
         ))}
       </div>

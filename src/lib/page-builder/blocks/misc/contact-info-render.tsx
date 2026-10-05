@@ -20,7 +20,7 @@ export async function ContactInfoRender({ data, locale }: BlockRenderProps<Conta
   const hasHours = hours ? DAY_ORDER.some((day) => hours[day]) : false;
 
   return (
-    <div className="mx-auto max-w-md">
+    <div className="max-w-md ms-[var(--pb-box-s,0)] me-[var(--pb-box-e,auto)]">
       <Card variant="default" className="p-6 sm:p-8">
         {data.heading ? <p className="manifest-strip mb-5 text-harbor"><StyledText text={data.heading} rich={richOf(data, "heading")} /></p> : null}
         <dl className="space-y-5 text-base">

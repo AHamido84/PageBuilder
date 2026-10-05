@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
-import { TextField, styledProps } from "@/components/admin/ui/field";
+import { SelectField, TextField, styledProps } from "@/components/admin/ui/field";
 import { useFormAction } from "@/lib/use-form-action";
 import { cn } from "@/lib/cn";
 import { StyledText } from "@/components/text/styled-text";
@@ -202,12 +202,12 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
 
   return (
     <section className="bg-[var(--g7-cream-50)]">
-      <div className="grid grid-cols-1 xl:grid-cols-[3fr_2fr]">
+      <div className={cn("grid grid-cols-1", data.formSide === "start" ? "xl:grid-cols-[2fr_3fr]" : "xl:grid-cols-[3fr_2fr]")}>
         {/* Image + overlaid heading */}
         <div className="relative aspect-[4/5] overflow-hidden bg-[var(--g7-teal-900)] sm:aspect-[5/4] xl:aspect-auto xl:min-h-[47.9vw]">
           {data.image?.url ? <Image src={data.image.url} alt={data.imageAlt ?? ""} fill sizes="(min-width: 1280px) 60vw, 100vw" className="object-cover object-bottom" /> : null}
           <DiamondOrnament className="absolute start-[clamp(1.25rem,2.9vw,3.5rem)] top-[clamp(1.25rem,2.1vw,2.5rem)] h-[clamp(4rem,6.5vw,7.8rem)] w-[clamp(1.25rem,2vw,2.4rem)] text-[var(--g7-gold-500)]" />
-          <div dir="ltr" className={cn("absolute inset-0 flex px-[clamp(1.5rem,4vw,5rem)] pb-[clamp(3rem,4.6vw,5.5rem)] pt-[clamp(2.5rem,9vw,9rem)] text-[var(--g7-cream-50)]", g7OverlayClasses(data.asideTextX, data.asideTextY))}>
+          <div dir="ltr" className={cn("absolute inset-0 flex px-[clamp(1.5rem,4vw,5rem)] pb-[clamp(3rem,4.6vw,5.5rem)] pt-[clamp(2.5rem,9vw,9rem)] text-[var(--g7-cream-50)]", g7OverlayClasses(data.asideTextX, data.asideTextY, "base", locale))}>
             <div dir={locale === "ar" ? "rtl" : "ltr"} className="g7-nudge" style={g7OffsetStyle(data.asideOffsetX, data.asideOffsetY)}>
             <h2 className="t-h2">
               <StyledText text={data.asideHeadingLine1} rich={richOf(data, "asideHeadingLine1")} />
@@ -224,7 +224,7 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
         </div>
 
         {/* Form panel */}
-        <div id={anchorId} className={cn(anchorOffset, "px-4 py-12 sm:px-10 xl:px-[clamp(2rem,2.9vw,3.5rem)] xl:pb-[clamp(2rem,2.6vw,3.1rem)] xl:pt-[clamp(2.5rem,4.2vw,5rem)]")}>
+        <div id={anchorId} className={cn(anchorOffset, data.formSide === "start" && "xl:order-first", "px-4 py-12 sm:px-10 xl:px-[clamp(2rem,2.9vw,3.5rem)] xl:pb-[clamp(2rem,2.6vw,3.1rem)] xl:pt-[clamp(2.5rem,4.2vw,5rem)]")}>
           <div className="mx-auto max-w-[40rem] xl:max-w-none">
             {data.eyebrow ? <p className={g7Eyebrow}><StyledText text={data.eyebrow} rich={richOf(data, "eyebrow")} /></p> : null}
             {data.heading ? <h2 id={anchorId === "quote-form" ? undefined : "quote-form"} className={cn(anchorOffset, "t-h2 mt-[clamp(0.75rem,1.4vw,1.6rem)] text-[var(--g7-teal-900)]")}><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
@@ -389,6 +389,15 @@ export function G7QuoteEdit({ data, onChange, locale }: BlockEditProps<G7QuoteDa
         offsetX={data.asideOffsetX}
         offsetY={data.asideOffsetY}
         onChange={(p) => onChange({ ...data, asideTextX: p.x, asideTextY: p.y, asideOffsetX: p.offsetX, asideOffsetY: p.offsetY })}
+      />
+      <SelectField
+        label="موضع النموذج · Form position (wide screens)"
+        value={data.formSide ?? "end"}
+        onChange={(formSide) => onChange({ ...data, formSide })}
+        options={[
+          { value: "end", label: "نهاية السطر · End (left in AR, right in EN)" },
+          { value: "start", label: "بداية السطر · Start (right in AR, left in EN)" },
+        ]}
       />
       <TextField label="Form eyebrow" {...styledProps(data, "eyebrow", onChange)} dir={dir} />
       <TextField label="Form heading" {...styledProps(data, "heading", onChange)} dir={dir} />

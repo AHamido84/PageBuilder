@@ -68,10 +68,13 @@ import { Tabs } from "@/components/admin/ui/tabs";
  * label says so explicitly -- an editor picking "Start" for Arabic content should never have to
  * guess that it renders on the right, not the left, the way a plain "Left" label would wrongly imply. */
 function alignOptionLabel(token: AlignToken, editorLocale: EditorLocale): string {
-  if (token === "center") return "Center";
+  if (token === "center") return "وسط · Center";
+  if (token === "phys-right") return "يمين · Right";
+  if (token === "phys-left") return "شمال · Left";
+  if (token === "justify") return "ضبط · Justify";
   const isStart = token === "left";
   const physicalSide = editorLocale === "ar" ? (isStart ? "right" : "left") : isStart ? "left" : "right";
-  return `${isStart ? "Start" : "End"} (${physicalSide})`;
+  return isStart ? `تلقائي (حسب اللغة) · Auto (${physicalSide})` : `عكس اللغة · End (${physicalSide})`;
 }
 
 function labelize(value: string): string {

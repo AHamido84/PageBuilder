@@ -78,7 +78,7 @@ export function G7HeroRender({ data, locale }: BlockRenderProps<G7HeroData>) {
       {/* dir="ltr" so the position presets mean physical sides of the photo; the text keeps the page dir. */}
       <div
         dir="ltr"
-        className={cn("g7-container bg-[var(--g7-teal-900)] py-10 sm:py-14 xl:absolute xl:inset-0 xl:flex xl:bg-transparent xl:px-[3.5vw] xl:pb-[7vw] xl:pt-[3vw]", g7OverlayClasses(data.textX, data.textY, "xl"))}
+        className={cn("g7-container bg-[var(--g7-teal-900)] py-10 sm:py-14 xl:absolute xl:inset-0 xl:flex xl:bg-transparent xl:px-[3.5vw] xl:pb-[7vw] xl:pt-[3vw]", g7OverlayClasses(data.textX, data.textY, "xl", locale))}
       >
         <div dir={locale === "ar" ? "rtl" : "ltr"} className="g7-nudge-xl xl:w-max xl:max-w-[32vw] xl:ltr:max-w-[40vw]" style={g7OffsetStyle(data.offsetX, data.offsetY)}>
           {text}

@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { colorCss, type RichMark, type RichText, type SizeValue } from "@/lib/text-style/rich-text";
+import { textAlignClasses } from "@/lib/align";
 
 /**
  * Renders an admin-editable text: the plain string exactly as before, or -- when the field has a
@@ -49,7 +50,9 @@ function fieldStyle(rich: RichText): { style?: CSSProperties; className?: string
   if (s.color) style.color = colorCss(s.color);
   if (s.bold) style.fontWeight = "700";
   if (s.italic) style.fontStyle = "italic";
-  const className = [desktop.cls, mobile.cls].filter(Boolean).join(" ") || undefined;
+  // Alignment needs a block box (the span sits inside the caller's <p>/<h2>, which keeps its own spacing).
+  const align = textAlignClasses(s.align, s.alignMobile);
+  const className = [desktop.cls, mobile.cls, align ? `block ${align}` : undefined].filter(Boolean).join(" ") || undefined;
   return { style: Object.keys(style).length ? (style as CSSProperties) : undefined, className };
 }
 

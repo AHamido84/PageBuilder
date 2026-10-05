@@ -8,6 +8,7 @@ import Document from "@tiptap/extension-document";
 import { Color, TextStyle } from "@tiptap/extension-text-style";
 import { Bold, Italic, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { TEXT_ALIGNS, TEXT_ALIGN_LABELS, type TextAlign } from "@/lib/align";
 import {
   COLOR_TOKENS,
   PX_MAX,
@@ -224,6 +225,7 @@ export function StyledTextField({ label, value, rich, onChange, multiline = fals
     ...(fieldStyle.bold ? { fontWeight: 700 } : {}),
     ...(fieldStyle.italic ? { fontStyle: "italic" as const } : {}),
     ...(fieldStyle.size && typeof fieldStyle.size === "object" ? { fontSize: `${fieldStyle.size.px}px` } : {}),
+    ...(fieldStyle.align && fieldStyle.align !== "auto" ? { textAlign: fieldStyle.align } : {}),
   };
   const sizeCls = fieldStyle.size && typeof fieldStyle.size === "string" ? `ts-${fieldStyle.size}` : undefined;
   const styled = hasStyling(current.rich);
@@ -242,6 +244,8 @@ export function StyledTextField({ label, value, rich, onChange, multiline = fals
           onColor={applyColor}
           onSize={(s) => applySize(s)}
           onMobileSize={(s) => applySize(s, true)}
+          onAlign={(a, mobile) => updateFieldStyle(mobile ? { alignMobile: a ?? undefined } : { align: a ?? undefined })}
+          multiline={multiline}
           onReset={reset}
           canReset={styled}
         />
@@ -281,6 +285,8 @@ function Toolbar({
   onColor,
   onSize,
   onMobileSize,
+  onAlign,
+  multiline,
   onReset,
   canReset,
 }: {
@@ -293,6 +299,8 @@ function Toolbar({
   onColor: (c: string | null) => void;
   onSize: (s: SizeValue | null) => void;
   onMobileSize: (s: SizeValue | null) => void;
+  onAlign: (a: TextAlign | null, mobile: boolean) => void;
+  multiline: boolean;
   onReset: () => void;
   canReset: boolean;
 }) {
@@ -336,11 +344,37 @@ function Toolbar({
       <span className="mx-0.5 h-4 w-px bg-neutral-700" aria-hidden="true" />
       <SizeSelect label="الحجم" value={scope === "field" ? fieldStyle.size : undefined} onChange={onSize} />
       {scope === "field" ? <SizeSelect label="الجوال" value={fieldStyle.sizeMobile} onChange={onMobileSize} /> : null}
+      {scope === "field" ? (
+        <>
+          <AlignSelect label="المحاذاة" value={fieldStyle.align} multiline={multiline} onChange={(a) => onAlign(a, false)} />
+          <AlignSelect label="محاذاة الجوال" value={fieldStyle.alignMobile} multiline={multiline} onChange={(a) => onAlign(a, true)} />
+        </>
+      ) : null}
       <button type="button" className={cn(btn, "ms-auto gap-1 px-1.5 disabled:opacity-40")} disabled={!canReset} onClick={onReset} title="إرجاع للافتراضي">
         <RotateCcw size={12} />
         <span>إرجاع للافتراضي</span>
       </button>
     </div>
+  );
+}
+
+/** Whole-field alignment; «تلقائي» (empty) follows the language. Justify only for long text. */
+function AlignSelect({ label, value, multiline, onChange }: { label: string; value: TextAlign | undefined; multiline: boolean; onChange: (a: TextAlign | null) => void }) {
+  return (
+    <select
+      aria-label={label}
+      title={label}
+      value={value ?? ""}
+      onChange={(e) => onChange((e.target.value || null) as TextAlign | null)}
+      className="h-7 rounded border border-neutral-700 bg-neutral-900 px-1 text-xs text-neutral-200"
+    >
+      <option value="">{label}: {label === "المحاذاة" ? TEXT_ALIGN_LABELS.auto : "مثل الحاسوب"}</option>
+      {TEXT_ALIGNS.filter((a) => a !== "auto" && (multiline || a !== "justify" || value === "justify")).map((a) => (
+        <option key={a} value={a}>
+          {label}: {TEXT_ALIGN_LABELS[a]}
+        </option>
+      ))}
+    </select>
   );
 }
 

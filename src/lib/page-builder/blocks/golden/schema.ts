@@ -10,7 +10,8 @@ import { z } from "zod";
 const media = z.object({ id: z.string(), url: z.string() });
 const text = (max = 300) => z.string().max(max).optional().default("");
 /** Text-on-photo position: physical side of the photo + vertical placement, plus a vw nudge. */
-const textX = (d: "left" | "center" | "right") => z.enum(["left", "center", "right"]).default(d);
+/** Text position on a photo: physical left/center/right, or "start"/"end" which follow the language (start = right in Arabic). */
+const textX = (d: "left" | "center" | "right") => z.enum(["left", "center", "right", "start", "end"]).default(d);
 const textY = (d: "top" | "center" | "bottom") => z.enum(["top", "center", "bottom"]).default(d);
 const nudge = z.number().min(-20).max(20).default(0);
 
@@ -122,6 +123,8 @@ export const g7QuoteSchema = z.object({
   asideHeadingLine2: text(80),
   asideSubtitle: text(160),
   asideTextX: textX("center"),
+  /** Split layout: the form on the inline end (default, as today) or start side; mirrors per language. */
+  formSide: z.enum(["end", "start"]).optional().default("end"),
   asideTextY: textY("top"),
   asideOffsetX: nudge,
   asideOffsetY: nudge,
@@ -374,6 +377,7 @@ export const G7_DEFAULTS = {
       asideHeadingLine2: "شراكة بطعم مميز.",
       asideSubtitle: "منتجات طبيعية بجودة تثق بها",
       asideTextX: "center",
+      formSide: "end",
       asideTextY: "top",
       asideOffsetX: 0,
       asideOffsetY: 0,
@@ -424,6 +428,7 @@ export const G7_DEFAULTS = {
       asideHeadingLine2: "a partnership worth savoring.",
       asideSubtitle: "Natural products, quality you can trust",
       asideTextX: "center",
+      formSide: "end",
       asideTextY: "top",
       asideOffsetX: 0,
       asideOffsetY: 0,

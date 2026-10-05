@@ -25,7 +25,7 @@ export function FaqAccordion({ items, locale }: { items: FaqItem[]; locale: stri
             <button
               type="button"
               onClick={() => setOpenId(open ? null : item.id)}
-              className="flex w-full items-center justify-between gap-4 py-4 text-left font-medium"
+              className="flex w-full items-center justify-between gap-4 py-4 text-start font-medium"
             >
               <span>{question}</span>
               <ChevronDown size={18} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />

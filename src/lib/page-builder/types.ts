@@ -7,7 +7,12 @@ export type EditorLocale = "en" | "ar";
 
 export type PaddingToken = "none" | "sm" | "md" | "lg" | "xl";
 export type MarginToken = "none" | "sm" | "md" | "lg";
-export type AlignToken = "left" | "center" | "right";
+/**
+ * Section alignment. The two original values are LOGICAL and keep their meaning for every saved
+ * section: "left" = start («تلقائي», right in Arabic / left in English), "right" = end. The newer
+ * "phys-right" / "phys-left" are physical (same side in both languages); "justify" is for long text.
+ */
+export type AlignToken = "left" | "center" | "right" | "phys-right" | "phys-left" | "justify";
 export type ColumnsToken = "1" | "2" | "3" | "4";
 export type HeadingSizeToken = "sm" | "md" | "lg" | "xl" | "2xl";
 export type BodySizeToken = "sm" | "md" | "lg";
