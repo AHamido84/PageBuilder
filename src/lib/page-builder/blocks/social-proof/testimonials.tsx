@@ -1,7 +1,9 @@
 "use client";
 
 import { Plus, Quote, Trash2 } from "lucide-react";
-import { TextField, TextareaField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { IconButton } from "@/components/admin/ui/icon-button";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { CmsFillImage } from "@/components/media/cms-image";
@@ -15,19 +17,20 @@ export function TestimonialsEdit({ data, onChange, locale }: BlockEditProps<Test
   function setItems(next: TestimonialsData["items"]) {
     onChange({ ...data, items: next });
   }
+  const setItem = (i: number) => (next: TestimonialsData["items"][number]) => setItems(items.map((it, idx) => (idx === i ? next : it)));
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
       {items.map((item, i) => (
         <div key={i} className="space-y-2 rounded-md border border-neutral-800 p-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium text-neutral-500">Testimonial {i + 1}</p>
             <IconButton icon={Trash2} label="Remove" danger onClick={() => setItems(items.filter((_, idx) => idx !== i))} />
           </div>
-          <TextareaField label="Quote" value={item.quote} onChange={(quote) => setItems(items.map((it, idx) => (idx === i ? { ...it, quote } : it)))} dir={dir} rows={2} />
+          <TextareaField label="Quote" {...styledProps(item, "quote", setItem(i))} dir={dir} rows={2} />
           <div className="grid grid-cols-2 gap-2">
-            <TextField label="Author name" value={item.authorName} onChange={(authorName) => setItems(items.map((it, idx) => (idx === i ? { ...it, authorName } : it)))} dir={dir} />
-            <TextField label="Author role" value={item.authorRole ?? ""} onChange={(authorRole) => setItems(items.map((it, idx) => (idx === i ? { ...it, authorRole } : it)))} dir={dir} />
+            <TextField label="Author name" {...styledProps(item, "authorName", setItem(i))} dir={dir} />
+            <TextField label="Author role" {...styledProps(item, "authorRole", setItem(i))} dir={dir} />
           </div>
           <MediaPickerControlled
             label="Photo (optional)"
@@ -73,16 +76,16 @@ export function TestimonialsRender({ data, locale }: BlockRenderProps<Testimonia
 
   return (
     <div>
-      {data.heading ? <h2 className="mb-10 font-display text-h2">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-10 font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:gap-12">
         <ScrollReveal variant="fade-up" className="relative rounded-[var(--card-radius-xl)] border border-current/10 bg-paper p-8 sm:p-12">
           <Quote className="mb-4 h-10 w-10 text-wheat/70" strokeWidth={1.5} aria-hidden />
-          <blockquote className="font-display text-h3 leading-snug text-ink">&ldquo;{featured.quote}&rdquo;</blockquote>
+          <blockquote className="font-display text-h3 leading-snug text-ink">&ldquo;<StyledText text={featured.quote} rich={richOf(featured, "quote")} />&rdquo;</blockquote>
           <figcaption className="mt-6 flex items-center gap-4">
             <Avatar avatar={featured.avatar ?? null} name={featured.authorName} locale={locale} size="lg" />
             <span>
-              <span className="block font-medium">{featured.authorName}</span>
-              {featured.authorRole ? <span className="block text-sm opacity-55">{featured.authorRole}</span> : null}
+              <span className="block font-medium"><StyledText text={featured.authorName} rich={richOf(featured, "authorName")} /></span>
+              {featured.authorRole ? <span className="block text-sm opacity-55"><StyledText text={featured.authorRole} rich={richOf(featured, "authorRole")} /></span> : null}
             </span>
           </figcaption>
         </ScrollReveal>
@@ -91,12 +94,12 @@ export function TestimonialsRender({ data, locale }: BlockRenderProps<Testimonia
           <div className="flex flex-col gap-[var(--card-gap,1.5rem)]">
             {rest.map((item, i) => (
               <ScrollReveal key={i} variant="fade-up" className="rounded-[var(--card-radius-lg)] border border-current/10 p-6" data-ui-card="">
-                <blockquote className="text-sm leading-relaxed opacity-80">&ldquo;{item.quote}&rdquo;</blockquote>
+                <blockquote className="text-sm leading-relaxed opacity-80">&ldquo;<StyledText text={item.quote} rich={richOf(item, "quote")} />&rdquo;</blockquote>
                 <figcaption className="mt-4 flex items-center gap-3">
                   <Avatar avatar={item.avatar ?? null} name={item.authorName} locale={locale} size="sm" />
                   <span className="text-sm font-medium">
-                    {item.authorName}
-                    {item.authorRole ? <span className="opacity-50"> — {item.authorRole}</span> : null}
+                    <StyledText text={item.authorName} rich={richOf(item, "authorName")} />
+                    {item.authorRole ? <span className="opacity-50"> — <StyledText text={item.authorRole} rich={richOf(item, "authorRole")} /></span> : null}
                   </span>
                 </figcaption>
               </ScrollReveal>

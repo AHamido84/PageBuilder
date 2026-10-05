@@ -1,7 +1,9 @@
 "use client";
 
 import { Plus, Trash2, Globe, Truck, Package, ShieldCheck, Snowflake, Users, MapPin, Award, Clock, Leaf, type LucideIcon } from "lucide-react";
-import { TextField, SelectField } from "@/components/admin/ui/field";
+import { TextField, SelectField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { IconButton } from "@/components/admin/ui/icon-button";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveColumnsClasses } from "../../style-tokens";
@@ -40,14 +42,15 @@ export function StatisticsEdit({ data, onChange, locale }: BlockEditProps<Statis
   function setItems(next: StatisticsData["items"]) {
     onChange({ ...data, items: next });
   }
+  const setItem = (i: number) => (next: StatisticsData["items"][number]) => setItems(items.map((it, idx) => (idx === i ? next : it)));
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
       {items.map((item, i) => (
         <div key={i} className="space-y-2 rounded-md border border-neutral-800 p-2">
           <div className="flex items-end gap-2">
-            <TextField label="Value" value={item.value} onChange={(value) => setItems(items.map((it, idx) => (idx === i ? { ...it, value } : it)))} className="flex-1" />
-            <TextField label="Label" value={item.label} onChange={(label) => setItems(items.map((it, idx) => (idx === i ? { ...it, label } : it)))} dir={dir} className="flex-[2]" />
+            <TextField label="Value" {...styledProps(item, "value", setItem(i))} className="flex-1" />
+            <TextField label="Label" {...styledProps(item, "label", setItem(i))} dir={dir} className="flex-[2]" />
             <IconButton icon={Trash2} label="Remove" danger onClick={() => setItems(items.filter((_, idx) => idx !== i))} />
           </div>
           <SelectField
@@ -72,15 +75,15 @@ export function StatisticsEdit({ data, onChange, locale }: BlockEditProps<Statis
 export function StatisticsRender({ data, settings }: BlockRenderProps<StatisticsData>) {
   return (
     <div>
-      {data.heading ? <h2 className="mb-10 font-display text-h2">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-10 font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <div className={`grid gap-x-8 gap-y-12 text-center divide-ink/10 sm:divide-x rtl:sm:divide-x-reverse ${resolveColumnsClasses(settings)}`}>
         {data.items.map((item, i) => {
           const Icon = item.icon && item.icon !== "none" ? STAT_ICONS[item.icon] : null;
           return (
             <div key={i} className="px-2">
               {Icon ? <Icon className="mx-auto mb-4 h-7 w-7 text-wheat" strokeWidth={1.5} aria-hidden /> : null}
-              <p className="font-display text-display leading-none text-wheat-strong">{item.value}</p>
-              <p className="mt-3 text-sm opacity-60">{item.label}</p>
+              <p className="font-display text-display leading-none text-wheat-strong"><StyledText text={item.value} rich={richOf(item, "value")} /></p>
+              <p className="mt-3 text-sm opacity-60"><StyledText text={item.label} rich={richOf(item, "label")} /></p>
             </div>
           );
         })}

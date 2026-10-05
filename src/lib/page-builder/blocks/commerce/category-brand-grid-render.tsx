@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { CategoryCard, CategoryChips, FeaturedCategoryCard, BrandCard, type CategoryWithRelations, type DisplayBrand } from "./category-brand-cards";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockRenderProps } from "../../types";
 import type { CategoryGridData, BrandGridData } from "../commerce-blocks";
 import { safeExternalUrl } from "@/lib/safe-url";
@@ -65,8 +67,8 @@ export async function CategoryGridRender({ data, locale }: BlockRenderProps<Cate
 
   const cardProps = { showDescription: data.showDescription, showProductCount: data.showProductCount, showCta: data.showCta, ctaLabel: data.ctaLabel };
   const gridStyle = { "--cols": columns } as React.CSSProperties;
-  const heading = data.heading ? <h2 className="mb-3 font-display text-h2">{data.heading}</h2> : null;
-  const description = data.description ? <p className="measure-ar mb-8 max-w-2xl text-ink/60">{data.description}</p> : null;
+  const heading = data.heading ? <h2 className="mb-3 font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null;
+  const description = data.description ? <p className="measure-ar mb-8 max-w-2xl text-ink/60"><StyledText text={data.description} rich={richOf(data, "description")} /></p> : null;
 
   if (layout === "chips") {
     return (
@@ -206,7 +208,7 @@ export async function BrandGridRender({ data, locale }: BlockRenderProps<BrandGr
 
   return (
     <div>
-      {data.heading ? <h2 className="mb-8 font-display text-h2">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-8 font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <div className="grid grid-cols-2 gap-[var(--grid-gap,1.25rem)] sm:grid-cols-3 lg:grid-cols-5">
         {brands.map((brand) => (
           <BrandCard key={brand.id} brand={brand} locale={locale} showDescription={data.showDescription ?? true} />

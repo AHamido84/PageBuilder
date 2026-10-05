@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { TextField, TextareaField, SelectField, NumberField, CheckboxField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, SelectField, NumberField, CheckboxField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { CmsFillImage } from "@/components/media/cms-image";
 import { buttonClasses } from "@/components/ui/button";
@@ -251,16 +253,16 @@ export function BannerEdit({ data, onChange, locale }: BlockEditProps<BannerData
 
       <div className="space-y-3">
         <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Banner Content</p>
-        <TextField label="Eyebrow" value={data.eyebrow ?? ""} onChange={(eyebrow) => set({ eyebrow })} dir={dir} />
-        <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => set({ heading })} dir={dir} />
-        <TextareaField label="Text" value={data.body ?? ""} onChange={(body) => set({ body })} dir={dir} rows={3} />
+        <TextField label="Eyebrow" {...styledProps(data, "eyebrow", onChange)} dir={dir} />
+        <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
+        <TextareaField label="Text" {...styledProps(data, "body", onChange)} dir={dir} rows={3} />
         <div className="grid grid-cols-2 gap-3">
-          <TextField label="Primary CTA label" value={data.ctaLabel ?? ""} onChange={(ctaLabel) => set({ ctaLabel })} dir={dir} />
+          <TextField label="Primary CTA label" {...styledProps(data, "ctaLabel", onChange)} dir={dir} />
           <TextField label="Primary CTA URL" value={data.ctaUrl ?? ""} onChange={(ctaUrl) => set({ ctaUrl })} />
         </div>
         <SelectField label="Primary CTA style" value={data.ctaStyle} onChange={(ctaStyle) => set({ ctaStyle })} options={CTA_STYLE_OPTIONS} />
         <div className="grid grid-cols-2 gap-3">
-          <TextField label="Secondary CTA label" value={data.ctaLabel2 ?? ""} onChange={(ctaLabel2) => set({ ctaLabel2 })} dir={dir} />
+          <TextField label="Secondary CTA label" {...styledProps(data, "ctaLabel2", onChange)} dir={dir} />
           <TextField label="Secondary CTA URL" value={data.ctaUrl2 ?? ""} onChange={(ctaUrl2) => set({ ctaUrl2 })} />
         </div>
         <SelectField label="Secondary CTA style" value={data.ctaStyle2} onChange={(ctaStyle2) => set({ ctaStyle2 })} options={CTA_STYLE_OPTIONS} />
@@ -297,17 +299,17 @@ export function BannerRender({ data, locale }: BlockRenderProps<BannerData>) {
     <Stagger className={`flex flex-col ${CONTENT_H[data.contentPosition]} ${CONTENT_MAX[data.contentMaxWidth]}`}>
       {data.eyebrow ? (
         <StaggerItem>
-          <p className="manifest-strip mb-3 opacity-70">{data.eyebrow}</p>
+          <p className="manifest-strip mb-3 opacity-70"><StyledText text={data.eyebrow} rich={richOf(data, "eyebrow")} /></p>
         </StaggerItem>
       ) : null}
       {data.heading ? (
         <StaggerItem>
-          <h2 className="font-display text-h1 leading-tight measure-ar">{data.heading}</h2>
+          <h2 className="font-display text-h1 leading-tight measure-ar"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2>
         </StaggerItem>
       ) : null}
       {data.body ? (
         <StaggerItem>
-          <p className="measure-ar mt-4 text-base leading-relaxed opacity-80 sm:text-lg">{data.body}</p>
+          <p className="measure-ar mt-4 text-base leading-relaxed opacity-80 sm:text-lg"><StyledText text={data.body} rich={richOf(data, "body")} /></p>
         </StaggerItem>
       ) : null}
       {hasPrimary || hasSecondary ? (
@@ -315,12 +317,12 @@ export function BannerRender({ data, locale }: BlockRenderProps<BannerData>) {
           <div className={`mt-8 flex flex-wrap items-center gap-3 ${data.contentPosition === "center" ? "justify-center" : ""}`}>
             {hasPrimary ? (
               <Link href={resolveHref(data.ctaUrl ?? "", locale)} className={buttonClasses(heroButtonVariant(data.ctaStyle), "lg")}>
-                {data.ctaLabel}
+                <StyledText text={data.ctaLabel} rich={richOf(data, "ctaLabel")} />
               </Link>
             ) : null}
             {hasSecondary ? (
               <Link href={resolveHref(data.ctaUrl2 ?? "", locale)} className={buttonClasses(heroButtonVariant(data.ctaStyle2), "lg")}>
-                {data.ctaLabel2}
+                <StyledText text={data.ctaLabel2} rich={richOf(data, "ctaLabel2")} />
               </Link>
             ) : null}
           </div>

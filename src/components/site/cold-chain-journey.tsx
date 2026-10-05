@@ -6,6 +6,8 @@ import { ScrollReveal, DrawLine } from "@/lib/motion/primitives";
 import { TemperatureIndicator } from "./graphics/temperature-indicator";
 import { CmsFillImage } from "@/components/media/cms-image";
 import { OrganicFrame } from "@/components/ui/organic-frame";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf, type RichText } from "@/lib/text-style/rich-text";
 
 export interface JourneyStep {
   date?: string;
@@ -35,13 +37,13 @@ function StepImage({ step }: { step: JourneyStep }) {
  * container scrolls into view (natural scroll, no scroll-jacking — see brief §40), and each
  * checkpoint fades/rises into place as it's reached. Vertical on mobile, horizontal on desktop.
  */
-export function ColdChainJourney({ heading, steps, className }: { heading?: string; steps: JourneyStep[]; className?: string }) {
+export function ColdChainJourney({ heading, headingRich, steps, className }: { heading?: string; headingRich?: RichText; steps: JourneyStep[]; className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       <div className="texture-grain pointer-events-none absolute inset-0" aria-hidden="true" />
-      {heading ? <h2 className="relative mb-12 font-display text-3xl">{heading}</h2> : null}
+      {heading ? <h2 className="relative mb-12 font-display text-3xl"><StyledText text={heading} rich={headingRich} /></h2> : null}
 
       {/* Mobile / tablet: vertical journey */}
       <div className="relative lg:hidden">
@@ -58,9 +60,9 @@ export function ColdChainJourney({ heading, steps, className }: { heading?: stri
             <ScrollReveal key={i} variant="fade-up" className="relative">
               <TemperatureIndicator className="absolute -start-12 top-0 h-8 text-wheat" />
               <StepImage step={step} />
-              {step.date ? <p className="font-mono-data text-xs uppercase tracking-wide opacity-50">{step.date}</p> : null}
-              <p className="mt-1 font-display text-lg">{step.title}</p>
-              <p className="mt-1 text-sm opacity-70">{step.body}</p>
+              {step.date ? <p className="font-mono-data text-xs uppercase tracking-wide opacity-50"><StyledText text={step.date} rich={richOf(step, "date")} /></p> : null}
+              <p className="mt-1 font-display text-lg"><StyledText text={step.title} rich={richOf(step, "title")} /></p>
+              <p className="mt-1 text-sm opacity-70"><StyledText text={step.body} rich={richOf(step, "body")} /></p>
             </ScrollReveal>
           ))}
         </div>
@@ -84,9 +86,9 @@ export function ColdChainJourney({ heading, steps, className }: { heading?: stri
             <ScrollReveal key={i} variant="fade-up" className="relative pt-14">
               <TemperatureIndicator className="absolute start-0 top-0 h-10 text-wheat" />
               <StepImage step={step} />
-              {step.date ? <p className="font-mono-data text-xs uppercase tracking-wide opacity-50">{step.date}</p> : null}
-              <p className="mt-1 font-display text-lg">{step.title}</p>
-              <p className="mt-1 text-sm opacity-70">{step.body}</p>
+              {step.date ? <p className="font-mono-data text-xs uppercase tracking-wide opacity-50"><StyledText text={step.date} rich={richOf(step, "date")} /></p> : null}
+              <p className="mt-1 font-display text-lg"><StyledText text={step.title} rich={richOf(step, "title")} /></p>
+              <p className="mt-1 text-sm opacity-70"><StyledText text={step.body} rich={richOf(step, "body")} /></p>
             </ScrollReveal>
           ))}
         </div>

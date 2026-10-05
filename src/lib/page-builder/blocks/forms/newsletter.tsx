@@ -1,6 +1,8 @@
 "use client";
 
-import { TextField } from "@/components/admin/ui/field";
+import { TextField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { SegmentedControl } from "@/components/admin/ui/segmented-control";
 import { buttonClasses } from "@/components/ui/button";
 import { KineticText } from "@/lib/motion/primitives";
@@ -15,9 +17,9 @@ export function NewsletterEdit({ data, onChange, locale }: BlockEditProps<Newsle
   const dir = locale === "ar" ? "rtl" : "ltr";
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
-      <TextField label="Body" value={data.body ?? ""} onChange={(body) => onChange({ ...data, body })} dir={dir} />
-      <TextField label="Submit button label" value={data.submitLabel ?? ""} onChange={(submitLabel) => onChange({ ...data, submitLabel })} dir={dir} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
+      <TextField label="Body" {...styledProps(data, "body", onChange)} dir={dir} />
+      <TextField label="Submit button label" {...styledProps(data, "submitLabel", onChange)} dir={dir} />
       <SegmentedControl
         value={data.layout}
         onChange={(layout) => onChange({ ...data, layout })}
@@ -46,7 +48,7 @@ function SubscribeForm({ data, locale, interactive, className }: BlockRenderProp
         />
         {/* min-w-0 on the input + shrink-0 here: without them the email field kept its intrinsic width and pushed this button past the screen edge on phones (PHASE 11). */}
         <button type="submit" disabled={pending || !interactive} className={buttonClasses("primary", "md", "shrink-0")}>
-          {pending ? "…" : data.submitLabel || "Subscribe"}
+          {pending ? "…" : data.submitLabel ? <StyledText text={data.submitLabel} rich={richOf(data, "submitLabel")} /> : "Subscribe"}
         </button>
       </form>
       {state.success ? <p className="mt-2 text-sm text-emerald-500">Subscribed.</p> : null}
@@ -62,8 +64,14 @@ export function NewsletterRender(props: BlockRenderProps<NewsletterData>) {
     return (
       <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-lg">
-          {data.heading ? <KineticText as="h2" text={data.heading} className="font-display text-h1 leading-[1.05]" /> : null}
-          {data.body ? <p className="mt-4 text-lg opacity-70">{data.body}</p> : null}
+          {data.heading ? (
+            richOf(data, "heading") ? (
+              <h2 className="font-display text-h1 leading-[1.05]"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2>
+            ) : (
+              <KineticText as="h2" text={data.heading} className="font-display text-h1 leading-[1.05]" />
+            )
+          ) : null}
+          {data.body ? <p className="mt-4 text-lg opacity-70"><StyledText text={data.body} rich={richOf(data, "body")} /></p> : null}
         </div>
         <SubscribeForm {...props} className="w-full lg:w-auto lg:min-w-[380px]" />
       </div>
@@ -72,8 +80,8 @@ export function NewsletterRender(props: BlockRenderProps<NewsletterData>) {
 
   return (
     <div className="mx-auto max-w-md text-center">
-      {data.heading ? <h2 className="font-display text-2xl">{data.heading}</h2> : null}
-      {data.body ? <p className="mt-2 text-sm opacity-65">{data.body}</p> : null}
+      {data.heading ? <h2 className="font-display text-2xl"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
+      {data.body ? <p className="mt-2 text-sm opacity-65"><StyledText text={data.body} rich={richOf(data, "body")} /></p> : null}
       <SubscribeForm {...props} className="mt-5" />
     </div>
   );

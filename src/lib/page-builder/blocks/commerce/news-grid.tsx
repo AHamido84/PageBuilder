@@ -1,6 +1,6 @@
 "use client";
 
-import { SelectField, TextField, NumberField } from "@/components/admin/ui/field";
+import { SelectField, TextField, NumberField, styledProps } from "@/components/admin/ui/field";
 import { useReferenceData } from "../../reference-data-context";
 import type { BlockEditProps } from "../../types";
 import type { NewsGridData } from "../commerce-blocks";
@@ -9,7 +9,7 @@ export function NewsGridEdit({ data, onChange, locale }: BlockEditProps<NewsGrid
   const { blogCategories } = useReferenceData();
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={locale === "ar" ? "rtl" : "ltr"} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={locale === "ar" ? "rtl" : "ltr"} />
       <SelectField
         label="Category filter"
         value={data.categoryId ?? ""}

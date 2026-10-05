@@ -1,13 +1,13 @@
 "use client";
 
-import { TextField } from "@/components/admin/ui/field";
+import { TextField, styledProps } from "@/components/admin/ui/field";
 import type { BlockEditProps } from "../../types";
 import type { SolutionsGridData } from "../commerce-blocks";
 
 export function SolutionsGridEdit({ data, onChange, locale }: BlockEditProps<SolutionsGridData>) {
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={locale === "ar" ? "rtl" : "ltr"} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={locale === "ar" ? "rtl" : "ltr"} />
       <TextField
         label="Limit (optional)"
         value={data.limit != null ? String(data.limit) : ""}

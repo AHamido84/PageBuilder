@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
-import { TextField, TextareaField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { IconButton } from "@/components/admin/ui/icon-button";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 
@@ -28,9 +30,10 @@ function ItemListEditImpl<T extends AccordionLikeData>({ itemLabel, data, onChan
   function setItems(next: AccordionItem[]) {
     onChange({ ...data, items: next } as T);
   }
+  const setItem = (i: number) => (next: AccordionItem) => setItems(items.map((it, idx) => (idx === i ? next : it)));
   return (
     <div className="space-y-3">
-      <TextField label="Heading (optional)" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading } as T)} dir={dir} />
+      <TextField label="Heading (optional)" {...styledProps(data, "heading", onChange)} dir={dir} />
       <div className="space-y-2">
         {items.map((item, i) => (
           <div key={i} className="space-y-2 rounded-md border border-neutral-800 p-3">
@@ -40,8 +43,8 @@ function ItemListEditImpl<T extends AccordionLikeData>({ itemLabel, data, onChan
               </p>
               <IconButton icon={Trash2} label="Remove" danger onClick={() => setItems(items.filter((_, idx) => idx !== i))} />
             </div>
-            <TextField label="Title / Question" value={item.title} onChange={(title) => setItems(items.map((it, idx) => (idx === i ? { ...it, title } : it)))} dir={dir} />
-            <TextareaField label="Body / Answer" value={item.body} onChange={(body) => setItems(items.map((it, idx) => (idx === i ? { ...it, body } : it)))} dir={dir} rows={2} />
+            <TextField label="Title / Question" {...styledProps(item, "title", setItem(i))} dir={dir} />
+            <TextareaField label="Body / Answer" {...styledProps(item, "body", setItem(i))} dir={dir} rows={2} />
           </div>
         ))}
         <button
@@ -74,7 +77,7 @@ export function AccordionListRender({ data, interactive }: BlockRenderProps<Acco
   const items = data.items ?? [];
   return (
     <div>
-      {data.heading ? <h2 className="mb-6 font-display text-3xl">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-6 font-display text-3xl"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <div className="divide-y divide-current/10 border-y border-current/10">
         {items.map((item, i) => {
           const open = openIndex === i;
@@ -86,10 +89,10 @@ export function AccordionListRender({ data, interactive }: BlockRenderProps<Acco
                 onClick={() => interactive && setOpenIndex(open ? null : i)}
                 className="flex w-full items-center justify-between gap-4 py-4 text-start font-medium"
               >
-                <span>{item.title}</span>
+                <span><StyledText text={item.title} rich={richOf(item, "title")} /></span>
                 <ChevronDown size={18} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
               </button>
-              {open ? <p className="pb-4 text-sm opacity-70">{item.body}</p> : null}
+              {open ? <p className="pb-4 text-sm opacity-70"><StyledText text={item.body} rich={richOf(item, "body")} /></p> : null}
             </div>
           );
         })}

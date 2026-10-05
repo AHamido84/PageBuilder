@@ -1,13 +1,13 @@
 "use client";
 
-import { SelectField, TextField } from "@/components/admin/ui/field";
+import { SelectField, TextField, styledProps } from "@/components/admin/ui/field";
 import type { BlockEditProps } from "../../types";
 import type { MarqueeData } from "../misc-blocks";
 
 export function MarqueeEdit({ data, onChange, locale }: BlockEditProps<MarqueeData>) {
   return (
     <div className="space-y-3">
-      <TextField label="Heading (optional)" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={locale === "ar" ? "rtl" : "ltr"} />
+      <TextField label="Heading (optional)" {...styledProps(data, "heading", onChange)} dir={locale === "ar" ? "rtl" : "ltr"} />
       <SelectField
         label="Source"
         value={data.source}

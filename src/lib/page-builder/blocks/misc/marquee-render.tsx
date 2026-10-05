@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { CmsImage } from "@/components/media/cms-image";
 import { Marquee } from "@/components/ui/marquee";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockRenderProps } from "../../types";
 import type { MarqueeData } from "../misc-blocks";
 
@@ -36,7 +38,7 @@ export async function MarqueeRender({ data, locale }: BlockRenderProps<MarqueeDa
 
   return (
     <div>
-      {data.heading ? <h2 className="mb-8 font-display text-h2">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-8 font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <Marquee className="border-y border-current/10 py-8 sm:py-10" trackClassName="gap-16 sm:gap-20">
         {loop.map((item, i) =>
           showLogos && item.logoUrl ? (

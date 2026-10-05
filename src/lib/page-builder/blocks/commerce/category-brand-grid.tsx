@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronUp, ChevronDown, X } from "lucide-react";
-import { TextField, TextareaField, SelectField, NumberField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, SelectField, NumberField, styledProps } from "@/components/admin/ui/field";
 import { CheckboxField } from "@/components/admin/ui/field";
 import { useReferenceData, type ReferenceOption } from "../../reference-data-context";
 import type { BlockEditProps } from "../../types";
@@ -57,8 +57,8 @@ export function CategoryGridEdit({ data, onChange, locale }: BlockEditProps<Cate
 
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
-      <TextareaField label="Description (optional)" value={data.description ?? ""} onChange={(description) => onChange({ ...data, description })} dir={dir} rows={2} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
+      <TextareaField label="Description (optional)" {...styledProps(data, "description", onChange)} dir={dir} rows={2} />
 
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Category source</label>
@@ -215,7 +215,7 @@ export function BrandGridEdit({ data, onChange, locale }: BlockEditProps<BrandGr
 
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={locale === "ar" ? "rtl" : "ltr"} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={locale === "ar" ? "rtl" : "ltr"} />
 
       <div>
         <label className="mb-1 block text-xs text-neutral-400">Brand source</label>

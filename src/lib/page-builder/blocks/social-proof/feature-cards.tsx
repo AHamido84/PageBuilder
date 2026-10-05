@@ -1,5 +1,7 @@
 import { resolveColumnsClasses } from "../../style-tokens";
 import { ScrollReveal } from "@/lib/motion/primitives";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockRenderProps } from "../../types";
 import type { FeatureCardsData } from "../social-proof-blocks";
 
@@ -9,13 +11,13 @@ import type { FeatureCardsData } from "../social-proof-blocks";
 export function FeatureCardsRender({ data, settings }: BlockRenderProps<FeatureCardsData>) {
   return (
     <div>
-      {data.heading ? <h2 className="mb-10 font-display text-h2">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-10 font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <div className={`grid gap-6 lg:gap-8 ${resolveColumnsClasses(settings)}`}>
         {data.items.map((item, i) => (
           <ScrollReveal key={i} variant="fade-up" className="rounded-[var(--card-radius-lg)] border border-current/10 p-8" data-ui-card="">
             <p className="font-mono-data text-wheat-strong opacity-60">{String(i + 1).padStart(2, "0")}</p>
-            <p className="mt-4 font-display text-h4">{item.title}</p>
-            <p className="mt-2 text-sm leading-relaxed opacity-65">{item.body}</p>
+            <p className="mt-4 font-display text-h4"><StyledText text={item.title} rich={richOf(item, "title")} /></p>
+            <p className="mt-2 text-sm leading-relaxed opacity-65"><StyledText text={item.body} rich={richOf(item, "body")} /></p>
           </ScrollReveal>
         ))}
       </div>

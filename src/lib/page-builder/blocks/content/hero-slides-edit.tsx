@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp, Copy, Plus, Trash2 } from "lucide-react";
-import { TextField, TextareaField, SelectField, NumberField, CheckboxField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, SelectField, NumberField, CheckboxField, styledProps } from "@/components/admin/ui/field";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { MultiMediaPickerButton, type MediaListItem } from "@/components/admin/ui/media-library-modal";
 import { IconButton } from "@/components/admin/ui/icon-button";
@@ -301,12 +301,12 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
                 </div>
               ) : null}
 
-              <TextField label="Eyebrow" value={slide.eyebrow ?? ""} onChange={(eyebrow) => updateSlide(i, { eyebrow })} dir={dir} />
-              <TextField label="Headline" value={slide.headline ?? ""} onChange={(headline) => updateSlide(i, { headline })} dir={dir} />
-              <TextareaField label="Description" value={slide.description ?? ""} onChange={(description) => updateSlide(i, { description })} dir={dir} rows={2} />
+              <TextField label="Eyebrow" {...styledProps(slide, "eyebrow", (next) => setSlides(slides.map((s, idx) => (idx === i ? next : s))))} dir={dir} />
+              <TextField label="Headline" {...styledProps(slide, "headline", (next) => setSlides(slides.map((s, idx) => (idx === i ? next : s))))} dir={dir} />
+              <TextareaField label="Description" {...styledProps(slide, "description", (next) => setSlides(slides.map((s, idx) => (idx === i ? next : s))))} dir={dir} rows={2} />
 
               <div className="grid grid-cols-2 gap-3">
-                <TextField label="Primary CTA label" value={slide.ctaLabel ?? ""} onChange={(ctaLabel) => updateSlide(i, { ctaLabel })} dir={dir} />
+                <TextField label="Primary CTA label" {...styledProps(slide, "ctaLabel", (next) => setSlides(slides.map((s, idx) => (idx === i ? next : s))))} dir={dir} />
                 <TextField label="Primary CTA URL" value={slide.ctaUrl ?? ""} onChange={(ctaUrl) => updateSlide(i, { ctaUrl })} />
               </div>
               <SelectField
@@ -316,7 +316,7 @@ export function HeroSlidesEditor({ data, onChange, locale }: BlockEditProps<Hero
                 options={[{ value: "", label: "Use Hero default (Primary)" }, ...CTA_STYLE_OPTIONS]}
               />
               <div className="grid grid-cols-2 gap-3">
-                <TextField label="Secondary CTA label" value={slide.ctaLabel2 ?? ""} onChange={(ctaLabel2) => updateSlide(i, { ctaLabel2 })} dir={dir} />
+                <TextField label="Secondary CTA label" {...styledProps(slide, "ctaLabel2", (next) => setSlides(slides.map((s, idx) => (idx === i ? next : s))))} dir={dir} />
                 <TextField label="Secondary CTA URL" value={slide.ctaUrl2 ?? ""} onChange={(ctaUrl2) => updateSlide(i, { ctaUrl2 })} />
               </div>
               <SelectField

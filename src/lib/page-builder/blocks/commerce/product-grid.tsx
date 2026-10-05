@@ -1,6 +1,6 @@
 "use client";
 
-import { SelectField, TextField, TextareaField, NumberField, CheckboxField } from "@/components/admin/ui/field";
+import { SelectField, TextField, TextareaField, NumberField, CheckboxField, styledProps } from "@/components/admin/ui/field";
 import { useReferenceData } from "../../reference-data-context";
 import type { BlockEditProps } from "../../types";
 import type { ProductGridData } from "../commerce-blocks";
@@ -20,8 +20,8 @@ export function ProductGridEdit({ data, onChange, locale }: BlockEditProps<Produ
   };
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
-      <TextareaField label="Description (optional)" value={data.description ?? ""} onChange={(description) => onChange({ ...data, description })} dir={dir} rows={2} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
+      <TextareaField label="Description (optional)" {...styledProps(data, "description", onChange)} dir={dir} rows={2} />
       <SelectField
         label="Products to show"
         value={mode}
@@ -123,11 +123,11 @@ export function ProductGridEdit({ data, onChange, locale }: BlockEditProps<Produ
         <CheckboxField label="Show a promo card" checked={promo.enabled} onChange={(enabled) => setPromo({ enabled })} />
         {promo.enabled ? (
           <>
-            <TextField label="Eyebrow" value={promo.eyebrow} onChange={(eyebrow) => setPromo({ eyebrow })} dir={dir} />
-            <TextField label="Title" value={promo.title} onChange={(title) => setPromo({ title })} dir={dir} />
-            <TextareaField label="Text" value={promo.body} onChange={(body) => setPromo({ body })} dir={dir} rows={2} />
+            <TextField label="Eyebrow" {...styledProps(promo, "eyebrow", (next) => onChange({ ...data, promo: next }))} dir={dir} />
+            <TextField label="Title" {...styledProps(promo, "title", (next) => onChange({ ...data, promo: next }))} dir={dir} />
+            <TextareaField label="Text" {...styledProps(promo, "body", (next) => onChange({ ...data, promo: next }))} dir={dir} rows={2} />
             <div className="grid grid-cols-2 gap-2">
-              <TextField label="Button label" value={promo.ctaLabel} onChange={(ctaLabel) => setPromo({ ctaLabel })} dir={dir} />
+              <TextField label="Button label" {...styledProps(promo, "ctaLabel", (next) => onChange({ ...data, promo: next }))} dir={dir} />
               <TextField label="Button link" value={promo.ctaUrl} onChange={(ctaUrl) => setPromo({ ctaUrl })} placeholder="/contact" />
             </div>
             <NumberField label="Position in grid" value={promo.position} min={1} max={24} onChange={(position) => setPromo({ position })} />

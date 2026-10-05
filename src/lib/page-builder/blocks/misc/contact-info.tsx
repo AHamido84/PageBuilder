@@ -1,13 +1,13 @@
 "use client";
 
-import { TextField } from "@/components/admin/ui/field";
+import { TextField, styledProps } from "@/components/admin/ui/field";
 import type { BlockEditProps } from "../../types";
 import type { ContactInfoData } from "../misc-blocks";
 
 export function ContactInfoEdit({ data, onChange, locale }: BlockEditProps<ContactInfoData>) {
   return (
     <div className="space-y-3">
-      <TextField label="Heading (optional)" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={locale === "ar" ? "rtl" : "ltr"} />
+      <TextField label="Heading (optional)" {...styledProps(data, "heading", onChange)} dir={locale === "ar" ? "rtl" : "ltr"} />
       <p className="rounded-md bg-neutral-900 px-2 py-1.5 text-[11px] text-neutral-500">
         Location, email, phone, business hours, and map embed are pulled live from Settings → General/Contact/Hours — edit those there, not here.
       </p>

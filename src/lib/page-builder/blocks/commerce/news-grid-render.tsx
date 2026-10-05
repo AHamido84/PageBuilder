@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
 import { CmsFillImage } from "@/components/media/cms-image";
 import { Arrow } from "@/components/ui/arrow";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockRenderProps } from "../../types";
 import type { NewsGridData } from "../commerce-blocks";
 
@@ -31,7 +33,7 @@ export async function NewsGridRender({ data, locale }: BlockRenderProps<NewsGrid
 
   return (
     <div>
-      {data.heading ? <h2 className="mb-8 font-display text-h2">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-8 font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
 
       <Link
         href={`/${locale}/blog/${featured.slug}`}

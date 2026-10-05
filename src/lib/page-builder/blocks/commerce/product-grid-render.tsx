@@ -3,6 +3,8 @@ import type { ProductCardData } from "@/components/site/product-card";
 import { ProductCarouselTrack } from "@/components/site/product-carousel-track";
 import type { Prisma } from "@prisma/client";
 import { ProductGridFilterable } from "./product-grid-filterable";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockRenderProps } from "../../types";
 import type { ProductGridData } from "../commerce-blocks";
 import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
@@ -78,8 +80,8 @@ export async function ProductGridRender({ data, locale }: BlockRenderProps<Produ
 
   return (
     <div>
-      {data.heading ? <h2 className="mb-3 font-display text-h2">{data.heading}</h2> : null}
-      {data.description ? <p className="measure-ar mb-8 max-w-2xl text-ink/60">{data.description}</p> : null}
+      {data.heading ? <h2 className="mb-3 font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
+      {data.description ? <p className="measure-ar mb-8 max-w-2xl text-ink/60"><StyledText text={data.description} rich={richOf(data, "description")} /></p> : null}
       <ProductGridFilterable
         cards={cards}
         locale={locale}
@@ -105,8 +107,8 @@ export async function ProductCarouselRender({ data, locale }: BlockRenderProps<P
 
   return (
     <div>
-      {data.heading ? <h2 className="mb-3 font-display text-h2">{data.heading}</h2> : null}
-      {data.description ? <p className="measure-ar mb-8 max-w-2xl text-ink/60">{data.description}</p> : null}
+      {data.heading ? <h2 className="mb-3 font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
+      {data.description ? <p className="measure-ar mb-8 max-w-2xl text-ink/60"><StyledText text={data.description} rich={richOf(data, "description")} /></p> : null}
       <ProductCarouselTrack
         cards={cards}
         locale={locale}

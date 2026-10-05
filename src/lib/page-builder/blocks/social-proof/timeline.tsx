@@ -1,7 +1,9 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { TextField, TextareaField, SelectField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, SelectField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { IconButton } from "@/components/admin/ui/icon-button";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { ColdChainJourney } from "@/components/site/cold-chain-journey";
@@ -14,9 +16,10 @@ export function TimelineEdit({ data, onChange, locale }: BlockEditProps<Timeline
   function setItems(next: TimelineData["items"]) {
     onChange({ ...data, items: next });
   }
+  const setItem = (i: number) => (next: TimelineData["items"][number]) => setItems(items.map((it, idx) => (idx === i ? next : it)));
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
       <SelectField
         label="Layout"
         value={data.layout}
@@ -32,9 +35,9 @@ export function TimelineEdit({ data, onChange, locale }: BlockEditProps<Timeline
             <p className="text-xs font-medium text-neutral-500">Event {i + 1}</p>
             <IconButton icon={Trash2} label="Remove" danger onClick={() => setItems(items.filter((_, idx) => idx !== i))} />
           </div>
-          <TextField label="Date (optional)" value={item.date ?? ""} onChange={(date) => setItems(items.map((it, idx) => (idx === i ? { ...it, date } : it)))} />
-          <TextField label="Title" value={item.title} onChange={(title) => setItems(items.map((it, idx) => (idx === i ? { ...it, title } : it)))} dir={dir} />
-          <TextareaField label="Body" value={item.body} onChange={(body) => setItems(items.map((it, idx) => (idx === i ? { ...it, body } : it)))} dir={dir} rows={2} />
+          <TextField label="Date (optional)" {...styledProps(item, "date", setItem(i))} />
+          <TextField label="Title" {...styledProps(item, "title", setItem(i))} dir={dir} />
+          <TextareaField label="Body" {...styledProps(item, "body", setItem(i))} dir={dir} rows={2} />
           <MediaPickerControlled
             label="Photo (optional — shown instead of the step icon)"
             mediaId={item.image?.id ?? ""}
@@ -56,18 +59,18 @@ export function TimelineEdit({ data, onChange, locale }: BlockEditProps<Timeline
 
 export function TimelineRender({ data }: BlockRenderProps<TimelineData>) {
   if (data.layout === "journey") {
-    return <ColdChainJourney heading={data.heading} steps={data.items} />;
+    return <ColdChainJourney heading={data.heading} headingRich={richOf(data, "heading")} steps={data.items} />;
   }
   return (
     <div>
-      {data.heading ? <h2 className="mb-8 font-display text-3xl">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-8 font-display text-3xl"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <div className="space-y-6 border-s-2 border-current/15 ps-6">
         {data.items.map((item, i) => (
           <div key={i} className="relative">
             <span className="absolute -start-[1.9rem] top-1 h-2.5 w-2.5 rounded-full bg-current" />
-            {item.date ? <p className="text-xs font-mono uppercase tracking-wide opacity-50">{item.date}</p> : null}
-            <p className="mt-1 font-display text-lg">{item.title}</p>
-            <p className="mt-1 text-sm opacity-70">{item.body}</p>
+            {item.date ? <p className="text-xs font-mono uppercase tracking-wide opacity-50"><StyledText text={item.date} rich={richOf(item, "date")} /></p> : null}
+            <p className="mt-1 font-display text-lg"><StyledText text={item.title} rich={richOf(item, "title")} /></p>
+            <p className="mt-1 text-sm opacity-70"><StyledText text={item.body} rich={richOf(item, "body")} /></p>
           </div>
         ))}
       </div>

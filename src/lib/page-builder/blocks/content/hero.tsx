@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { TextField, TextareaField, SelectField, NumberField, CheckboxField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, SelectField, NumberField, CheckboxField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { MultiMediaPickerButton, type MediaListItem } from "@/components/admin/ui/media-library-modal";
 import { Trash2 } from "lucide-react";
@@ -786,14 +788,14 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
       ) : (
         <div className="space-y-3">
           <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Hero Content</p>
-          <TextField label="Eyebrow" value={data.eyebrow ?? ""} onChange={(eyebrow) => onChange({ ...data, eyebrow })} dir={dir} />
-          <TextField label="Headline" value={data.headline} onChange={(headline) => onChange({ ...data, headline })} dir={dir} />
-          <TextareaField label="Description" value={data.subheading ?? ""} onChange={(subheading) => onChange({ ...data, subheading })} dir={dir} rows={2} />
+          <TextField label="Eyebrow" {...styledProps(data, "eyebrow", onChange)} dir={dir} />
+          <TextField label="Headline" {...styledProps(data, "headline", onChange)} dir={dir} />
+          <TextareaField label="Description" {...styledProps(data, "subheading", onChange)} dir={dir} rows={2} />
 
           <div className="space-y-2 rounded-md border border-neutral-800 p-3">
             <p className="text-xs text-neutral-500">Primary button</p>
             <div className="grid grid-cols-2 gap-3">
-              <TextField label="Label" value={data.ctaLabel ?? ""} onChange={(ctaLabel) => onChange({ ...data, ctaLabel })} dir={dir} />
+              <TextField label="Label" {...styledProps(data, "ctaLabel", onChange)} dir={dir} />
               <TextField label="URL" value={data.ctaUrl ?? ""} onChange={(ctaUrl) => onChange({ ...data, ctaUrl })} />
             </div>
             <div className="flex flex-wrap items-center gap-4">
@@ -812,7 +814,7 @@ export function HeroEdit({ data, onChange, locale }: BlockEditProps<HeroData & P
           <div className="space-y-2 rounded-md border border-neutral-800 p-3">
             <p className="text-xs text-neutral-500">Secondary button</p>
             <div className="grid grid-cols-2 gap-3">
-              <TextField label="Label" value={data.ctaLabel2 ?? ""} onChange={(ctaLabel2) => onChange({ ...data, ctaLabel2 })} dir={dir} />
+              <TextField label="Label" {...styledProps(data, "ctaLabel2", onChange)} dir={dir} />
               <TextField label="URL" value={data.ctaUrl2 ?? ""} onChange={(ctaUrl2) => onChange({ ...data, ctaUrl2 })} />
             </div>
             <div className="flex flex-wrap items-center gap-4">
@@ -926,7 +928,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
             className={buttonClasses(heroButtonVariant(data.ctaStyle), "lg")}
             {...(data.ctaExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
           >
-            {data.ctaLabel}
+            <StyledText text={data.ctaLabel} rich={richOf(data, "ctaLabel")} />
           </Link>
         ) : null}
         {hasSecondaryCta ? (
@@ -935,7 +937,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
             className={buttonClasses(heroButtonVariant(data.ctaStyle2), "lg")}
             {...(data.ctaExternal2 ? { target: "_blank", rel: "noopener noreferrer" } : {})}
           >
-            {data.ctaLabel2}
+            <StyledText text={data.ctaLabel2} rich={richOf(data, "ctaLabel2")} />
           </Link>
         ) : null}
       </div>
@@ -966,7 +968,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
     <Stagger>
       {data.eyebrow ? (
         <StaggerItem>
-          <p className={`manifest-strip mb-2 opacity-60 ${data.accentColor === "paper" ? "text-paper" : "text-wheat"}`}>{data.eyebrow}</p>
+          <p className={`manifest-strip mb-2 opacity-60 ${data.accentColor === "paper" ? "text-paper" : "text-wheat"}`}><StyledText text={data.eyebrow} rich={richOf(data, "eyebrow")} /></p>
           <RouteLine
             d={HERO_ACCENT_PATH}
             viewBox="0 0 120 16"
@@ -976,11 +978,11 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
         </StaggerItem>
       ) : null}
       <StaggerItem>
-        <KineticText as="h1" text={data.headline} className="font-display text-hero measure-ar" />
+        {richOf(data, "headline") ? <h1 className="font-display text-hero measure-ar"><StyledText text={data.headline} rich={richOf(data, "headline")} /></h1> : <KineticText as="h1" text={data.headline} className="font-display text-hero measure-ar" />}
       </StaggerItem>
       {data.subheading ? (
         <StaggerItem>
-          <p className="measure-ar mt-5 max-w-lg text-base leading-relaxed opacity-70 sm:text-lg">{data.subheading}</p>
+          <p className="measure-ar mt-5 max-w-lg text-base leading-relaxed opacity-70 sm:text-lg"><StyledText text={data.subheading} rich={richOf(data, "subheading")} /></p>
         </StaggerItem>
       ) : null}
       {!ctaIsCustom && ctaButtons ? <StaggerItem><div className="mt-8">{ctaButtons}</div></StaggerItem> : null}

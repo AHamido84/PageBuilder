@@ -9,6 +9,8 @@ import { buttonClasses } from "@/components/ui/button";
 import { KineticText, Stagger, StaggerItem } from "@/lib/motion/primitives";
 import { DURATION, EASE_PREMIUM } from "@/lib/motion/motionTokens";
 import { HeroFrame, HeroMediaMotion, HeroVideoLayer, HeroCtaOverlay, heroButtonVariant, heroImageFitClass, resolveTier } from "./hero-shared";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
 import type { HeroRenderData } from "../content-blocks";
@@ -137,12 +139,12 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
       <div className="flex flex-wrap items-center gap-3">
         {hasPrimaryCta ? (
           <Link href={resolveHref(slide.ctaUrl, locale)} className={buttonClasses(primaryVariant, "lg")}>
-            {slide.ctaLabel}
+            <StyledText text={slide.ctaLabel} rich={richOf(slide, "ctaLabel")} />
           </Link>
         ) : null}
         {hasSecondaryCta ? (
           <Link href={resolveHref(slide.ctaUrl2, locale)} className={buttonClasses(secondaryVariant, "lg")}>
-            {slide.ctaLabel2}
+            <StyledText text={slide.ctaLabel2} rich={richOf(slide, "ctaLabel2")} />
           </Link>
         ) : null}
       </div>
@@ -174,17 +176,17 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
     <Stagger key={slide.id}>
       {slide.eyebrow ? (
         <StaggerItem>
-          <p className="manifest-strip mb-2 opacity-60">{slide.eyebrow}</p>
+          <p className="manifest-strip mb-2 opacity-60"><StyledText text={slide.eyebrow} rich={richOf(slide, "eyebrow")} /></p>
         </StaggerItem>
       ) : null}
       {slide.headline ? (
         <StaggerItem>
-          <KineticText as="h1" text={slide.headline} className="font-display text-hero measure-ar" />
+          {richOf(slide, "headline") ? <h1 className="font-display text-hero measure-ar"><StyledText text={slide.headline} rich={richOf(slide, "headline")} /></h1> : <KineticText as="h1" text={slide.headline} className="font-display text-hero measure-ar" />}
         </StaggerItem>
       ) : null}
       {slide.description ? (
         <StaggerItem>
-          <p className="measure-ar mt-5 max-w-lg text-base leading-relaxed opacity-70 sm:text-lg">{slide.description}</p>
+          <p className="measure-ar mt-5 max-w-lg text-base leading-relaxed opacity-70 sm:text-lg"><StyledText text={slide.description} rich={richOf(slide, "description")} /></p>
         </StaggerItem>
       ) : null}
       {!ctaIsCustom && ctaButtons ? <StaggerItem><div className="mt-8">{ctaButtons}</div></StaggerItem> : null}

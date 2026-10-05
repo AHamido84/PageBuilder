@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { TextField, TextareaField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { SegmentedControl } from "@/components/admin/ui/segmented-control";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { CmsFillImage } from "@/components/media/cms-image";
@@ -15,10 +17,10 @@ export function CtaEdit({ data, onChange, locale }: BlockEditProps<CtaData>) {
   const dir = locale === "ar" ? "rtl" : "ltr";
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
-      <TextareaField label="Body" value={data.body ?? ""} onChange={(body) => onChange({ ...data, body })} dir={dir} rows={2} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
+      <TextareaField label="Body" {...styledProps(data, "body", onChange)} dir={dir} rows={2} />
       <div className="grid grid-cols-2 gap-3">
-        <TextField label="Button label" value={data.ctaLabel} onChange={(ctaLabel) => onChange({ ...data, ctaLabel })} dir={dir} />
+        <TextField label="Button label" {...styledProps(data, "ctaLabel", onChange)} dir={dir} />
         <TextField label="Button URL" value={data.ctaUrl} onChange={(ctaUrl) => onChange({ ...data, ctaUrl })} />
       </div>
       <SegmentedControl
@@ -42,10 +44,10 @@ export function CtaRender({ data, locale }: BlockRenderProps<CtaData>) {
   if (!hasBannerImage) {
     return (
       <div className="mx-auto max-w-xl text-center">
-        {data.heading ? <h2 className="font-display text-3xl">{data.heading}</h2> : null}
-        {data.body ? <p className="mx-auto mt-4 opacity-65">{data.body}</p> : null}
+        {data.heading ? <h2 className="font-display text-3xl"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
+        {data.body ? <p className="mx-auto mt-4 opacity-65"><StyledText text={data.body} rich={richOf(data, "body")} /></p> : null}
         <Link href={resolveHref(data.ctaUrl, locale)} className={`${buttonClasses("primary", "lg")} mt-8 inline-flex`}>
-          {data.ctaLabel}
+          <StyledText text={data.ctaLabel} rich={richOf(data, "ctaLabel")} />
         </Link>
       </div>
     );
@@ -56,10 +58,10 @@ export function CtaRender({ data, locale }: BlockRenderProps<CtaData>) {
       <CmsFillImage src={data.image!.url} alt="" sizes="100vw" className="object-cover" context={{ mediaId: data.image!.id, component: "CTA", locale }} />
       <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/40 to-ink/10" />
       <div className="relative max-w-xl text-paper">
-        {data.heading ? <h2 className="font-display text-h1 leading-tight">{data.heading}</h2> : null}
-        {data.body ? <p className="mt-4 max-w-md text-paper/80">{data.body}</p> : null}
+        {data.heading ? <h2 className="font-display text-h1 leading-tight"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
+        {data.body ? <p className="mt-4 max-w-md text-paper/80"><StyledText text={data.body} rich={richOf(data, "body")} /></p> : null}
         <Link href={resolveHref(data.ctaUrl, locale)} className={`${buttonClasses("gold", "lg")} mt-8 inline-flex`}>
-          {data.ctaLabel}
+          <StyledText text={data.ctaLabel} rich={richOf(data, "ctaLabel")} />
         </Link>
       </div>
     </ScrollReveal>

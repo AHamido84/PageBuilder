@@ -6,7 +6,9 @@ import {
   Shield, Snowflake, Star, Thermometer, Trash2, Truck, Users,
   type LucideIcon,
 } from "lucide-react";
-import { TextField, TextareaField, SelectField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, SelectField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { IconButton } from "@/components/admin/ui/icon-button";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { CmsFillImage } from "@/components/media/cms-image";
@@ -29,9 +31,10 @@ export function IconCardsEdit({ data, onChange, locale }: BlockEditProps<IconCar
   function setItems(next: IconCardsData["items"]) {
     onChange({ ...data, items: next });
   }
+  const setItem = (i: number) => (next: IconCardsData["items"][number]) => setItems(items.map((it, idx) => (idx === i ? next : it)));
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
       {items.map((item, i) => (
         <div key={i} className="space-y-2 rounded-md border border-neutral-800 p-3">
           <div className="flex items-center justify-between">
@@ -44,8 +47,8 @@ export function IconCardsEdit({ data, onChange, locale }: BlockEditProps<IconCar
             onChange={(icon) => setItems(items.map((it, idx) => (idx === i ? { ...it, icon } : it)))}
             options={Object.keys(ICON_OPTIONS).map((k) => ({ value: k, label: k }))}
           />
-          <TextField label="Title" value={item.title} onChange={(title) => setItems(items.map((it, idx) => (idx === i ? { ...it, title } : it)))} dir={dir} />
-          <TextareaField label="Body" value={item.body} onChange={(body) => setItems(items.map((it, idx) => (idx === i ? { ...it, body } : it)))} dir={dir} rows={2} />
+          <TextField label="Title" {...styledProps(item, "title", setItem(i))} dir={dir} />
+          <TextareaField label="Body" {...styledProps(item, "body", setItem(i))} dir={dir} rows={2} />
           <MediaPickerControlled
             label="Image (optional — replaces the icon)"
             uploadFolderName="Solutions"
@@ -55,7 +58,7 @@ export function IconCardsEdit({ data, onChange, locale }: BlockEditProps<IconCar
           />
           <TextField label="Link (optional)" value={item.link ?? ""} onChange={(link) => setItems(items.map((it, idx) => (idx === i ? { ...it, link } : it)))} />
           {item.link ? (
-            <TextField label="Button label (optional)" value={item.ctaLabel ?? ""} onChange={(ctaLabel) => setItems(items.map((it, idx) => (idx === i ? { ...it, ctaLabel } : it)))} dir={dir} />
+            <TextField label="Button label (optional)" {...styledProps(item, "ctaLabel", setItem(i))} dir={dir} />
           ) : null}
         </div>
       ))}
@@ -73,7 +76,7 @@ export function IconCardsEdit({ data, onChange, locale }: BlockEditProps<IconCar
 export function IconCardsRender({ data, settings, locale }: BlockRenderProps<IconCardsData>) {
   return (
     <div>
-      {data.heading ? <h2 className="mb-10 font-display text-h2">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-10 font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <div className={`grid gap-[var(--card-gap,1.5rem)] lg:gap-[calc(var(--card-gap,1.5rem)*1.333)] ${resolveColumnsClasses(settings)}`}>
         {data.items.map((item, i) => {
           const Icon = ICON_OPTIONS[item.icon] ?? Star;
@@ -89,11 +92,11 @@ export function IconCardsRender({ data, settings, locale }: BlockRenderProps<Ico
                   <Icon size={26} strokeWidth={1.5} className="text-harbor" />
                 </span>
               )}
-              <p className={`${hasImage ? "" : "mt-5 "}font-display text-h4`}>{item.title}</p>
-              <p className="mt-2 text-sm leading-relaxed opacity-65">{item.body}</p>
+              <p className={`${hasImage ? "" : "mt-5 "}font-display text-h4`}><StyledText text={item.title} rich={richOf(item, "title")} /></p>
+              <p className="mt-2 text-sm leading-relaxed opacity-65"><StyledText text={item.body} rich={richOf(item, "body")} /></p>
               {item.link && item.ctaLabel ? (
                 <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-harbor">
-                  {item.ctaLabel} <Arrow />
+                  <StyledText text={item.ctaLabel} rich={richOf(item, "ctaLabel")} /> <Arrow />
                 </span>
               ) : null}
             </>

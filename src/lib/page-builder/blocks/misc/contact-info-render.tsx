@@ -2,6 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { MapPin, Mail, Phone, Clock } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockRenderProps } from "../../types";
 import type { ContactInfoData } from "../misc-blocks";
 
@@ -20,7 +22,7 @@ export async function ContactInfoRender({ data, locale }: BlockRenderProps<Conta
   return (
     <div className="mx-auto max-w-md">
       <Card variant="default" className="p-6 sm:p-8">
-        {data.heading ? <p className="manifest-strip mb-5 text-harbor">{data.heading}</p> : null}
+        {data.heading ? <p className="manifest-strip mb-5 text-harbor"><StyledText text={data.heading} rich={richOf(data, "heading")} /></p> : null}
         <dl className="space-y-5 text-base">
           <div className="flex items-start gap-3">
             <MapPin size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-harbor" aria-hidden="true" />

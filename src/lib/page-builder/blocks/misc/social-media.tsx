@@ -1,7 +1,9 @@
 "use client";
 
 import { AtSign, Briefcase, Camera, Globe, Play, Plus, Share2, Trash2 } from "lucide-react";
-import { SelectField, TextField } from "@/components/admin/ui/field";
+import { SelectField, TextField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { IconButton } from "@/components/admin/ui/icon-button";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { SocialMediaData } from "../misc-blocks";
@@ -19,7 +21,7 @@ export function SocialMediaEdit({ data, onChange, locale }: BlockEditProps<Socia
   }
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={locale === "ar" ? "rtl" : "ltr"} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={locale === "ar" ? "rtl" : "ltr"} />
       {links.map((link, i) => (
         <div key={i} className="flex items-end gap-2 rounded-md border border-neutral-800 p-2">
           <SelectField
@@ -48,7 +50,7 @@ export function SocialMediaRender({ data }: BlockRenderProps<SocialMediaData>) {
   const links = data.links.filter((l) => l.url);
   return (
     <div className="text-center">
-      {data.heading ? <h2 className="mb-6 font-display text-2xl">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-6 font-display text-2xl"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <div className="flex justify-center gap-4">
         {links.map((link, i) => {
           const Icon = PLATFORM_ICON[link.platform] ?? Globe;

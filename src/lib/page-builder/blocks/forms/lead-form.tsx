@@ -2,7 +2,9 @@
 
 import { useRef, useEffect, useState, useContext } from "react";
 import { Loader2 } from "lucide-react";
-import { TextField, TextareaField, CheckboxField, SelectField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, CheckboxField, SelectField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ToastContext } from "@/components/ui/toast";
@@ -37,11 +39,13 @@ const FORM_LABELS = {
 
 export function LeadFormEdit({ data, onChange, locale }: BlockEditProps<LeadFormData>) {
   const dir = locale === "ar" ? "rtl" : "ltr";
+  const aside: NonNullable<LeadFormData["aside"]> = { image: null, eyebrow: "", heading: "", body: "", ...data.aside };
+  const setAside = (next: NonNullable<LeadFormData["aside"]>) => onChange({ ...data, aside: next });
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
-      <TextareaField label="Body" value={data.body ?? ""} onChange={(body) => onChange({ ...data, body })} dir={dir} rows={2} />
-      <TextField label="Submit button label" value={data.submitLabel ?? ""} onChange={(submitLabel) => onChange({ ...data, submitLabel })} dir={dir} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
+      <TextareaField label="Body" {...styledProps(data, "body", onChange)} dir={dir} rows={2} />
+      <TextField label="Submit button label" {...styledProps(data, "submitLabel", onChange)} dir={dir} />
       <SelectField
         label="Submit button style"
         value={data.buttonStyle ?? "primary"}
@@ -72,21 +76,9 @@ export function LeadFormEdit({ data, onChange, locale }: BlockEditProps<LeadForm
             onChange={(id, url) => onChange({ ...data, aside: { eyebrow: "", heading: "", body: "", ...data.aside, image: id ? { id, url } : null } })}
           />
           {(["eyebrow", "heading"] as const).map((field) => (
-            <TextField
-              key={field}
-              label={field === "eyebrow" ? "Panel eyebrow" : "Panel heading"}
-              value={data.aside?.[field] ?? ""}
-              onChange={(v) => onChange({ ...data, aside: { image: null, eyebrow: "", heading: "", body: "", ...data.aside, [field]: v } })}
-              dir={dir}
-            />
+            <TextField key={field} label={field === "eyebrow" ? "Panel eyebrow" : "Panel heading"} {...styledProps(aside, field, setAside)} dir={dir} />
           ))}
-          <TextareaField
-            label="Panel text"
-            value={data.aside?.body ?? ""}
-            onChange={(body) => onChange({ ...data, aside: { image: null, eyebrow: "", heading: "", ...data.aside, body } })}
-            dir={dir}
-            rows={2}
-          />
+          <TextareaField label="Panel text" {...styledProps(aside, "body", setAside)} dir={dir} rows={2} />
         </div>
       ) : null}
       <CheckboxField label="Include a message field" checked={data.showMessage} onChange={(showMessage) => onChange({ ...data, showMessage })} />
@@ -111,12 +103,12 @@ export function LeadFormEdit({ data, onChange, locale }: BlockEditProps<LeadForm
 
       <div className="space-y-3 rounded-md border border-neutral-800 p-3">
         <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Field labels (optional — blank uses the default translation)</p>
-        <TextField label="Name field" value={data.nameLabel ?? ""} onChange={(nameLabel) => onChange({ ...data, nameLabel })} dir={dir} />
-        <TextField label="Company field" value={data.companyLabel ?? ""} onChange={(companyLabel) => onChange({ ...data, companyLabel })} dir={dir} />
-        <TextField label="Email field" value={data.emailLabel ?? ""} onChange={(emailLabel) => onChange({ ...data, emailLabel })} dir={dir} />
-        <TextField label="Phone field" value={data.phoneLabel ?? ""} onChange={(phoneLabel) => onChange({ ...data, phoneLabel })} dir={dir} />
+        <TextField label="Name field" {...styledProps(data, "nameLabel", onChange)} dir={dir} />
+        <TextField label="Company field" {...styledProps(data, "companyLabel", onChange)} dir={dir} />
+        <TextField label="Email field" {...styledProps(data, "emailLabel", onChange)} dir={dir} />
+        <TextField label="Phone field" {...styledProps(data, "phoneLabel", onChange)} dir={dir} />
         {data.showMessage ? (
-          <TextField label="Message field" value={data.messageLabel ?? ""} onChange={(messageLabel) => onChange({ ...data, messageLabel })} dir={dir} />
+          <TextField label="Message field" {...styledProps(data, "messageLabel", onChange)} dir={dir} />
         ) : null}
       </div>
     </div>
@@ -180,24 +172,24 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
           ) : null}
 
           <div>
-            <label className="mb-1.5 block text-sm opacity-60">{data.nameLabel || t.name}</label>
+            <label className="mb-1.5 block text-sm opacity-60">{data.nameLabel ? <StyledText text={data.nameLabel} rich={richOf(data, "nameLabel")} /> : t.name}</label>
             <input name="contactName" required className={inputClasses} disabled={!interactive} />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm opacity-60">{data.companyLabel || t.company}</label>
+            <label className="mb-1.5 block text-sm opacity-60">{data.companyLabel ? <StyledText text={data.companyLabel} rich={richOf(data, "companyLabel")} /> : t.company}</label>
             <input name="companyName" className={inputClasses} disabled={!interactive} />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm opacity-60">{data.emailLabel || t.email}</label>
+            <label className="mb-1.5 block text-sm opacity-60">{data.emailLabel ? <StyledText text={data.emailLabel} rich={richOf(data, "emailLabel")} /> : t.email}</label>
             <input name="email" type="email" dir="ltr" required className={`${inputClasses} text-end`} disabled={!interactive} />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm opacity-60">{data.phoneLabel || t.phone}</label>
+            <label className="mb-1.5 block text-sm opacity-60">{data.phoneLabel ? <StyledText text={data.phoneLabel} rich={richOf(data, "phoneLabel")} /> : t.phone}</label>
             <input name="phone" type="tel" dir="ltr" className={`${inputClasses} text-end`} disabled={!interactive} />
           </div>
           {data.showMessage ? (
             <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-sm opacity-60">{data.messageLabel || t.message}</label>
+              <label className="mb-1.5 block text-sm opacity-60">{data.messageLabel ? <StyledText text={data.messageLabel} rich={richOf(data, "messageLabel")} /> : t.message}</label>
               <textarea name="message" rows={4} className={inputClasses} disabled={!interactive} />
             </div>
           ) : null}
@@ -208,7 +200,7 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
               className={cn(buttonClasses(data.buttonStyle ?? "primary", "lg", "w-full sm:w-auto"), "inline-flex items-center justify-center gap-2")}
             >
               {pending ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : null}
-              {pending ? t.sending : data.submitLabel || t.send}
+              {pending ? t.sending : data.submitLabel ? <StyledText text={data.submitLabel} rich={richOf(data, "submitLabel")} /> : t.send}
             </button>
           </div>
         </form>
@@ -218,8 +210,8 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
   if (!split) {
     return (
       <div className="mx-auto max-w-xl">
-        {data.heading ? <h2 className="text-center font-display text-h2">{data.heading}</h2> : null}
-        {data.body ? <p className="mx-auto mt-4 max-w-md text-center opacity-65">{data.body}</p> : null}
+        {data.heading ? <h2 className="text-center font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
+        {data.body ? <p className="mx-auto mt-4 max-w-md text-center opacity-65"><StyledText text={data.body} rich={richOf(data, "body")} /></p> : null}
         {formCard}
       </div>
     );
@@ -229,8 +221,8 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
   return (
     <div className="grid items-stretch gap-8 lg:grid-cols-2 lg:gap-12">
       <div>
-        {data.heading ? <h2 className="font-display text-h2">{data.heading}</h2> : null}
-        {data.body ? <p className="mt-4 max-w-md opacity-65">{data.body}</p> : null}
+        {data.heading ? <h2 className="font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
+        {data.body ? <p className="mt-4 max-w-md opacity-65"><StyledText text={data.body} rich={richOf(data, "body")} /></p> : null}
         {formCard}
       </div>
       <div className="relative flex min-h-[22rem] flex-col justify-end overflow-hidden rounded-[var(--card-radius-xl)] bg-petrol p-8 text-paper sm:p-10">
@@ -241,9 +233,9 @@ export function LeadFormRender({ data, locale, interactive }: BlockRenderProps<L
           </>
         ) : null}
         <div className="relative">
-          {aside?.eyebrow ? <p className="manifest-strip mb-3 text-wheat">{aside.eyebrow}</p> : null}
-          {aside?.heading ? <p className="font-display text-h2 leading-tight">{aside.heading}</p> : null}
-          {aside?.body ? <p className="mt-3 max-w-sm text-paper/80">{aside.body}</p> : null}
+          {aside?.eyebrow ? <p className="manifest-strip mb-3 text-wheat"><StyledText text={aside.eyebrow} rich={richOf(aside, "eyebrow")} /></p> : null}
+          {aside?.heading ? <p className="font-display text-h2 leading-tight"><StyledText text={aside.heading} rich={richOf(aside, "heading")} /></p> : null}
+          {aside?.body ? <p className="mt-3 max-w-sm text-paper/80"><StyledText text={aside.body} rich={richOf(aside, "body")} /></p> : null}
         </div>
       </div>
     </div>

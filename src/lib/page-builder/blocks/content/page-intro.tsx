@@ -1,6 +1,8 @@
 "use client";
 
-import { TextField, TextareaField, SelectField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, SelectField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { PageIntroData } from "../content-blocks";
 
@@ -15,9 +17,9 @@ export function PageIntroEdit({ data, onChange, locale }: BlockEditProps<PageInt
   const dir = locale === "ar" ? "rtl" : "ltr";
   return (
     <div className="space-y-3">
-      <TextField label="Eyebrow (optional)" value={data.eyebrow ?? ""} onChange={(eyebrow) => onChange({ ...data, eyebrow })} dir={dir} />
-      <TextField label="Title" value={data.title ?? ""} onChange={(title) => onChange({ ...data, title })} dir={dir} />
-      <TextareaField label="Description (optional)" value={data.description ?? ""} onChange={(description) => onChange({ ...data, description })} dir={dir} rows={2} />
+      <TextField label="Eyebrow (optional)" {...styledProps(data, "eyebrow", onChange)} dir={dir} />
+      <TextField label="Title" {...styledProps(data, "title", onChange)} dir={dir} />
+      <TextareaField label="Description (optional)" {...styledProps(data, "description", onChange)} dir={dir} rows={2} />
       <SelectField
         label="Title heading level"
         value={data.headingLevel ?? "h1"}
@@ -35,9 +37,9 @@ export function PageIntroRender({ data }: BlockRenderProps<PageIntroData>) {
   if (!data.eyebrow && !data.title && !data.description) return null;
   return (
     <div className="max-w-2xl">
-      {data.eyebrow ? <p className="manifest-strip mb-3 text-[var(--g7-gold-500)]">{data.eyebrow}</p> : null}
-      {data.title ? (data.headingLevel === "h2" ? <h2 className="t-h2 text-[var(--g7-teal-900)]">{data.title}</h2> : <h1 className="t-h2 text-[var(--g7-teal-900)]">{data.title}</h1>) : null}
-      {data.description ? <p className="t-p mt-4 font-light text-[var(--g7-muted)]">{data.description}</p> : null}
+      {data.eyebrow ? <p className="manifest-strip mb-3 text-[var(--g7-gold-500)]"><StyledText text={data.eyebrow} rich={richOf(data, "eyebrow")} /></p> : null}
+      {data.title ? (data.headingLevel === "h2" ? <h2 className="t-h2 text-[var(--g7-teal-900)]"><StyledText text={data.title} rich={richOf(data, "title")} /></h2> : <h1 className="t-h2 text-[var(--g7-teal-900)]"><StyledText text={data.title} rich={richOf(data, "title")} /></h1>) : null}
+      {data.description ? <p className="t-p mt-4 font-light text-[var(--g7-muted)]"><StyledText text={data.description} rich={richOf(data, "description")} /></p> : null}
     </div>
   );
 }

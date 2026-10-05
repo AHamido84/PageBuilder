@@ -1,7 +1,9 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { TextField } from "@/components/admin/ui/field";
+import { TextField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { IconButton } from "@/components/admin/ui/icon-button";
 import { CmsImage } from "@/components/media/cms-image";
@@ -12,7 +14,7 @@ import type { GalleryData } from "../media-blocks";
 export function GalleryEdit({ data, onChange, locale }: BlockEditProps<GalleryData>) {
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={locale === "ar" ? "rtl" : "ltr"} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={locale === "ar" ? "rtl" : "ltr"} />
       <div className="space-y-2">
         {data.images.map((img, i) => (
           <div key={i} className="flex items-end gap-2 rounded-md border border-neutral-800 p-2">
@@ -47,7 +49,7 @@ export function GalleryRender({ data, settings, locale }: BlockRenderProps<Galle
   const images = data.images.filter((img) => img.url);
   return (
     <div>
-      {data.heading ? <h2 className="mb-6 font-display text-3xl">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-6 font-display text-3xl"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <div className={`grid gap-4 ${resolveColumnsClasses(settings)}`}>
         {images.map((img) => (
           <CmsImage

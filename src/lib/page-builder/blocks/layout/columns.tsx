@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { TextField, TextareaField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveHref } from "../../href";
@@ -37,11 +39,11 @@ function ColumnsEditImpl({ count, data, onChange, locale }: BlockEditProps<Colum
       {items.map((item, i) => (
         <div key={i} className="space-y-2 rounded-md border border-neutral-800 p-3">
           <p className="text-xs font-medium text-neutral-500">Column {i + 1}</p>
-          <TextField label="Heading" value={item.heading} onChange={(heading) => setItem(i, { ...item, heading })} dir={dir} />
-          <TextareaField label="Body" value={item.body} onChange={(body) => setItem(i, { ...item, body })} dir={dir} rows={2} />
+          <TextField label="Heading" {...styledProps(item, "heading", (next) => setItem(i, next))} dir={dir} />
+          <TextareaField label="Body" {...styledProps(item, "body", (next) => setItem(i, next))} dir={dir} rows={2} />
           <MediaPickerControlled label="Image" mediaId={item.image?.id ?? ""} previewUrl={item.image?.url} onChange={(id, url) => setItem(i, { ...item, image: id ? { id, url } : null })} />
           <div className="grid grid-cols-2 gap-2">
-            <TextField label="Link label" value={item.linkLabel} onChange={(linkLabel) => setItem(i, { ...item, linkLabel })} />
+            <TextField label="Link label" {...styledProps(item, "linkLabel", (next) => setItem(i, next))} dir={dir} />
             <TextField label="Link URL" value={item.linkUrl} onChange={(linkUrl) => setItem(i, { ...item, linkUrl })} />
           </div>
         </div>
@@ -60,11 +62,11 @@ function ColumnsRenderImpl({ count, data, locale }: BlockRenderProps<ColumnsData
             // eslint-disable-next-line @next/next/no-img-element
             <img src={item.image.url} alt="" className="mb-4 aspect-[4/3] w-full rounded-[var(--image-radius)] object-cover" />
           ) : null}
-          {item.heading ? <h3 className="font-display text-xl">{item.heading}</h3> : null}
-          {item.body ? <p className="mt-2 text-sm opacity-70">{item.body}</p> : null}
+          {item.heading ? <h3 className="font-display text-xl"><StyledText text={item.heading} rich={richOf(item, "heading")} /></h3> : null}
+          {item.body ? <p className="mt-2 text-sm opacity-70"><StyledText text={item.body} rich={richOf(item, "body")} /></p> : null}
           {item.linkLabel && item.linkUrl ? (
             <Link href={resolveHref(item.linkUrl, locale)} className="mt-3 inline-block text-sm underline opacity-80 hover:opacity-100">
-              {item.linkLabel}
+              <StyledText text={item.linkLabel} rich={richOf(item, "linkLabel")} />
             </Link>
           ) : null}
         </div>

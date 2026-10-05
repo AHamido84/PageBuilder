@@ -3,6 +3,8 @@ import * as LucideIcons from "lucide-react";
 import { Tag } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockRenderProps } from "../../types";
 import type { SolutionsGridData } from "../commerce-blocks";
 
@@ -48,7 +50,7 @@ export async function SolutionsGridRender({ data, locale }: BlockRenderProps<Sol
 
   return (
     <div>
-      {data.heading ? <h2 className="mb-8 font-display text-h2">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-8 font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {solutions.map((solution) => {
           const Icon = resolveIcon(solution.icon);

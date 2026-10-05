@@ -1,6 +1,8 @@
 "use client";
 
-import { SelectField, TextField } from "@/components/admin/ui/field";
+import { SelectField, TextField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import { resolveHeadingClasses } from "../../style-tokens";
 import type { HeadingData } from "../content-blocks";
@@ -8,7 +10,7 @@ import type { HeadingData } from "../content-blocks";
 export function HeadingEdit({ data, onChange, locale }: BlockEditProps<HeadingData>) {
   return (
     <div className="space-y-3">
-      <TextField label="Text" value={data.text} onChange={(text) => onChange({ ...data, text })} dir={locale === "ar" ? "rtl" : "ltr"} />
+      <TextField label="Text" {...styledProps(data, "text", onChange)} dir={locale === "ar" ? "rtl" : "ltr"} />
       <SelectField
         label="Level"
         value={data.level}
@@ -25,5 +27,5 @@ export function HeadingEdit({ data, onChange, locale }: BlockEditProps<HeadingDa
 
 export function HeadingRender({ data, settings }: BlockRenderProps<HeadingData>) {
   const Tag = data.level;
-  return <Tag className={`font-display ${resolveHeadingClasses(settings)}`}>{data.text}</Tag>;
+  return <Tag className={`font-display ${resolveHeadingClasses(settings)}`}><StyledText text={data.text} rich={richOf(data, "text")} /></Tag>;
 }

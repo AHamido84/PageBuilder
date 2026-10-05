@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { RouteLine } from "@/components/site/graphics/route-line";
 import { CmsFillImage } from "@/components/media/cms-image";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockRenderProps } from "../../types";
 import type { CertificationsGridData } from "../commerce-blocks";
 
@@ -37,7 +39,7 @@ export async function CertificationsGridRender({ data, locale }: BlockRenderProp
 
   return (
     <div>
-      {data.heading ? <h2 className="mb-8 font-display text-h2">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-8 font-display text-h2"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
         {certifications.map((cert) => {
           const hasImage = Boolean(cert.imageUrl);

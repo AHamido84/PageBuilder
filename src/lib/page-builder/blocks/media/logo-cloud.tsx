@@ -1,7 +1,9 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { TextField, SelectField, NumberField, CheckboxField } from "@/components/admin/ui/field";
+import { TextField, SelectField, NumberField, CheckboxField, styledProps } from "@/components/admin/ui/field";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { MediaPickerControlled } from "@/components/admin/ui/media-picker-field";
 import { IconButton } from "@/components/admin/ui/icon-button";
 import { CmsImage } from "@/components/media/cms-image";
@@ -28,7 +30,7 @@ const BACKGROUND_OPTIONS = [
 export function LogoCloudEdit({ data, onChange, locale }: BlockEditProps<LogoCloudData>) {
   return (
     <div className="space-y-4">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={locale === "ar" ? "rtl" : "ltr"} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={locale === "ar" ? "rtl" : "ltr"} />
 
       <div className="space-y-2">
         {data.logos.map((logo, i) => (
@@ -130,7 +132,7 @@ export function LogoCloudRender({ data, settings, locale }: BlockRenderProps<Log
   const width = data.width > 0 ? `${data.width}px` : "auto";
   return (
     <div>
-      {data.heading ? <h2 className="mb-6 text-center font-display text-2xl">{data.heading}</h2> : null}
+      {data.heading ? <h2 className="mb-6 text-center font-display text-2xl"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
       <div className={`grid items-center gap-8 ${resolveColumnsClasses(settings)}`}>
         {logos.map((logo) => {
           const img = (
