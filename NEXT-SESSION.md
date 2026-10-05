@@ -27,7 +27,14 @@ Short, current handoff (2026-10-05). `HANDOFF.md` is the long history; read only
 
 ## 2. Current state (all on `main`, deployed to goldensevenfoods)
 
-Latest deploy: `goldensevenfoods-6h2y5bgrv` (commit `d43d145`). No schema changes since the 4 redesign migrations (all applied to prod).
+**2026-10-05 -- Variant products deployed to production** (branch `feat/admin-variant-products`, fast-forwarded into local `main`, NOT pushed yet). Previous production deploy for rollback: `goldensevenfoods-6h2y5bgrv` (commit `d43d145`).
+- Migrations `20261004225505_product_variants` + `20261005044548_variant_descriptions` applied on dev AND prod (additive only).
+- Prod backup before the change: `design-assets/backups/prod-pre-variants-2026-10-05.json` (all tables, via `scripts/backup-db-json.ts`; no Neon branch was made).
+- Prod data: Absher 7/10 mm merged into `absher-french-fries` («أبشر بالبطاطس», group SKU `AB-01-GRP`, variants AB-01/AB-02); old products unpublished; 301s in `next.config.ts` + Redirect rows. Revert logs: `scripts/.migrate-variants-ep-quiet-band-*.json` (gitignored -- keep them) -> `npx tsx scripts/migrate-variants.ts --revert --log <file> [--apply]` (needs the code rolled back too).
+- **Variants are OFF on the live site** (`SiteSetting.variantsEnabled=false`); switch in Admin -> Product options. `VARIANTS_ENABLED=off` env forces off. Dev DB has it ON plus QA data -- remove with `npx tsx scripts/qa-variants-dev-data.ts --cleanup`.
+- Not yet verified with a real admin login: the «الأنواع» editor, /admin/options, the admin e2e flow (needs E2E_ADMIN_EMAIL/PASSWORD).
+- Code map: `src/lib/catalog/variants/` (core/schema/load/copy + tests, `npm run test:unit`), admin `products/[id]/variants/`, `products/variant-actions.ts`, `options/`; public `products/[slug]/variant-islands.tsx`, `components/site/variant-selector.tsx`; e2e `e2e/variants.spec.ts`.
+- The dev and prod DB password (shared) was pasted in chat on 2026-10-05 -- the user should rotate it in Neon and update Vercel + `.env`.
 
 **Homepage = Page Builder page** (`slug __homepage__`) built from the **G7_\*** blocks (`src/lib/page-builder/blocks/golden/`, registry `golden-blocks.ts`, Add-panel group "Golden Seven home"): Hero, About, Categories, Featured products, Brands, Lifestyle banner, Steps, Business sectors, Quote form. It is published on prod. `scripts/build-home-v7.ts [--dry-run]` rewrites a homepage DRAFT with these sections (old sections kept hidden).
 
