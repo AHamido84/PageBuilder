@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 /**
  * Copies a product's option/variant graph onto another product (Duplicate). Variant SKUs are left
@@ -21,7 +21,7 @@ export async function copyVariantGraph(tx: Prisma.TransactionClient, sourceId: s
     const created = await tx.productOption.create({ data: { productId: targetId, optionTypeId: option.optionTypeId, sortOrder: option.sortOrder } });
     for (const v of option.values) {
       const value = await tx.productOptionValue.create({
-        data: { productOptionId: created.id, key: v.key, valueAr: v.valueAr, valueEn: v.valueEn, swatchHex: v.swatchHex, imageUrl: v.imageUrl, sortOrder: v.sortOrder },
+        data: { productOptionId: created.id, key: v.key, valueAr: v.valueAr, valueEn: v.valueEn, swatchHex: v.swatchHex, imageUrl: v.imageUrl, sortOrder: v.sortOrder, rich: v.rich ?? Prisma.DbNull },
       });
       valueMap.set(v.id, value.id);
     }
@@ -47,9 +47,10 @@ export async function copyVariantGraph(tx: Prisma.TransactionClient, sourceId: s
         storageEn: v.storageEn,
         available: v.available,
         sortOrder: v.sortOrder,
+        rich: v.rich ?? Prisma.DbNull,
         optionValues: { create: v.optionValues.map((ov) => ({ optionValueId: valueMap.get(ov.optionValueId)! })) },
         images: { create: v.images.map(({ url, mediaId, altAr, altEn, sortOrder }) => ({ url, mediaId, altAr, altEn, sortOrder })) },
-        specs: { create: v.specs.map(({ labelAr, labelEn, valueAr, valueEn, sortOrder }) => ({ labelAr, labelEn, valueAr, valueEn, sortOrder })) },
+        specs: { create: v.specs.map(({ labelAr, labelEn, valueAr, valueEn, sortOrder, rich }) => ({ labelAr, labelEn, valueAr, valueEn, sortOrder, rich: rich ?? Prisma.DbNull })) },
       },
     });
     if (v.id === source.defaultVariantId) defaultVariantId = created.id;

@@ -8,6 +8,8 @@ import { ChevronDown, Trash2, X } from "lucide-react";
 import { useConfirm } from "@/components/admin/ui/confirm-dialog";
 import { MultiMediaPickerButton, type MediaListItem } from "@/components/admin/ui/media-library-modal";
 import { adminInput, adminLabel, fieldError } from "@/components/admin/variants/option-type-form";
+import { StyledTextField } from "@/components/admin/text/styled-text-field";
+import { setRich } from "@/lib/text-style/rich-text";
 import { comboKey, generateCombinations, mergeGeneratedCombinations } from "@/lib/catalog/variants/core";
 import { ORPHAN_TEXT, arLabel, emptyVariant, optionShape, reviewIssues, uid, type EditorImage, type EditorState, type EditorVariant } from "./editor-state";
 
@@ -176,10 +178,16 @@ export function VariantsTable({
                       {errorFor("sku") ? <p className={fieldError}>{errorFor("sku")}</p> : null}
                     </td>
                     <td className="px-2 py-2">
+                      {variant.rich?.weightAr || variant.rich?.weightEn ? (
+                        <p className="text-xs text-amber-300" title="الوزن منسَّق — عدّله من التفاصيل">
+                          {variant.weightAr || variant.weightEn} · منسَّق
+                        </p>
+                      ) : (
                       <div className="flex gap-1">
                         <input value={variant.weightAr} onChange={(e) => setVariant(variant.clientId, { weightAr: e.target.value })} aria-label="الوزن بالعربية" placeholder="٢٫٥ كجم" className={`${adminInput} w-24`} />
                         <input dir="ltr" value={variant.weightEn} onChange={(e) => setVariant(variant.clientId, { weightEn: e.target.value })} aria-label="Weight (English)" placeholder="2.5 kg" className={`${adminInput} w-24`} />
                       </div>
+                      )}
                     </td>
                     <td className="px-2 py-2">
                       <input
@@ -276,57 +284,41 @@ function VariantDetails({
         </div>
       ) : null}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
-          <label className={adminLabel}>اسم مخصص بالعربية (اختياري)</label>
-          <input value={variant.nameAr} onChange={(e) => setVariant({ nameAr: e.target.value })} className={adminInput} placeholder="يُبنى تلقائيًا من اسم المنتج والخيارات" />
-        </div>
-        <div>
-          <label className={adminLabel}>Custom name (English, optional)</label>
-          <input dir="ltr" value={variant.nameEn} onChange={(e) => setVariant({ nameEn: e.target.value })} className={adminInput} />
-        </div>
-        <div>
-          <label className={adminLabel}>وصف قصير بالعربية (اختياري — وإلا وصف المنتج)</label>
-          <input value={variant.shortDescriptionAr} onChange={(e) => setVariant({ shortDescriptionAr: e.target.value })} className={adminInput} />
-          {errorFor("shortDescriptionAr") ? <p className={fieldError}>{errorFor("shortDescriptionAr")}</p> : null}
-        </div>
-        <div>
-          <label className={adminLabel}>Short description (English, optional)</label>
-          <input dir="ltr" value={variant.shortDescriptionEn} onChange={(e) => setVariant({ shortDescriptionEn: e.target.value })} className={adminInput} />
-          {errorFor("shortDescriptionEn") ? <p className={fieldError}>{errorFor("shortDescriptionEn")}</p> : null}
-        </div>
-        <div>
-          <label className={adminLabel}>الوصف بالعربية (اختياري — وإلا وصف المنتج)</label>
-          <textarea rows={3} value={variant.descriptionAr} onChange={(e) => setVariant({ descriptionAr: e.target.value })} className={adminInput} />
-          {errorFor("descriptionAr") ? <p className={fieldError}>{errorFor("descriptionAr")}</p> : null}
-        </div>
-        <div>
-          <label className={adminLabel}>Description (English, optional)</label>
-          <textarea dir="ltr" rows={3} value={variant.descriptionEn} onChange={(e) => setVariant({ descriptionEn: e.target.value })} className={adminInput} />
-          {errorFor("descriptionEn") ? <p className={fieldError}>{errorFor("descriptionEn")}</p> : null}
-        </div>
-        <div>
-          <label className={adminLabel}>التعبئة بالعربية</label>
-          <textarea rows={2} value={variant.packagingAr} onChange={(e) => setVariant({ packagingAr: e.target.value })} className={adminInput} />
-        </div>
-        <div>
-          <label className={adminLabel}>Packaging (English)</label>
-          <textarea dir="ltr" rows={2} value={variant.packagingEn} onChange={(e) => setVariant({ packagingEn: e.target.value })} className={adminInput} />
-        </div>
-        <div>
-          <label className={adminLabel}>التخزين بالعربية</label>
-          <textarea rows={2} value={variant.storageAr} onChange={(e) => setVariant({ storageAr: e.target.value })} className={adminInput} />
-        </div>
-        <div>
-          <label className={adminLabel}>Storage (English)</label>
-          <textarea dir="ltr" rows={2} value={variant.storageEn} onChange={(e) => setVariant({ storageEn: e.target.value })} className={adminInput} />
-        </div>
+        {(
+          [
+            ["nameAr", "اسم مخصص بالعربية (اختياري — يُبنى تلقائيًا من اسم المنتج والخيارات)", "rtl", false],
+            ["nameEn", "Custom name (English, optional)", "ltr", false],
+            ["shortDescriptionAr", "وصف قصير بالعربية (اختياري — وإلا وصف المنتج)", "rtl", false],
+            ["shortDescriptionEn", "Short description (English, optional)", "ltr", false],
+            ["descriptionAr", "الوصف بالعربية (اختياري — وإلا وصف المنتج)", "rtl", true],
+            ["descriptionEn", "Description (English, optional)", "ltr", true],
+            ["weightAr", "الوزن بالعربية", "rtl", false],
+            ["weightEn", "Weight (English)", "ltr", false],
+            ["packagingAr", "التعبئة بالعربية", "rtl", true],
+            ["packagingEn", "Packaging (English)", "ltr", true],
+            ["storageAr", "التخزين بالعربية", "rtl", true],
+            ["storageEn", "Storage (English)", "ltr", true],
+          ] as const
+        ).map(([field, label, dir, multiline]) => (
+          <div key={field}>
+            <StyledTextField
+              label={label}
+              dir={dir}
+              multiline={multiline}
+              value={variant[field]}
+              rich={variant.rich?.[field]}
+              onChange={(value, rich) => setVariant({ [field]: value, rich: setRich(variant.rich, field, rich) })}
+            />
+            {errorFor(field) ? <p className={fieldError}>{errorFor(field)}</p> : null}
+          </div>
+        ))}
       </div>
 
       <div>
         <p className={adminLabel}>مواصفات إضافية</p>
         <div className="space-y-2">
           {variant.specs.map((spec, k) => (
-            <div key={spec.uid} className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+            <div key={spec.uid} className="grid grid-cols-1 gap-2 rounded-md border border-neutral-800 p-2 sm:grid-cols-[1fr_1fr_auto]">
               {(
                 [
                   ["labelAr", "العنوان بالعربية", "rtl"],
@@ -335,17 +327,18 @@ function VariantDetails({
                   ["valueEn", "Value (EN)", "ltr"],
                 ] as const
               ).map(([field, label, dir]) => (
-                <input
+                <StyledTextField
                   key={field}
+                  label={label}
                   dir={dir}
-                  aria-label={label}
-                  placeholder={label}
                   value={spec[field]}
-                  onChange={(e) => setVariant({ specs: variant.specs.map((s) => (s.uid === spec.uid ? { ...s, [field]: e.target.value } : s)) })}
-                  className={adminInput}
+                  rich={spec.rich?.[field]}
+                  onChange={(value, rich) =>
+                    setVariant({ specs: variant.specs.map((sp) => (sp.uid === spec.uid ? { ...sp, [field]: value, rich: setRich(sp.rich, field, rich) } : sp)) })
+                  }
                 />
               ))}
-              <button type="button" aria-label="حذف المواصفة" onClick={() => setVariant({ specs: variant.specs.filter((s) => s.uid !== spec.uid) })} className="rounded-md border border-neutral-700 px-2 text-neutral-400 hover:text-red-300">
+              <button type="button" aria-label="حذف المواصفة" onClick={() => setVariant({ specs: variant.specs.filter((sp) => sp.uid !== spec.uid) })} className="self-start rounded-md border border-neutral-700 p-2 text-neutral-400 hover:text-red-300">
                 <X size={14} />
               </button>
               {errorFor(`specs.${k}`) ? <p className={`${fieldError} col-span-full`}>{errorFor(`specs.${k}`)}</p> : null}

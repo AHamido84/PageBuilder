@@ -6,11 +6,17 @@
  * product's own fields (see ./load.ts), so the public site has a single code path for both types.
  */
 
+import type { RichText } from "@/lib/text-style/rich-text";
+
 export type OptionDisplay = "PILL" | "SWATCH" | "IMAGE" | "SELECT";
+
+/** Text styling of a variant's visible fields (only present while text styles are enabled). */
+export type VariantRich = Partial<Record<"name" | "shortDescription" | "description" | "weight" | "packaging" | "storage", RichText>>;
 
 export interface OptionValueView {
   key: string;
   label: string;
+  labelRich?: RichText;
   swatchHex: string | null;
   imageUrl: string | null;
 }
@@ -18,6 +24,7 @@ export interface OptionValueView {
 export interface OptionView {
   key: string;
   label: string;
+  labelRich?: RichText;
   display: OptionDisplay;
   values: OptionValueView[];
 }
@@ -43,8 +50,9 @@ export interface VariantView {
   weight: string | null;
   packaging: string | null;
   storage: string | null;
-  specs: { label: string; value: string }[];
+  specs: { label: string; value: string; labelRich?: RichText; valueRich?: RichText }[];
   available: boolean;
+  rich?: VariantRich;
 }
 
 /** One product's variants, already localized to the page's locale. */
@@ -53,6 +61,8 @@ export interface ProductVariantsView {
   options: OptionView[];
   variants: VariantView[];
   defaultVariantId: string;
+  /** Styled product name (text styles enabled only). */
+  productNameRich?: RichText;
 }
 
 /* ------------------------------------------------------------------------------------------------

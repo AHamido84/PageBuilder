@@ -301,3 +301,14 @@ export async function updateFooterSettingsAction(_prev: FormActionState, formDat
   revalidatePath("/admin/settings");
   return { success: true };
 }
+
+/** Public-site switch for admin text styling (src/lib/text-style). TEXT_STYLES_ENABLED=off still forces it off. */
+export async function setTextStylesEnabledAction(enabled: boolean): Promise<{ error?: string }> {
+  const currentUser = await getCurrentUser();
+  assertCan(currentUser, "settings", "update");
+  await prisma.siteSetting.update({ where: { id: "singleton" }, data: { textStylesEnabled: Boolean(enabled) } });
+  await logSettingsUpdate(currentUser.id, "text-styles");
+  revalidatePath("/admin/settings");
+  revalidatePath("/", "layout");
+  return {};
+}

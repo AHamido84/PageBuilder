@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { logActivity } from "@/lib/activity-log";
@@ -29,6 +30,7 @@ export async function saveOptionTypeAction(raw: unknown): Promise<OptionActionRe
   const parsed = optionTypeInput.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "راجع الحقول", fieldErrors: issuesToFieldErrors(parsed.error.issues) };
   const { id, key, labelAr, labelEn, display } = parsed.data;
+  const rich = parsed.data.rich ?? Prisma.DbNull;
 
   const clash = await prisma.optionType.findFirst({ where: { key, ...(id ? { NOT: { id } } : {}) }, select: { id: true } });
   if (clash) return { ok: false, error: "هذا المفتاح مستخدم لخيار آخر", fieldErrors: { key: "هذا المفتاح مستخدم لخيار آخر" } };
@@ -40,14 +42,14 @@ export async function saveOptionTypeAction(raw: unknown): Promise<OptionActionRe
     if (existing.key !== key && existing._count.productOptions > 0) {
       return { ok: false, error: "لا يمكن تغيير مفتاح خيار مستخدم في منتجات", fieldErrors: { key: "لا يمكن تغيير مفتاح خيار مستخدم في منتجات" } };
     }
-    await prisma.optionType.update({ where: { id }, data: { key, labelAr, labelEn, display } });
+    await prisma.optionType.update({ where: { id }, data: { key, labelAr, labelEn, display, rich } });
     await logActivity({ userId: currentUser.id, action: "optionType.update", entityType: "OptionType", entityId: id });
     revalidateOptions();
     return { ok: true, id, key };
   }
 
   const last = await prisma.optionType.aggregate({ _max: { sortOrder: true } });
-  const created = await prisma.optionType.create({ data: { key, labelAr, labelEn, display, sortOrder: (last._max.sortOrder ?? 0) + 1 } });
+  const created = await prisma.optionType.create({ data: { key, labelAr, labelEn, display, rich, sortOrder: (last._max.sortOrder ?? 0) + 1 } });
   await logActivity({ userId: currentUser.id, action: "optionType.create", entityType: "OptionType", entityId: created.id });
   revalidateOptions();
   return { ok: true, id: created.id, key: created.key };

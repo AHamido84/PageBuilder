@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { TextField, TextareaField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, styledProps } from "@/components/admin/ui/field";
 import { cn } from "@/lib/cn";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { G7BannerData, G7SectorsData, G7StepsData, G7TitledItem } from "./schema";
 import { G7ImageField, G7ListEditor, G7PositionFields, g7Eyebrow, g7OffsetStyle, g7OverlayClasses } from "./shared";
@@ -15,17 +17,17 @@ export function G7BannerRender({ data, locale }: BlockRenderProps<G7BannerData>)
   const mobileImage = data.mobileImage?.url || image;
   const text = (
     <div className="text-[var(--g7-cream-50)]">
-      {data.eyebrow ? <p className={g7Eyebrow}>{data.eyebrow}</p> : null}
+      {data.eyebrow ? <p className={g7Eyebrow}><StyledText text={data.eyebrow} rich={richOf(data, "eyebrow")} /></p> : null}
       <h2 className="t-h2 mt-[clamp(0.75rem,1.8vw,2.2rem)]">
-        {data.headingLine1}
+        <StyledText text={data.headingLine1} rich={richOf(data, "headingLine1")} />
         {data.headingLine2 ? (
           <>
             <br />
-            {data.headingLine2}
+            <StyledText text={data.headingLine2} rich={richOf(data, "headingLine2")} />
           </>
         ) : null}
       </h2>
-      {data.body ? <p className="t-p mt-[clamp(1rem,1.8vw,2.2rem)] max-w-[25rem] font-light lg:max-w-[25vw]">{data.body}</p> : null}
+      {data.body ? <p className="t-p mt-[clamp(1rem,1.8vw,2.2rem)] max-w-[25rem] font-light lg:max-w-[25vw]"><StyledText text={data.body} rich={richOf(data, "body")} /></p> : null}
     </div>
   );
   return (
@@ -59,10 +61,10 @@ export function G7BannerEdit({ data, onChange, locale }: BlockEditProps<G7Banner
       <G7ImageField label="Image (desktop)" value={data.image} onChange={set("image")} />
       <G7ImageField label="Image (mobile, optional)" value={data.mobileImage} onChange={set("mobileImage")} />
       <TextField label="Image alt text" value={data.imageAlt ?? ""} onChange={set("imageAlt")} dir={dir} />
-      <TextField label="Eyebrow" value={data.eyebrow ?? ""} onChange={set("eyebrow")} dir={dir} />
-      <TextField label="Heading line 1" value={data.headingLine1 ?? ""} onChange={set("headingLine1")} dir={dir} />
-      <TextField label="Heading line 2" value={data.headingLine2 ?? ""} onChange={set("headingLine2")} dir={dir} />
-      <TextareaField label="Text" rows={3} value={data.body ?? ""} onChange={set("body")} dir={dir} />
+      <TextField label="Eyebrow" {...styledProps(data, "eyebrow", onChange)} dir={dir} />
+      <TextField label="Heading line 1" {...styledProps(data, "headingLine1", onChange)} dir={dir} />
+      <TextField label="Heading line 2" {...styledProps(data, "headingLine2", onChange)} dir={dir} />
+      <TextareaField label="Text" rows={3} {...styledProps(data, "body", onChange)} dir={dir} />
       <G7PositionFields
         x={data.textX}
         y={data.textY}
@@ -85,8 +87,8 @@ export function G7StepsRender({ data }: BlockRenderProps<G7StepsData>) {
   return (
     <section className="bg-[var(--g7-cream-50)] pb-[clamp(3.5rem,5.7vw,6.9rem)] pt-[clamp(3.5rem,6vw,7.2rem)]">
       <div className="g7-container">
-        {data.heading ? <h2 className="t-h2 text-[var(--g7-teal-900)]">{data.heading}</h2> : null}
-        {data.subtitle ? <p className="t-p mt-[clamp(0.75rem,1.1vw,1.3rem)] font-light text-[var(--g7-muted)]">{data.subtitle}</p> : null}
+        {data.heading ? <h2 className="t-h2 text-[var(--g7-teal-900)]"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
+        {data.subtitle ? <p className="t-p mt-[clamp(0.75rem,1.1vw,1.3rem)] font-light text-[var(--g7-muted)]"><StyledText text={data.subtitle} rich={richOf(data, "subtitle")} /></p> : null}
         <ol className={cn(columns, "mt-[clamp(2.5rem,4.5vw,5.4rem)]")}>
           {items.map((item, i) => (
             <li key={i}>
@@ -94,8 +96,8 @@ export function G7StepsRender({ data }: BlockRenderProps<G7StepsData>) {
                 {i + 1}
               </span>
               <div className="mt-[clamp(1.25rem,2.4vw,2.9rem)] border-t border-[var(--g7-divider)] pt-[clamp(1.25rem,1.9vw,2.25rem)]">
-                <h3 className="t-h3 text-[var(--g7-teal-900)]">{item.title}</h3>
-                {item.body ? <p className="t-p mt-[clamp(0.75rem,1.6vw,2rem)] max-w-[20em] font-light text-[var(--g7-muted)]">{item.body}</p> : null}
+                <h3 className="t-h3 text-[var(--g7-teal-900)]"><StyledText text={item.title} rich={richOf(item, "title")} /></h3>
+                {item.body ? <p className="t-p mt-[clamp(0.75rem,1.6vw,2rem)] max-w-[20em] font-light text-[var(--g7-muted)]"><StyledText text={item.body} rich={richOf(item, "body")} /></p> : null}
               </div>
             </li>
           ))}
@@ -111,13 +113,13 @@ export function G7SectorsRender({ data }: BlockRenderProps<G7SectorsData>) {
   return (
     <section className="bg-[var(--g7-teal-800)] pb-[clamp(3.5rem,6.8vw,8.1rem)] pt-[clamp(3rem,4vw,4.8rem)]">
       <div className="g7-container">
-        {data.eyebrow ? <p className={g7Eyebrow}>{data.eyebrow}</p> : null}
-        {data.heading ? <h2 className="t-h2 mt-[clamp(0.75rem,1.7vw,2rem)] text-[var(--g7-cream-50)]">{data.heading}</h2> : null}
+        {data.eyebrow ? <p className={g7Eyebrow}><StyledText text={data.eyebrow} rich={richOf(data, "eyebrow")} /></p> : null}
+        {data.heading ? <h2 className="t-h2 mt-[clamp(0.75rem,1.7vw,2rem)] text-[var(--g7-cream-50)]"><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
         <div className={cn(columns, "mt-[clamp(2rem,4.2vw,5rem)]")}>
           {items.map((item, i) => (
             <div key={i} className="border-t border-[var(--g7-divider-on-teal)] pt-[clamp(1.5rem,2.2vw,2.6rem)]">
-              <h3 className="t-h3 text-[var(--g7-cream-50)]">{item.title}</h3>
-              {item.body ? <p className="t-p mt-[clamp(0.75rem,1.6vw,2rem)] max-w-[18em] font-light text-[var(--g7-cream-50)]/90">{item.body}</p> : null}
+              <h3 className="t-h3 text-[var(--g7-cream-50)]"><StyledText text={item.title} rich={richOf(item, "title")} /></h3>
+              {item.body ? <p className="t-p mt-[clamp(0.75rem,1.6vw,2rem)] max-w-[18em] font-light text-[var(--g7-cream-50)]/90"><StyledText text={item.body} rich={richOf(item, "body")} /></p> : null}
             </div>
           ))}
         </div>
@@ -137,8 +139,8 @@ function TitledItemsEditor({ label, items, onChange, dir }: { label: string; ite
       itemLabel={(item) => item.title ?? ""}
       renderItem={(item, update) => (
         <>
-          <TextField label="Title" value={item.title ?? ""} onChange={(title) => update({ ...item, title })} dir={dir} />
-          <TextareaField label="Text" rows={3} value={item.body ?? ""} onChange={(body) => update({ ...item, body })} dir={dir} />
+          <TextField label="Title" {...styledProps(item, "title", update)} dir={dir} />
+          <TextareaField label="Text" rows={3} {...styledProps(item, "body", update)} dir={dir} />
         </>
       )}
     />
@@ -149,8 +151,8 @@ export function G7StepsEdit({ data, onChange, locale }: BlockEditProps<G7StepsDa
   const dir = locale === "ar" ? "rtl" : "ltr";
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
-      <TextField label="Subtitle" value={data.subtitle ?? ""} onChange={(subtitle) => onChange({ ...data, subtitle })} dir={dir} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
+      <TextField label="Subtitle" {...styledProps(data, "subtitle", onChange)} dir={dir} />
       <TitledItemsEditor label="Steps (numbered automatically)" items={data.items ?? []} onChange={(items) => onChange({ ...data, items })} dir={dir} />
     </div>
   );
@@ -160,8 +162,8 @@ export function G7SectorsEdit({ data, onChange, locale }: BlockEditProps<G7Secto
   const dir = locale === "ar" ? "rtl" : "ltr";
   return (
     <div className="space-y-3">
-      <TextField label="Eyebrow" value={data.eyebrow ?? ""} onChange={(eyebrow) => onChange({ ...data, eyebrow })} dir={dir} />
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
+      <TextField label="Eyebrow" {...styledProps(data, "eyebrow", onChange)} dir={dir} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
       <TitledItemsEditor label="Sectors" items={data.items ?? []} onChange={(items) => onChange({ ...data, items })} dir={dir} />
     </div>
   );

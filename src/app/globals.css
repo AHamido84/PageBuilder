@@ -762,6 +762,31 @@ html:not([data-hover-animation="off"]) [data-hover-overlay] :is(a, [data-ui-card
   .g7-btn-text { font-size: var(--fs-ui); font-weight: 700; }
 }
 
+/* Admin text styling (src/components/text/styled-text.tsx): size tokens on the same fluid scale.
+   Unlayered on purpose so an admin-chosen size beats the element's own utility size. */
+.ts-xs { font-size: clamp(0.75rem, 0.73rem + 0.08vw, 0.8125rem); }
+.ts-sm { font-size: var(--fs-small); }
+.ts-base { font-size: var(--fs-p); }
+.ts-lg { font-size: var(--fs-product); }
+.ts-xl { font-size: clamp(1.25rem, 1.18rem + 0.3vw, 1.5rem); }
+.ts-h3 { font-size: var(--fs-h3); }
+.ts-h2 { font-size: var(--fs-h2); }
+.ts-h1 { font-size: clamp(2rem, 1.62rem + 1.9vw, 3.5rem); }
+.ts-display { font-size: var(--fs-hero); }
+.ts-px { font-size: var(--ts-px); }
+@media (max-width: 767.98px) {
+  .ts-m-xs { font-size: 0.75rem; }
+  .ts-m-sm { font-size: var(--fs-small); }
+  .ts-m-base { font-size: var(--fs-p); }
+  .ts-m-lg { font-size: var(--fs-product); }
+  .ts-m-xl { font-size: 1.25rem; }
+  .ts-m-h3 { font-size: var(--fs-h3); }
+  .ts-m-h2 { font-size: var(--fs-h2); }
+  .ts-m-h1 { font-size: 2rem; }
+  .ts-m-display { font-size: var(--fs-hero); }
+  .ts-m-px { font-size: var(--ts-m-px); }
+}
+
 /* -----------------------------------------------------------------------------------------------
    Golden Seven v7 -- site-wide style layer: the design's radii (cards 12px, buttons 6px, inputs
    8px), bold display headings and plain gold-style eyebrows for every page, not just the G7_*

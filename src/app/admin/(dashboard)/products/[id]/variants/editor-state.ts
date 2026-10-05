@@ -7,6 +7,7 @@ import {
   type ProductVariantsView,
 } from "@/lib/catalog/variants/core";
 import type { SaveVariantsInput } from "@/lib/catalog/variants/schema";
+import type { RichMap } from "@/lib/text-style/rich-text";
 
 /** Client-side state of the variants editor (both languages at once). Strings are "" when empty. */
 
@@ -21,6 +22,8 @@ export interface EditorValue {
   valueEn: string;
   swatchHex: string;
   imageUrl: string;
+  /** Text styling of valueAr / valueEn. */
+  rich?: RichMap;
 }
 
 export interface EditorOption {
@@ -46,6 +49,7 @@ export interface EditorSpec {
   labelEn: string;
   valueAr: string;
   valueEn: string;
+  rich?: RichMap;
 }
 
 export interface EditorVariant {
@@ -69,6 +73,8 @@ export interface EditorVariant {
   available: boolean;
   images: EditorImage[];
   specs: EditorSpec[];
+  /** Text styling of the bilingual text fields (nameAr, weightEn, ...). */
+  rich?: RichMap;
 }
 
 export interface EditorState {
@@ -173,7 +179,7 @@ export function toPayload(productId: string, state: EditorState, publish: boolea
     options: state.options.map((o) => ({
       optionTypeId: o.optionTypeId,
       key: o.key,
-      values: o.values.map((v) => ({ id: v.id, key: v.key, valueAr: v.valueAr, valueEn: v.valueEn, swatchHex: v.swatchHex || null, imageUrl: v.imageUrl || null })),
+      values: o.values.map((v) => ({ id: v.id, key: v.key, valueAr: v.valueAr, valueEn: v.valueEn, swatchHex: v.swatchHex || null, imageUrl: v.imageUrl || null, rich: v.rich ?? null })),
     })),
     variants: state.variants.map((v) => ({
       id: v.id,
@@ -194,7 +200,8 @@ export function toPayload(productId: string, state: EditorState, publish: boolea
       storageEn: v.storageEn || null,
       available: v.available,
       images: v.images.map((img) => ({ url: img.url, mediaId: img.mediaId, altAr: img.altAr || null, altEn: img.altEn || null })),
-      specs: v.specs.map(({ labelAr, labelEn, valueAr, valueEn }) => ({ labelAr, labelEn, valueAr, valueEn })),
+      specs: v.specs.map(({ labelAr, labelEn, valueAr, valueEn, rich }) => ({ labelAr, labelEn, valueAr, valueEn, rich: rich ?? null })),
+      rich: v.rich ?? null,
     })),
   };
 }

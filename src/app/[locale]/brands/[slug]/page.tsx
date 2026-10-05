@@ -12,7 +12,8 @@ import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
 import { breadcrumbSchema } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
 import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
-import { areVariantsEnabled, cardVariantFields, variantGraphInclude } from "@/lib/catalog/variants/load";
+import { areVariantsEnabled, cardTextFields, cardVariantFields, variantGraphInclude } from "@/lib/catalog/variants/load";
+import { areTextStylesEnabled } from "@/lib/text-style/flag";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ sl
     include: { translations: true, category: { include: { translations: true } }, ...productCardImageInclude, ...variantGraphInclude },
   });
   const variantsEnabled = await areVariantsEnabled();
+  const textStyles = await areTextStylesEnabled();
 
   const productCards: ProductCardData[] = products.map((product) => ({
     id: product.id,
@@ -72,6 +74,7 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ sl
     ...resolveProductCardImage(product),
     isFeatured: product.isFeatured,
     createdAt: product.createdAt,
+    ...cardTextFields(product, locale, textStyles),
     ...cardVariantFields(product, locale, variantsEnabled),
   }));
 

@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { TextField, TextareaField } from "@/components/admin/ui/field";
+import { TextField, TextareaField, styledProps } from "@/components/admin/ui/field";
 import { cn } from "@/lib/cn";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { G7AboutData, G7HeroData } from "./schema";
 import { G7Arrow, G7ImageField, G7PositionFields, g7GoldButton, g7H2, g7Href, g7OffsetStyle, g7OutlineButton, g7OverlayClasses } from "./shared";
@@ -21,32 +23,32 @@ export function G7HeroRender({ data, locale }: BlockRenderProps<G7HeroData>) {
   const mobileImage = data.mobileImage?.url || image;
   const text = (
     <div className="text-[var(--g7-cream-50)]">
-      {data.eyebrow ? <p className="t-h3 font-light text-[var(--g7-gold-500)]">{data.eyebrow}</p> : null}
+      {data.eyebrow ? <p className="t-h3 font-light text-[var(--g7-gold-500)]"><StyledText text={data.eyebrow} rich={richOf(data, "eyebrow")} /></p> : null}
       {/* Largest text on the page (finding 02). Arabic keeps its intentional 2-line break unwrapped. */}
       <h1 className="t-hero mt-[clamp(0.75rem,1.6vw,2rem)] xl:rtl:whitespace-nowrap">
-        {data.headingLine1}
+        <StyledText text={data.headingLine1} rich={richOf(data, "headingLine1")} />
         {data.headingLine2 ? (
           <>
             <br />
-            {data.headingLine2}
+            <StyledText text={data.headingLine2} rich={richOf(data, "headingLine2")} />
           </>
         ) : null}
       </h1>
       <div className={cn("mt-[clamp(1.75rem,2.6vw,3.6rem)] flex flex-wrap gap-[clamp(0.75rem,1.2vw,1.5rem)]", data.textX === "center" && "xl:justify-center")}>
         {data.primaryLabel ? (
           <Link href={g7Href(data.primaryUrl ?? "", locale)} className={cn(g7GoldButton, heroButtonWidth)}>
-            {data.primaryLabel}
+            <StyledText text={data.primaryLabel} rich={richOf(data, "primaryLabel")} />
             <G7Arrow />
           </Link>
         ) : null}
         {data.secondaryLabel ? (
           <Link href={g7Href(data.secondaryUrl ?? "", locale)} className={cn(g7OutlineButton, heroButtonWidth)}>
-            {data.secondaryLabel}
+            <StyledText text={data.secondaryLabel} rich={richOf(data, "secondaryLabel")} />
             <G7Arrow />
           </Link>
         ) : null}
       </div>
-      {data.caption ? <p className="t-small mt-[clamp(1.25rem,1.8vw,2.4rem)] font-light">{data.caption}</p> : null}
+      {data.caption ? <p className="t-small mt-[clamp(1.25rem,1.8vw,2.4rem)] font-light"><StyledText text={data.caption} rich={richOf(data, "caption")} /></p> : null}
     </div>
   );
 
@@ -94,16 +96,16 @@ export function G7HeroEdit({ data, onChange, locale }: BlockEditProps<G7HeroData
       <G7ImageField label="Image (desktop)" value={data.image} onChange={set("image")} />
       <G7ImageField label="Image (mobile, optional)" value={data.mobileImage} onChange={set("mobileImage")} />
       <TextField label="Image alt text" value={data.imageAlt ?? ""} onChange={set("imageAlt")} dir={dir} />
-      <TextField label="Eyebrow" value={data.eyebrow ?? ""} onChange={set("eyebrow")} dir={dir} />
-      <TextField label="Heading line 1" value={data.headingLine1 ?? ""} onChange={set("headingLine1")} dir={dir} />
-      <TextField label="Heading line 2" value={data.headingLine2 ?? ""} onChange={set("headingLine2")} dir={dir} />
+      <TextField label="Eyebrow" {...styledProps(data, "eyebrow", onChange)} dir={dir} />
+      <TextField label="Heading line 1" {...styledProps(data, "headingLine1", onChange)} dir={dir} />
+      <TextField label="Heading line 2" {...styledProps(data, "headingLine2", onChange)} dir={dir} />
       <div className="grid grid-cols-2 gap-3">
-        <TextField label="Primary button" value={data.primaryLabel ?? ""} onChange={set("primaryLabel")} dir={dir} />
+        <TextField label="Primary button" {...styledProps(data, "primaryLabel", onChange)} dir={dir} />
         <TextField label="Primary URL" value={data.primaryUrl ?? ""} onChange={set("primaryUrl")} />
-        <TextField label="Secondary button" value={data.secondaryLabel ?? ""} onChange={set("secondaryLabel")} dir={dir} />
+        <TextField label="Secondary button" {...styledProps(data, "secondaryLabel", onChange)} dir={dir} />
         <TextField label="Secondary URL" value={data.secondaryUrl ?? ""} onChange={set("secondaryUrl")} />
       </div>
-      <TextField label="Caption" value={data.caption ?? ""} onChange={set("caption")} dir={dir} />
+      <TextField label="Caption" {...styledProps(data, "caption", onChange)} dir={dir} />
       <G7PositionFields
         x={data.textX}
         y={data.textY}
@@ -122,8 +124,8 @@ export function G7AboutRender({ data }: BlockRenderProps<G7AboutData>) {
     <section className="bg-[var(--g7-cream-50)] pb-[clamp(3.5rem,8vw,9.5rem)] pt-[clamp(3rem,4.7vw,5.6rem)]">
       <div className="g7-container">
         {/* Section H2 scale with a short measure, so it reads as two balanced lines (finding 03). */}
-        {data.heading ? <h2 className={cn(g7H2, "max-w-[13em] text-balance text-[var(--g7-teal-900)]")}>{data.heading}</h2> : null}
-        {data.body ? <p className="t-p mt-[clamp(1.25rem,2.4vw,3rem)] max-w-[65ch] text-[var(--g7-muted)]">{data.body}</p> : null}
+        {data.heading ? <h2 className={cn(g7H2, "max-w-[13em] text-balance text-[var(--g7-teal-900)]")}><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
+        {data.body ? <p className="t-p mt-[clamp(1.25rem,2.4vw,3rem)] max-w-[65ch] text-[var(--g7-muted)]"><StyledText text={data.body} rich={richOf(data, "body")} /></p> : null}
       </div>
     </section>
   );
@@ -133,8 +135,8 @@ export function G7AboutEdit({ data, onChange, locale }: BlockEditProps<G7AboutDa
   const dir = locale === "ar" ? "rtl" : "ltr";
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
-      <TextareaField label="Text" rows={4} value={data.body ?? ""} onChange={(body) => onChange({ ...data, body })} dir={dir} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
+      <TextareaField label="Text" rows={4} {...styledProps(data, "body", onChange)} dir={dir} />
     </div>
   );
 }

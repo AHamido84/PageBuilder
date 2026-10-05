@@ -17,7 +17,8 @@ import { isDraftPreviewRequest } from "@/lib/page-builder/render-page";
 import { DraftPreviewBanner } from "@/components/site/draft-preview-banner";
 import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
 import { pageTitle } from "@/lib/page-builder/page-title";
-import { areVariantsEnabled, cardVariantFields, loadOptionFilters, optionFilterSelection, optionFilterWhere, variantGraphInclude } from "@/lib/catalog/variants/load";
+import { areTextStylesEnabled } from "@/lib/text-style/flag";
+import { areVariantsEnabled, cardTextFields, cardVariantFields, loadOptionFilters, optionFilterSelection, optionFilterWhere, variantGraphInclude } from "@/lib/catalog/variants/load";
 import type { ProductVariantsView } from "@/lib/catalog/variants/core";
 
 export const dynamic = "force-dynamic";
@@ -134,6 +135,7 @@ async function getProducts(
     prisma.product.count({ where }),
   ]);
 
+  const textStyles = await areTextStylesEnabled();
   // With option filters active, each card shows the variant that matched them.
   const matching = (view: ProductVariantsView) =>
     Object.keys(optionSelection).length ? view.variants.find((v) => Object.entries(optionSelection).every(([k, val]) => v.options[k] === val)) : undefined;
@@ -149,6 +151,7 @@ async function getProducts(
     ...resolveProductCardImage(product),
     isFeatured: product.isFeatured,
     createdAt: product.createdAt,
+    ...cardTextFields(product, locale, textStyles),
     ...cardVariantFields(product, locale, variantsEnabled, matching),
   }));
 

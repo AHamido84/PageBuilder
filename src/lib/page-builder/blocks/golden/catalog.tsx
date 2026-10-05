@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
-import { CheckboxField, SelectField, TextField, TextareaField } from "@/components/admin/ui/field";
+import { CheckboxField, SelectField, TextField, TextareaField, styledProps } from "@/components/admin/ui/field";
 import { useReferenceData } from "@/lib/page-builder/reference-data-context";
 import { cn } from "@/lib/cn";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
 import type { G7BrandItem, G7BrandsData, G7CategoriesData, G7CategoryItem, G7ProductItem, G7ProductTab, G7ProductsData } from "./schema";
 import type { G7Resolved } from "./resolve";
@@ -45,7 +47,7 @@ export function G7CategoriesRender({ data, locale }: BlockRenderProps<G7Categori
   return (
     <section className="bg-[var(--g7-teal-900)] pb-[clamp(3.5rem,6.8vw,8.1rem)] pt-[clamp(3.5rem,6.25vw,7.5rem)]">
       <div className="g7-container">
-        {data.heading ? <h2 className={cn(g7H2, "text-[var(--g7-cream-50)]")}>{data.heading}</h2> : null}
+        {data.heading ? <h2 className={cn(g7H2, "text-[var(--g7-cream-50)]")}><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
         <div className="mt-[clamp(2rem,4.7vw,5.6rem)] grid grid-cols-1 gap-[clamp(0.75rem,1.3vw,1.5rem)] sm:grid-cols-2 lg:grid-cols-3">
           {first ? <CategoryCard item={first} locale={locale} linkLabel={data.linkLabel ?? ""} position={data.labelPosition} wide /> : null}
           {rest.map((item, i) => (
@@ -98,8 +100,8 @@ export function G7CategoriesEdit({ data, onChange, locale }: BlockEditProps<G7Ca
   const { categories } = useReferenceData();
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
-      <TextField label="Card link label" value={data.linkLabel ?? ""} onChange={(linkLabel) => onChange({ ...data, linkLabel })} dir={dir} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
+      <TextField label="Card link label" {...styledProps(data, "linkLabel", onChange)} dir={dir} />
       <SelectField
         label="Card text position"
         value={data.labelPosition}
@@ -122,7 +124,7 @@ export function G7CategoriesEdit({ data, onChange, locale }: BlockEditProps<G7Ca
         renderItem={(item, update) => (
           <>
             <CatalogPicker label="Catalog category (link + title)" value={item.categoryId ?? ""} options={categories} onChange={(categoryId) => update({ ...item, categoryId })} />
-            <TextField label="Title (used when no category is linked)" value={item.title ?? ""} onChange={(title) => update({ ...item, title })} dir={dir} />
+            <TextField label="Title (used when no category is linked)" {...styledProps(item, "title", update)} dir={dir} />
             <G7ImageField label="Image" value={item.image} onChange={(image) => update({ ...item, image })} />
             <TextField label="Custom link URL (optional)" value={item.url ?? ""} onChange={(url) => update({ ...item, url })} />
           </>
@@ -143,8 +145,8 @@ export function G7ProductsRender({ data, locale, interactive }: BlockRenderProps
   const [active, setActive] = useState<string | null>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   const tabs = [
-    { label: data.allLabel || (locale === "ar" ? "الكل" : "All"), value: null as string | null },
-    ...(data.tabs ?? []).filter((t) => t.key && t.label).map((t) => ({ label: t.label ?? "", value: t.key as string | null })),
+    { label: data.allLabel || (locale === "ar" ? "الكل" : "All"), value: null as string | null, rich: data.allLabel ? richOf(data, "allLabel") : undefined },
+    ...(data.tabs ?? []).filter((t) => t.key && t.label).map((t) => ({ label: t.label ?? "", value: t.key as string | null, rich: richOf(t, "label") })),
   ];
   const items = ((data.items ?? []) as G7Resolved<G7ProductItem>[]).filter((item) => active === null || item.tab === active);
   const cta = data.cta;
@@ -163,7 +165,7 @@ export function G7ProductsRender({ data, locale, interactive }: BlockRenderProps
   return (
     <section className="bg-[var(--g7-cream-50)] pb-[clamp(3.5rem,6.25vw,7.5rem)] pt-[clamp(3rem,3.6vw,4.4rem)]">
       <div className="g7-container">
-        {data.heading ? <h2 className={cn(g7H2, "text-[var(--g7-teal-900)]")}>{data.heading}</h2> : null}
+        {data.heading ? <h2 className={cn(g7H2, "text-[var(--g7-teal-900)]")}><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
         {tabs.length > 1 ? (
           // Phones: a snap-scrolling strip without a visible scrollbar, edges faded to hint at more.
           <div
@@ -186,7 +188,7 @@ export function G7ProductsRender({ data, locale, interactive }: BlockRenderProps
                       active === tab.value ? "bg-[var(--g7-gold-500)] font-medium text-[var(--g7-cream-50)]" : "text-[var(--g7-teal-900)] hover:text-[var(--g7-gold-600)]"
                     )}
                   >
-                    {tab.label}
+                    <StyledText text={tab.label} rich={tab.rich} />
                   </button>
                 </div>
               ))}
@@ -202,16 +204,16 @@ export function G7ProductsRender({ data, locale, interactive }: BlockRenderProps
 
         <div className="mt-[clamp(2rem,3vw,3.6rem)] grid grid-cols-1 gap-x-[clamp(0.75rem,1.6vw,1.9rem)] gap-y-[clamp(1.25rem,5.4vw,6.5rem)] sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, i) => (
-            <ProductCard key={`${item.name}-${i}`} item={item} locale={locale} linkLabel={data.linkLabel ?? ""} />
+            <ProductCard key={`$<StyledText text={item.name} rich={richOf(item, "name")} />-${i}`} item={item} locale={locale} linkLabel={data.linkLabel ?? ""} />
           ))}
           {cta?.enabled && (cta.title || cta.body) ? (
             <div className="flex min-h-[24rem] flex-col rounded-[12px] bg-[var(--g7-teal-900)] px-[clamp(1.5rem,2.6vw,3.1rem)] pb-[clamp(1.5rem,2.6vw,3.1rem)] pt-[clamp(1.75rem,3vw,3.6rem)] text-[var(--g7-cream-50)]">
-              {cta.eyebrow ? <p className={g7Eyebrow}>{cta.eyebrow}</p> : null}
-              {cta.title ? <h3 className="t-h3 mt-[clamp(1.25rem,3vw,3.6rem)]">{cta.title}</h3> : null}
-              {cta.body ? <p className="t-p mt-[clamp(1.25rem,3vw,3.6rem)] max-w-[22rem] font-light text-[var(--g7-cream-50)]/90">{cta.body}</p> : null}
+              {cta.eyebrow ? <p className={g7Eyebrow}><StyledText text={cta.eyebrow} rich={richOf(cta, "eyebrow")} /></p> : null}
+              {cta.title ? <h3 className="t-h3 mt-[clamp(1.25rem,3vw,3.6rem)]"><StyledText text={cta.title} rich={richOf(cta, "title")} /></h3> : null}
+              {cta.body ? <p className="t-p mt-[clamp(1.25rem,3vw,3.6rem)] max-w-[22rem] font-light text-[var(--g7-cream-50)]/90"><StyledText text={cta.body} rich={richOf(cta, "body")} /></p> : null}
               {cta.buttonLabel ? (
                 <Link href={g7Href(cta.buttonUrl ?? "", locale)} data-g7-quote-link className={cn(g7GoldButton, "mt-auto w-full min-h-[clamp(3rem,3.55vw,4.25rem)]")}>
-                  {cta.buttonLabel}
+                  <StyledText text={cta.buttonLabel} rich={richOf(cta, "buttonLabel")} />
                 </Link>
               ) : null}
             </div>
@@ -241,12 +243,12 @@ function ProductCard({ item, locale, linkLabel }: { item: G7Resolved<G7ProductIt
         ) : null}
       </div>
       <div className="flex flex-1 flex-col px-[clamp(1.25rem,1.5vw,1.75rem)] pb-[clamp(1.25rem,1.6vw,1.9rem)] pt-[clamp(1rem,1.4vw,1.6rem)]">
-        {item.categoryLabel ? <p className="t-small font-light text-[var(--g7-cream-50)]/80">{item.categoryLabel}</p> : null}
-        <p className="t-product mt-[clamp(0.4rem,0.9vw,1.1rem)] font-medium">{item.name}</p>
+        {item.categoryLabel ? <p className="t-small font-light text-[var(--g7-cream-50)]/80"><StyledText text={item.categoryLabel} rich={richOf(item, "categoryLabel")} /></p> : null}
+        <p className="t-product mt-[clamp(0.4rem,0.9vw,1.1rem)] font-medium"><StyledText text={item.name} rich={richOf(item, "name")} /></p>
         {item.variantSummary ? <p data-variant-summary className="t-small mt-1 font-light text-[var(--g7-cream-50)]/80">{item.variantSummary}</p> : null}
         <div className="mt-[clamp(1rem,1.8vw,2.1rem)] flex items-center justify-between gap-3 border-t border-[var(--g7-cream-50)]/25 pt-[clamp(0.75rem,1.2vw,1.4rem)]">
-          <span className="t-small font-light">{item.weight}</span>
-          {item.badge ? <span className="rounded-[6px] bg-[var(--g7-gold-500)] px-[clamp(0.75rem,1.1vw,1.3rem)] py-0.5 text-sm font-bold text-[var(--g7-cream-50)]">{item.badge}</span> : null}
+          <span className="t-small font-light"><StyledText text={item.weight} rich={richOf(item, "weight")} /></span>
+          {item.badge ? <span className="rounded-[6px] bg-[var(--g7-gold-500)] px-[clamp(0.75rem,1.1vw,1.3rem)] py-0.5 text-sm font-bold text-[var(--g7-cream-50)]"><StyledText text={item.badge} rich={richOf(item, "badge")} /></span> : null}
         </div>
         {linkLabel ? (
           <span className="t-ui mt-[clamp(1rem,1.9vw,2.2rem)] inline-flex items-center gap-[clamp(0.75rem,1.6vw,1.9rem)] font-light group-hover:text-[var(--g7-gold-500)]">
@@ -268,12 +270,12 @@ export function G7ProductsEdit({ data, onChange, locale }: BlockEditProps<G7Prod
   const tabOptions = (data.tabs ?? []).map((t) => t.key).filter(Boolean);
   return (
     <div className="space-y-4">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
       <div className="grid grid-cols-2 gap-3">
-        <TextField label='"All" tab label' value={data.allLabel ?? ""} onChange={(allLabel) => onChange({ ...data, allLabel })} dir={dir} />
-        <TextField label="Card link label" value={data.linkLabel ?? ""} onChange={(linkLabel) => onChange({ ...data, linkLabel })} dir={dir} />
+        <TextField label='"All" tab label' {...styledProps(data, "allLabel", onChange)} dir={dir} />
+        <TextField label="Card link label" {...styledProps(data, "linkLabel", onChange)} dir={dir} />
       </div>
-      <TextareaField label="Empty filter message" rows={2} value={data.emptyMessage ?? ""} onChange={(emptyMessage) => onChange({ ...data, emptyMessage })} dir={dir} />
+      <TextareaField label="Empty filter message" rows={2} {...styledProps(data, "emptyMessage", onChange)} dir={dir} />
       <G7ListEditor<G7ProductTab>
         label="Filter tabs"
         items={data.tabs ?? []}
@@ -283,7 +285,7 @@ export function G7ProductsEdit({ data, onChange, locale }: BlockEditProps<G7Prod
         itemLabel={(tab) => tab.label ?? tab.key}
         renderItem={(tab, update) => (
           <>
-            <TextField label="Label" value={tab.label ?? ""} onChange={(label) => update({ ...tab, label })} dir={dir} />
+            <TextField label="Label" {...styledProps(tab, "label", update)} dir={dir} />
             <TextField label="Key (products use this)" value={tab.key} onChange={(key) => update({ ...tab, key: key.replace(/[^a-z0-9-]/gi, "").toLowerCase() })} />
           </>
         )}
@@ -299,11 +301,11 @@ export function G7ProductsEdit({ data, onChange, locale }: BlockEditProps<G7Prod
           <>
             <CatalogPicker label="Catalog product (card links to its page)" value={item.productId ?? ""} options={products} onChange={(productId) => update({ ...item, productId })} />
             <G7ImageField label="Image" value={item.image} onChange={(image) => update({ ...item, image })} />
-            <TextField label="Name" value={item.name ?? ""} onChange={(name) => update({ ...item, name })} dir={dir} />
-            <TextField label="Category label" value={item.categoryLabel ?? ""} onChange={(categoryLabel) => update({ ...item, categoryLabel })} dir={dir} />
+            <TextField label="Name" {...styledProps(item, "name", update)} dir={dir} />
+            <TextField label="Category label" {...styledProps(item, "categoryLabel", update)} dir={dir} />
             <div className="grid grid-cols-2 gap-3">
-              <TextField label="Weight" value={item.weight ?? ""} onChange={(weight) => update({ ...item, weight })} dir={dir} />
-              <TextField label="Badge" value={item.badge ?? ""} onChange={(badge) => update({ ...item, badge })} dir={dir} />
+              <TextField label="Weight" {...styledProps(item, "weight", update)} dir={dir} />
+              <TextField label="Badge" {...styledProps(item, "badge", update)} dir={dir} />
             </div>
             <TextField label={`Tab key (${tabOptions.join(", ") || "none"})`} value={item.tab ?? ""} onChange={(tab) => update({ ...item, tab })} />
             <TextField label="Custom link URL (optional)" value={item.url ?? ""} onChange={(url) => update({ ...item, url })} />
@@ -312,11 +314,11 @@ export function G7ProductsEdit({ data, onChange, locale }: BlockEditProps<G7Prod
       />
       <div className="space-y-3 rounded-md border border-neutral-700 p-3">
         <CheckboxField label="Show quote card" checked={cta.enabled} onChange={(enabled) => onChange({ ...data, cta: { ...cta, enabled } })} />
-        <TextField label="Eyebrow" value={cta.eyebrow ?? ""} onChange={(eyebrow) => onChange({ ...data, cta: { ...cta, eyebrow } })} dir={dir} />
-        <TextField label="Title" value={cta.title ?? ""} onChange={(title) => onChange({ ...data, cta: { ...cta, title } })} dir={dir} />
-        <TextareaField label="Text" rows={3} value={cta.body ?? ""} onChange={(body) => onChange({ ...data, cta: { ...cta, body } })} dir={dir} />
+        <TextField label="Eyebrow" {...styledProps(cta, "eyebrow", (next) => onChange({ ...data, cta: next }))} dir={dir} />
+        <TextField label="Title" {...styledProps(cta, "title", (next) => onChange({ ...data, cta: next }))} dir={dir} />
+        <TextareaField label="Text" rows={3} {...styledProps(cta, "body", (next) => onChange({ ...data, cta: next }))} dir={dir} />
         <div className="grid grid-cols-2 gap-3">
-          <TextField label="Button" value={cta.buttonLabel ?? ""} onChange={(buttonLabel) => onChange({ ...data, cta: { ...cta, buttonLabel } })} dir={dir} />
+          <TextField label="Button" {...styledProps(cta, "buttonLabel", (next) => onChange({ ...data, cta: next }))} dir={dir} />
           <TextField label="Button URL" value={cta.buttonUrl ?? ""} onChange={(buttonUrl) => onChange({ ...data, cta: { ...cta, buttonUrl } })} />
         </div>
       </div>
@@ -331,7 +333,7 @@ export function G7BrandsRender({ data, locale }: BlockRenderProps<G7BrandsData>)
   return (
     <section className="bg-[var(--g7-cream-50)] pb-[clamp(3.5rem,4.5vw,5.4rem)] pt-[clamp(2rem,4vw,4.8rem)]">
       <div className="g7-container">
-        {data.heading ? <h2 className={cn(g7H2, "text-[var(--g7-teal-900)]")}>{data.heading}</h2> : null}
+        {data.heading ? <h2 className={cn(g7H2, "text-[var(--g7-teal-900)]")}><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
         <div className={cn("mt-[clamp(1.75rem,3.1vw,3.75rem)] grid grid-cols-1 gap-[clamp(1rem,2vw,2.4rem)]", items.length > 1 && "sm:grid-cols-2", items.length > 2 && "lg:grid-cols-3")}>
           {items.map((item, i) => (
             <Link
@@ -345,7 +347,7 @@ export function G7BrandsRender({ data, locale }: BlockRenderProps<G7BrandsData>)
               <div className="relative h-[clamp(6rem,8vw,9.6rem)] w-[clamp(10rem,12.5vw,15rem)]">
                 {item.logo?.url ? <Image src={item.logo.url} alt={item.name ?? ""} fill sizes="240px" className="object-contain" /> : null}
               </div>
-              <p className="t-product mt-[clamp(0.5rem,0.6vw,0.75rem)] text-[var(--g7-teal-900)]">{item.name}</p>
+              <p className="t-product mt-[clamp(0.5rem,0.6vw,0.75rem)] text-[var(--g7-teal-900)]"><StyledText text={item.name} rich={richOf(item, "name")} /></p>
               {item.countLabel || item.count ? <p className="t-small mt-1 font-light text-[var(--g7-muted)]">{item.countLabel || item.count}</p> : null}
             </Link>
           ))}
@@ -360,7 +362,7 @@ export function G7BrandsEdit({ data, onChange, locale }: BlockEditProps<G7Brands
   const { brands } = useReferenceData();
   return (
     <div className="space-y-3">
-      <TextField label="Heading" value={data.heading ?? ""} onChange={(heading) => onChange({ ...data, heading })} dir={dir} />
+      <TextField label="Heading" {...styledProps(data, "heading", onChange)} dir={dir} />
       <G7ListEditor<G7BrandItem>
         label="Brands"
         items={data.items ?? []}
@@ -372,8 +374,8 @@ export function G7BrandsEdit({ data, onChange, locale }: BlockEditProps<G7Brands
           <>
             <CatalogPicker label="Catalog brand (link + product count)" value={item.brandId ?? ""} options={brands} onChange={(brandId) => update({ ...item, brandId })} />
             <G7ImageField label="Logo" value={item.logo} onChange={(logo) => update({ ...item, logo })} />
-            <TextField label="Name" value={item.name ?? ""} onChange={(name) => update({ ...item, name })} dir={dir} />
-            <TextField label="Count text (only if no catalog brand matches)" value={item.count ?? ""} onChange={(count) => update({ ...item, count })} dir={dir} />
+            <TextField label="Name" {...styledProps(item, "name", update)} dir={dir} />
+            <TextField label="Count text (only if no catalog brand matches)" {...styledProps(item, "count", update)} dir={dir} />
             <TextField label="Custom link URL (optional)" value={item.url ?? ""} onChange={(url) => update({ ...item, url })} />
           </>
         )}

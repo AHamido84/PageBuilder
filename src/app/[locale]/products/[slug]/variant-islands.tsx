@@ -4,8 +4,10 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import Link from "next/link";
 import { ProductGallery } from "./product-gallery";
 import { VariantSelector, type VariantSelectorLabels } from "@/components/site/variant-selector";
+import type { RichText } from "@/lib/text-style/rich-text";
 import { findVariant, resolveVariantFromParams, variantQuery, type ProductVariantsView, type VariantView } from "@/lib/catalog/variants/core";
 import { cn } from "@/lib/cn";
+import { StyledText } from "@/components/text/styled-text";
 
 /**
  * Product page variant state. The server renders the page with the variant picked from the URL
@@ -76,10 +78,10 @@ export function VariantTitle({ productName, className }: { productName: string; 
   const { view, current } = useVariant();
   return (
     <h1 className={className}>
-      {productName}
+      <StyledText text={productName} rich={view.productNameRich} />
       {view.type === "VARIANT" && current.label ? (
         <span data-variant-name className="mt-2 block text-xl font-normal text-ink/60 sm:text-2xl">
-          {current.name.startsWith(productName) ? current.label : current.name}
+          {current.name.startsWith(productName) ? current.label : <StyledText text={current.name} rich={current.rich?.name} />}
         </span>
       ) : null}
     </h1>
@@ -91,8 +93,16 @@ export function VariantDescription() {
   const { current } = useVariant();
   return (
     <>
-      {current.shortDescription ? <p className="mt-3 text-lg text-ink/60">{current.shortDescription}</p> : null}
-      {current.description ? <p className="mt-4 text-base leading-relaxed text-ink/70">{current.description}</p> : null}
+      {current.shortDescription ? (
+        <p className="mt-3 text-lg text-ink/60">
+          <StyledText text={current.shortDescription} rich={current.rich?.shortDescription} />
+        </p>
+      ) : null}
+      {current.description ? (
+        <p className="mt-4 text-base leading-relaxed text-ink/70">
+          <StyledText text={current.description} rich={current.rich?.description} />
+        </p>
+      ) : null}
     </>
   );
 }
@@ -120,10 +130,14 @@ export function VariantDetails({
   /** Server-rendered rows that don't change with the variant (category, brand, temperature, origin). */
   fixedSpecRows: ReactNode;
   /** Server-rendered "additional info" rows that don't change (dimensions, ingredients…). */
-  extraInfoRows: { label: string; value: string }[];
+  extraInfoRows: { label: string; value: string; rich?: RichText }[];
 }) {
   const { current } = useVariant();
-  const additional = [...(current.weight ? [{ label: labels.weight, value: current.weight }] : []), ...extraInfoRows, ...current.specs];
+  const additional: { label: ReactNode; value: ReactNode }[] = [
+    ...(current.weight ? [{ label: labels.weight, value: <StyledText text={current.weight} rich={current.rich?.weight} /> }] : []),
+    ...extraInfoRows.map((row) => ({ label: row.label, value: row.rich ? <StyledText text={row.value} rich={row.rich} /> : row.value })),
+    ...current.specs.map((sp) => ({ label: <StyledText text={sp.label} rich={sp.labelRich} />, value: <StyledText text={sp.value} rich={sp.valueRich} /> })),
+  ];
   return (
     <>
       <div className="mt-8 rounded-[var(--card-radius)] border border-line">
@@ -137,13 +151,17 @@ export function VariantDetails({
       {current.packaging ? (
         <div className="mt-6">
           <p className="mb-1.5 text-sm font-medium">{labels.packaging}</p>
-          <p className="text-sm leading-relaxed text-ink/65">{current.packaging}</p>
+          <p className="text-sm leading-relaxed text-ink/65">
+            <StyledText text={current.packaging} rich={current.rich?.packaging} />
+          </p>
         </div>
       ) : null}
       {current.storage ? (
         <div className="mt-6">
           <p className="mb-1.5 text-sm font-medium">{labels.storage}</p>
-          <p className="text-sm leading-relaxed text-ink/65">{current.storage}</p>
+          <p className="text-sm leading-relaxed text-ink/65">
+            <StyledText text={current.storage} rich={current.rich?.storage} />
+          </p>
         </div>
       ) : null}
 
@@ -152,7 +170,7 @@ export function VariantDetails({
           <p className="border-b border-line px-5 py-3 text-sm font-medium">{labels.additionalInfo}</p>
           <dl className="divide-y divide-ink/10">
             {additional.map((row, i) => (
-              <SpecRow key={`${row.label}-${i}`} label={row.label} value={row.value} />
+              <SpecRow key={i} label={row.label} value={row.value} />
             ))}
           </dl>
         </div>
@@ -206,8 +224,8 @@ export function VariantsTable({
                 <tr key={v.id} className={cn(isCurrent && "bg-[var(--g7-gold-500)]/10")}>
                   <td className="px-4 py-3 font-medium">{v.label || v.name}</td>
                   {showSku ? <td className="font-mono-data px-4 py-3">{v.sku ?? "—"}</td> : null}
-                  {showWeight ? <td className="px-4 py-3">{v.weight ?? "—"}</td> : null}
-                  {showPackaging ? <td className="px-4 py-3 text-ink/70">{v.packaging ?? "—"}</td> : null}
+                  {showWeight ? <td className="px-4 py-3">{v.weight ? <StyledText text={v.weight} rich={v.rich?.weight} /> : "—"}</td> : null}
+                  {showPackaging ? <td className="px-4 py-3 text-ink/70">{v.packaging ? <StyledText text={v.packaging} rich={v.rich?.packaging} /> : "—"}</td> : null}
                   <td className="px-4 py-3">{v.available ? labels.available : labels.unavailable}</td>
                   <td className="px-4 py-2 text-end">
                     <button
@@ -232,7 +250,7 @@ export function VariantsTable({
   );
 }
 
-function SpecRow({ label, value }: { label: string; value: ReactNode }) {
+function SpecRow({ label, value }: { label: ReactNode; value: ReactNode }) {
   return (
     <div className="flex items-center justify-between px-5 py-3 text-sm">
       <span className="text-ink/50">{label}</span>

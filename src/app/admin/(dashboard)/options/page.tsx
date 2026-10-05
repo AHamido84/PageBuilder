@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { OptionsLibrary } from "./options-library";
+import { safeRichMap } from "@/lib/text-style/rich-text";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export default async function ProductOptionsPage() {
           labelAr: t.labelAr,
           labelEn: t.labelEn,
           display: t.display,
+          rich: safeRichMap(t.rich),
           usedBy: t.productOptions.map((po) => ({ id: po.product.id, label: po.product.translations[0]?.name ?? po.product.sku })),
         }))}
       />

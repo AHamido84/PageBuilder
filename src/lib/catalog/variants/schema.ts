@@ -1,5 +1,14 @@
 import { z } from "zod";
 import { comboKey } from "./core";
+import { richMapSchema } from "@/lib/text-style/rich-text";
+
+/** Text styling map limited to the given field keys (strict RichText values, see src/lib/text-style). */
+const richFor = (keys: readonly string[]) =>
+  richMapSchema
+    .refine((map) => Object.keys(map).every((k) => keys.includes(k)), "تنسيق لحقل غير معروف")
+    .nullable()
+    .optional();
+const BILINGUAL = (...bases: string[]) => bases.flatMap((b) => [`${b}Ar`, `${b}En`]);
 
 /**
  * Server-side validation for the admin variants editor save (one payload = the product's whole
@@ -38,6 +47,7 @@ export const optionValueInput = z.object({
   valueEn: text(80).min(1, "القيمة بالإنجليزية مطلوبة"),
   swatchHex: hex,
   imageUrl: imageUrl.optional().nullable().transform((v) => v || null),
+  rich: richFor(BILINGUAL("value")),
 });
 
 export const productOptionInput = z.object({
@@ -59,6 +69,7 @@ export const variantSpecInput = z.object({
   labelEn: text(80).min(1, "عنوان المواصفة بالإنجليزية مطلوب"),
   valueAr: text(200).min(1, "قيمة المواصفة بالعربية مطلوبة"),
   valueEn: text(200).min(1, "قيمة المواصفة بالإنجليزية مطلوبة"),
+  rich: richFor(BILINGUAL("label", "value")),
 });
 
 export const variantInput = z.object({
@@ -82,6 +93,7 @@ export const variantInput = z.object({
   storageEn: optionalText(300),
   available: z.boolean(),
   images: z.array(variantImageInput).max(20, "صور كثيرة جدًا"),
+  rich: richFor(BILINGUAL("name", "shortDescription", "description", "weight", "packaging", "storage")),
   specs: z.array(variantSpecInput).max(30, "مواصفات كثيرة جدًا"),
 });
 
@@ -163,4 +175,5 @@ export const optionTypeInput = z.object({
   labelAr: text(60).min(1, "الاسم بالعربية مطلوب"),
   labelEn: text(60).min(1, "الاسم بالإنجليزية مطلوب"),
   display: optionDisplaySchema,
+  rich: richFor(BILINGUAL("label")),
 });

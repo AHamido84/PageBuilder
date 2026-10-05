@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import sanitizeHtml from "sanitize-html";
+import { parseWithRich } from "@/lib/text-style/block-rich";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -64,8 +65,10 @@ export async function saveDraftAction(pageId: string, sections: unknown[], baseD
   for (const s of parsed.data) {
     const block = getBlock(s.type);
     if (!block) return { success: false, error: `Unknown block type "${s.type}".` };
-    const enResult = block.dataSchema.safeParse(s.dataEn);
-    const arResult = block.dataSchema.safeParse(s.dataAr);
+    // `__rich` (text styling) maps are lifted out, the data validated, then the maps re-validated
+    // (strict RichText schema) and restored -- see src/lib/text-style/block-rich.ts.
+    const enResult = parseWithRich(block.dataSchema, s.dataEn);
+    const arResult = parseWithRich(block.dataSchema, s.dataAr);
     if (!enResult.success || !arResult.success) {
       return { success: false, error: `Invalid content in a "${block.label}" section.` };
     }

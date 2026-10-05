@@ -1,6 +1,8 @@
 import { getBlock } from "@/lib/page-builder/registry";
 import { SectionShell } from "@/lib/page-builder/section-shell";
 import { normalizeLocaleSettings } from "@/lib/page-builder/types";
+import { parseWithRich, stripRich } from "@/lib/text-style/block-rich";
+import { areTextStylesEnabled } from "@/lib/text-style/flag";
 
 export interface SectionRow {
   id: string;
@@ -21,6 +23,8 @@ export interface SectionRow {
  */
 export async function SectionRenderer({ sections, locale }: { sections: SectionRow[]; locale: string }) {
   const visible = sections.filter((s) => s.isVisible);
+  // Text styling off -> every `__rich` map is dropped, so blocks render their plain strings exactly as before.
+  const textStyles = await areTextStylesEnabled();
 
   const rendered = await Promise.all(
     visible.map(async (section) => {
@@ -30,7 +34,7 @@ export async function SectionRenderer({ sections, locale }: { sections: SectionR
         return null;
       }
       const rawData = locale === "ar" ? section.dataAr : section.dataEn;
-      const parsed = block.dataSchema.safeParse(rawData);
+      const parsed = parseWithRich(block.dataSchema, textStyles ? rawData : stripRich(rawData));
       if (!parsed.success) {
         console.warn(`[page-builder] section ${section.id} (${section.type}) failed schema validation at render time, skipping`);
         return null;

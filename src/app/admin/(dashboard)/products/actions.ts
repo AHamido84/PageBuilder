@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { logActivity } from "@/lib/activity-log";
 import { copyVariantGraph } from "@/lib/catalog/variants/copy";
+import { Prisma } from "@prisma/client";
+import { mergeRichFromForm } from "@/lib/text-style/rich-text";
 
 const slugSchema = z
   .string()
@@ -26,6 +28,20 @@ const productSchema = z.object({
   descriptionEn: z.string().max(4000).optional().or(z.literal("")),
   descriptionAr: z.string().max(4000).optional().or(z.literal("")),
 });
+
+/**
+ * Merged `rich` maps for both translation rows from a form's `<base><En|Ar>__rich` inputs.
+ * `fields` maps the form base name to the translation field (e.g. packaging -> packagingInfo).
+ */
+async function translationRich(productId: string, formData: FormData, fields: Record<string, string>) {
+  const rows = await prisma.productTranslation.findMany({ where: { productId }, select: { locale: true, rich: true } });
+  const forLocale = (locale: "EN" | "AR") => {
+    const suffix = locale === "EN" ? "En" : "Ar";
+    const map = mergeRichFromForm(rows.find((r) => r.locale === locale)?.rich, formData, Object.fromEntries(Object.entries(fields).map(([base, field]) => [`${base}${suffix}`, field])));
+    return map ?? Prisma.DbNull;
+  };
+  return { EN: forLocale("EN"), AR: forLocale("AR") };
+}
 
 export interface FormActionState {
   error?: string;
@@ -93,6 +109,9 @@ export async function updateProductDetailsAction(_prev: FormActionState, formDat
   if (skuTaken) return { error: "A product with that SKU already exists." };
   if (slugTaken) return { error: "A product with that slug already exists." };
 
+  // Text styling: `<field>__rich` inputs merged into each translation's `rich` map (plain columns unchanged).
+  const detailsRich = await translationRich(data.id, formData, { name: "name", shortDescription: "shortDescription", description: "description" });
+
   await prisma.$transaction([
     prisma.product.update({
       where: { id: data.id },
@@ -109,13 +128,13 @@ export async function updateProductDetailsAction(_prev: FormActionState, formDat
     }),
     prisma.productTranslation.upsert({
       where: { productId_locale: { productId: data.id, locale: "EN" } },
-      create: { productId: data.id, locale: "EN", name: data.nameEn, shortDescription: data.shortDescriptionEn || null, description: data.descriptionEn || null },
-      update: { name: data.nameEn, shortDescription: data.shortDescriptionEn || null, description: data.descriptionEn || null },
+      create: { productId: data.id, locale: "EN", name: data.nameEn, shortDescription: data.shortDescriptionEn || null, description: data.descriptionEn || null, rich: detailsRich.EN },
+      update: { name: data.nameEn, shortDescription: data.shortDescriptionEn || null, description: data.descriptionEn || null, rich: detailsRich.EN },
     }),
     prisma.productTranslation.upsert({
       where: { productId_locale: { productId: data.id, locale: "AR" } },
-      create: { productId: data.id, locale: "AR", name: data.nameAr, shortDescription: data.shortDescriptionAr || null, description: data.descriptionAr || null },
-      update: { name: data.nameAr, shortDescription: data.shortDescriptionAr || null, description: data.descriptionAr || null },
+      create: { productId: data.id, locale: "AR", name: data.nameAr, shortDescription: data.shortDescriptionAr || null, description: data.descriptionAr || null, rich: detailsRich.AR },
+      update: { name: data.nameAr, shortDescription: data.shortDescriptionAr || null, description: data.descriptionAr || null, rich: detailsRich.AR },
     }),
   ]);
 
@@ -151,17 +170,19 @@ export async function updateProductSpecsAction(_prev: FormActionState, formData:
   }
   const data = parsed.data;
 
+  const specsRich = await translationRich(data.id, formData, { packaging: "packagingInfo", storage: "storageInfo", ingredients: "ingredients", nutritionInfo: "nutritionInfo", allergens: "allergens" });
+
   await prisma.$transaction([
     prisma.product.update({ where: { id: data.id }, data: { weight: data.weight || null, dimensions: data.dimensions || null } }),
     prisma.productTranslation.upsert({
       where: { productId_locale: { productId: data.id, locale: "EN" } },
-      create: { productId: data.id, locale: "EN", name: "", packagingInfo: data.packagingEn || null, storageInfo: data.storageEn || null, ingredients: data.ingredientsEn || null, nutritionInfo: data.nutritionInfoEn || null, allergens: data.allergensEn || null },
-      update: { packagingInfo: data.packagingEn || null, storageInfo: data.storageEn || null, ingredients: data.ingredientsEn || null, nutritionInfo: data.nutritionInfoEn || null, allergens: data.allergensEn || null },
+      create: { productId: data.id, locale: "EN", name: "", packagingInfo: data.packagingEn || null, storageInfo: data.storageEn || null, ingredients: data.ingredientsEn || null, nutritionInfo: data.nutritionInfoEn || null, allergens: data.allergensEn || null, rich: specsRich.EN },
+      update: { packagingInfo: data.packagingEn || null, storageInfo: data.storageEn || null, ingredients: data.ingredientsEn || null, nutritionInfo: data.nutritionInfoEn || null, allergens: data.allergensEn || null, rich: specsRich.EN },
     }),
     prisma.productTranslation.upsert({
       where: { productId_locale: { productId: data.id, locale: "AR" } },
-      create: { productId: data.id, locale: "AR", name: "", packagingInfo: data.packagingAr || null, storageInfo: data.storageAr || null, ingredients: data.ingredientsAr || null, nutritionInfo: data.nutritionInfoAr || null, allergens: data.allergensAr || null },
-      update: { packagingInfo: data.packagingAr || null, storageInfo: data.storageAr || null, ingredients: data.ingredientsAr || null, nutritionInfo: data.nutritionInfoAr || null, allergens: data.allergensAr || null },
+      create: { productId: data.id, locale: "AR", name: "", packagingInfo: data.packagingAr || null, storageInfo: data.storageAr || null, ingredients: data.ingredientsAr || null, nutritionInfo: data.nutritionInfoAr || null, allergens: data.allergensAr || null, rich: specsRich.AR },
+      update: { packagingInfo: data.packagingAr || null, storageInfo: data.storageAr || null, ingredients: data.ingredientsAr || null, nutritionInfo: data.nutritionInfoAr || null, allergens: data.allergensAr || null, rich: specsRich.AR },
     }),
   ]);
 

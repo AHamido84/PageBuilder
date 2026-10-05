@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { getBlock } from "@/lib/page-builder/registry";
+import { parseWithRich } from "@/lib/text-style/block-rich";
 import type { BuilderSection } from "@/lib/page-builder/types";
 import { normalizeLocaleSettings } from "@/lib/page-builder/types";
 import { PageBuilderShell } from "./page-builder-shell";
@@ -13,7 +14,7 @@ import type { RevisionListItem } from "./revision-history-panel";
 async function resolveSectionData(type: string, data: unknown, locale: string): Promise<unknown> {
   const block = getBlock(type);
   if (!block?.resolveData) return data;
-  const parsed = block.dataSchema.safeParse(data);
+  const parsed = parseWithRich(block.dataSchema, data);
   if (!parsed.success) return data;
   return block.resolveData(parsed.data, locale);
 }

@@ -6,7 +6,8 @@ import { ProductGridFilterable } from "./product-grid-filterable";
 import type { BlockRenderProps } from "../../types";
 import type { ProductGridData } from "../commerce-blocks";
 import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
-import { areVariantsEnabled, buildVariantsView, cardVariantFields, variantGraphInclude } from "@/lib/catalog/variants/load";
+import { areVariantsEnabled, buildVariantsView, cardTextFields, cardVariantFields, variantGraphInclude } from "@/lib/catalog/variants/load";
+import { areTextStylesEnabled } from "@/lib/text-style/flag";
 import { variantQuery } from "@/lib/catalog/variants/core";
 
 async function loadCards(data: ProductGridData, locale: string): Promise<ProductCardData[]> {
@@ -36,6 +37,7 @@ async function loadCards(data: ProductGridData, locale: string): Promise<Product
   // Manual mode: the editor's chosen order, not the database's.
   const products = mode === "manual" ? manualIds.map((id) => found.find((p) => p.id === id)).filter((p): p is (typeof found)[number] => Boolean(p)) : found;
   const variantsEnabled = await areVariantsEnabled();
+  const textStyles = await areTextStylesEnabled();
 
   return products.flatMap((product): ProductCardData[] => {
     const card: ProductCardData = {
@@ -51,6 +53,7 @@ async function loadCards(data: ProductGridData, locale: string): Promise<Product
       createdAt: product.createdAt,
       weight: product.weight,
       dimensions: product.dimensions,
+      ...cardTextFields(product, locale, textStyles),
     };
     if (!variantsEnabled || product.type !== "VARIANT" || product.variants.length === 0) return [card];
     if (data.variantDisplay !== "variants") return [{ ...card, ...cardVariantFields(product, locale, true) }];
@@ -61,6 +64,8 @@ async function loadCards(data: ProductGridData, locale: string): Promise<Product
       ...cardVariantFields(product, locale, true, () => variant),
       id: `${product.id}:${variant.id}`,
       name: variant.name,
+      // The product name's styling doesn't describe a variant's own name.
+      nameRich: undefined,
       variantSummary: null,
       variantQuery: variantQuery(view, variant) || null,
     }));

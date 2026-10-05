@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
-import { TextField } from "@/components/admin/ui/field";
+import { TextField, styledProps } from "@/components/admin/ui/field";
 import { useFormAction } from "@/lib/use-form-action";
 import { cn } from "@/lib/cn";
+import { StyledText } from "@/components/text/styled-text";
+import { richOf } from "@/lib/text-style/rich-text";
 import { submitQuoteRequestAction } from "@/app/[locale]/page-builder-lead-action";
 import type { LeadFormState } from "@/lib/leads/submit-lead";
 import type { BlockEditProps, BlockRenderProps } from "../../types";
@@ -208,15 +210,15 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
           <div dir="ltr" className={cn("absolute inset-0 flex px-[clamp(1.5rem,4vw,5rem)] pb-[clamp(3rem,4.6vw,5.5rem)] pt-[clamp(2.5rem,9vw,9rem)] text-[var(--g7-cream-50)]", g7OverlayClasses(data.asideTextX, data.asideTextY))}>
             <div dir={locale === "ar" ? "rtl" : "ltr"} className="g7-nudge" style={g7OffsetStyle(data.asideOffsetX, data.asideOffsetY)}>
             <h2 className="t-h2">
-              {data.asideHeadingLine1}
+              <StyledText text={data.asideHeadingLine1} rich={richOf(data, "asideHeadingLine1")} />
               {data.asideHeadingLine2 ? (
                 <>
                   <br />
-                  {data.asideHeadingLine2}
+                  <StyledText text={data.asideHeadingLine2} rich={richOf(data, "asideHeadingLine2")} />
                 </>
               ) : null}
             </h2>
-            {data.asideSubtitle ? <p className="t-h3 mt-[clamp(0.75rem,1.4vw,1.6rem)] font-light">{data.asideSubtitle}</p> : null}
+            {data.asideSubtitle ? <p className="t-h3 mt-[clamp(0.75rem,1.4vw,1.6rem)] font-light"><StyledText text={data.asideSubtitle} rich={richOf(data, "asideSubtitle")} /></p> : null}
             </div>
           </div>
         </div>
@@ -224,9 +226,9 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
         {/* Form panel */}
         <div id={anchorId} className={cn(anchorOffset, "px-4 py-12 sm:px-10 xl:px-[clamp(2rem,2.9vw,3.5rem)] xl:pb-[clamp(2rem,2.6vw,3.1rem)] xl:pt-[clamp(2.5rem,4.2vw,5rem)]")}>
           <div className="mx-auto max-w-[40rem] xl:max-w-none">
-            {data.eyebrow ? <p className={g7Eyebrow}>{data.eyebrow}</p> : null}
-            {data.heading ? <h2 id={anchorId === "quote-form" ? undefined : "quote-form"} className={cn(anchorOffset, "t-h2 mt-[clamp(0.75rem,1.4vw,1.6rem)] text-[var(--g7-teal-900)]")}>{data.heading}</h2> : null}
-            {data.subtitle ? <p className="t-h3 mt-[clamp(0.75rem,1.6vw,1.9rem)] text-[var(--g7-teal-900)]">{data.subtitle}</p> : null}
+            {data.eyebrow ? <p className={g7Eyebrow}><StyledText text={data.eyebrow} rich={richOf(data, "eyebrow")} /></p> : null}
+            {data.heading ? <h2 id={anchorId === "quote-form" ? undefined : "quote-form"} className={cn(anchorOffset, "t-h2 mt-[clamp(0.75rem,1.4vw,1.6rem)] text-[var(--g7-teal-900)]")}><StyledText text={data.heading} rich={richOf(data, "heading")} /></h2> : null}
+            {data.subtitle ? <p className="t-h3 mt-[clamp(0.75rem,1.6vw,1.9rem)] text-[var(--g7-teal-900)]"><StyledText text={data.subtitle} rich={richOf(data, "subtitle")} /></p> : null}
 
             <div ref={statusRef} tabIndex={-1} role="status" aria-live="polite" className="outline-none">
               {done ? (
@@ -251,17 +253,17 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                 </div>
 
                 <div>
-                  <label htmlFor="g7q-name" className={labelClass}>{data.nameLabel}</label>
+                  <label htmlFor="g7q-name" className={labelClass}><StyledText text={data.nameLabel} rich={richOf(data, "nameLabel")} /></label>
                   <input id="g7q-name" name="contactName" autoComplete="name" placeholder={data.namePlaceholder} className={inputClass} aria-invalid={Boolean(errors.contactName)} aria-describedby={errors.contactName ? "g7q-contactName-error" : undefined} />
                   {fieldError("contactName")}
                 </div>
                 <div>
-                  <label htmlFor="g7q-company" className={labelClass}>{data.companyLabel}</label>
+                  <label htmlFor="g7q-company" className={labelClass}><StyledText text={data.companyLabel} rich={richOf(data, "companyLabel")} /></label>
                   <input id="g7q-company" name="companyName" autoComplete="organization" placeholder={data.companyPlaceholder} className={inputClass} />
                 </div>
 
                 <div>
-                  <label htmlFor="g7q-city" className={labelClass}>{data.cityLabel}</label>
+                  <label htmlFor="g7q-city" className={labelClass}><StyledText text={data.cityLabel} rich={richOf(data, "cityLabel")} /></label>
                   <SelectBox>
                     <select id="g7q-city" name="city" defaultValue="" onChange={(e) => setOtherCity(Boolean(otherCityLabel) && e.target.value === otherCityLabel)} className={cn(inputClass, "appearance-none pe-11")}>
                     <option value="">{data.cityPlaceholder}</option>
@@ -288,7 +290,7 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                   ) : null}
                 </div>
                 <div>
-                  <label htmlFor="g7q-phone" className={labelClass}>{data.phoneLabel}</label>
+                  <label htmlFor="g7q-phone" className={labelClass}><StyledText text={data.phoneLabel} rich={richOf(data, "phoneLabel")} /></label>
                   <input id="g7q-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" placeholder={data.phonePlaceholder} className={cn(inputClass, "rtl:text-right")} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? "g7q-phone-error" : undefined} />
                   {fieldError("phone")}
                 </div>
@@ -297,7 +299,7 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                   <CatalogPicker legend={data.productsLabel ?? ""} catalog={catalog} locale={locale} />
                 ) : (
                 <fieldset>
-                  <legend className={labelClass}>{data.productsLabel}</legend>
+                  <legend className={labelClass}><StyledText text={data.productsLabel} rich={richOf(data, "productsLabel")} /></legend>
                   {/* One even row of pills -- never a single orphan pill on its own line (finding 09). */}
                   <div className="grid grid-cols-3 gap-2">
                     {(data.products ?? []).map((p) => (
@@ -312,7 +314,7 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                 </fieldset>
                 )}
                 <div>
-                  <label htmlFor="g7q-quantity" className={labelClass}>{data.quantityLabel}</label>
+                  <label htmlFor="g7q-quantity" className={labelClass}><StyledText text={data.quantityLabel} rich={richOf(data, "quantityLabel")} /></label>
                   <SelectBox>
                     <select id="g7q-quantity" name="quantity" defaultValue="" className={cn(inputClass, "appearance-none pe-11")}>
                     <option value="">{data.quantityPlaceholder}</option>
@@ -326,10 +328,10 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                 <div className="sm:col-span-2">
                   <button type="submit" disabled={pending || !interactive} className={cn(g7GoldButton, "mt-[clamp(0.5rem,1.4vw,1.7rem)] min-h-[clamp(3.5rem,4.4vw,5.3rem)] w-full rounded-[8px] disabled:opacity-70")}>
                     {pending ? <Loader2 size={20} className="animate-spin" aria-hidden="true" /> : null}
-                    {pending ? t.sending : data.submitLabel}
+                    {pending ? t.sending : <StyledText text={data.submitLabel} rich={richOf(data, "submitLabel")} />}
                     {!pending ? <G7Arrow size={20} /> : null}
                   </button>
-                  {data.note ? <p className="t-small mt-[clamp(1rem,1.8vw,2.2rem)] text-center font-light text-[var(--g7-muted)]">{data.note}</p> : null}
+                  {data.note ? <p className="t-small mt-[clamp(1rem,1.8vw,2.2rem)] text-center font-light text-[var(--g7-muted)]"><StyledText text={data.note} rich={richOf(data, "note")} /></p> : null}
                 </div>
               </form>
             ) : null}
@@ -349,7 +351,7 @@ function OptionsEditor({ label, items, onChange, dir }: { label: string; items: 
       onChange={onChange}
       createItem={() => ({ value: `opt-${Date.now().toString(36)}`, label: "" })}
       itemLabel={(item) => item.label ?? item.value}
-      renderItem={(item, update) => <TextField label="Label" value={item.label ?? ""} onChange={(label) => update({ ...item, label })} dir={dir} />}
+      renderItem={(item, update) => <TextField label="Label" {...styledProps(item, "label", update)} dir={dir} />}
     />
   );
 }
@@ -377,9 +379,9 @@ export function G7QuoteEdit({ data, onChange, locale }: BlockEditProps<G7QuoteDa
       <TextField label="Anchor id (links use #id)" value={data.anchorId ?? ""} onChange={(v) => set("anchorId")(v.replace(/[^a-zA-Z0-9_-]/g, ""))} />
       <G7ImageField label="Image" value={data.image} onChange={set("image")} />
       <TextField label="Image alt text" value={data.imageAlt ?? ""} onChange={set("imageAlt")} dir={dir} />
-      <TextField label="Image heading line 1" value={data.asideHeadingLine1 ?? ""} onChange={set("asideHeadingLine1")} dir={dir} />
-      <TextField label="Image heading line 2" value={data.asideHeadingLine2 ?? ""} onChange={set("asideHeadingLine2")} dir={dir} />
-      <TextField label="Image subtitle" value={data.asideSubtitle ?? ""} onChange={set("asideSubtitle")} dir={dir} />
+      <TextField label="Image heading line 1" {...styledProps(data, "asideHeadingLine1", onChange)} dir={dir} />
+      <TextField label="Image heading line 2" {...styledProps(data, "asideHeadingLine2", onChange)} dir={dir} />
+      <TextField label="Image subtitle" {...styledProps(data, "asideSubtitle", onChange)} dir={dir} />
       <G7PositionFields
         label="Image text position"
         x={data.asideTextX}
@@ -388,18 +390,23 @@ export function G7QuoteEdit({ data, onChange, locale }: BlockEditProps<G7QuoteDa
         offsetY={data.asideOffsetY}
         onChange={(p) => onChange({ ...data, asideTextX: p.x, asideTextY: p.y, asideOffsetX: p.offsetX, asideOffsetY: p.offsetY })}
       />
-      <TextField label="Form eyebrow" value={data.eyebrow ?? ""} onChange={set("eyebrow")} dir={dir} />
-      <TextField label="Form heading" value={data.heading ?? ""} onChange={set("heading")} dir={dir} />
-      <TextField label="Form subtitle" value={data.subtitle ?? ""} onChange={set("subtitle")} dir={dir} />
+      <TextField label="Form eyebrow" {...styledProps(data, "eyebrow", onChange)} dir={dir} />
+      <TextField label="Form heading" {...styledProps(data, "heading", onChange)} dir={dir} />
+      <TextField label="Form subtitle" {...styledProps(data, "subtitle", onChange)} dir={dir} />
       <div className="grid grid-cols-2 gap-3">
         {pairs.map(([key, label]) => (
-          <TextField key={key} label={label} value={(data[key] as string) ?? ""} onChange={(v) => onChange({ ...data, [key]: v })} dir={dir} />
+          // Placeholders stay plain text (an input placeholder can't carry styling); labels/button are styled.
+          String(key).includes("Placeholder") ? (
+            <TextField key={key} label={label} value={(data[key] as string) ?? ""} onChange={(v) => onChange({ ...data, [key]: v })} dir={dir} />
+          ) : (
+            <TextField key={key} label={label} {...styledProps(data, key as keyof G7QuoteData & string, onChange)} dir={dir} />
+          )
         ))}
       </div>
       <OptionsEditor label="Cities" items={data.cities ?? []} onChange={set("cities")} dir={dir} />
       <OptionsEditor label="Products" items={data.products ?? []} onChange={set("products")} dir={dir} />
       <OptionsEditor label="Quantities" items={data.quantities ?? []} onChange={set("quantities")} dir={dir} />
-      <TextField label="Note under the button" value={data.note ?? ""} onChange={set("note")} dir={dir} />
+      <TextField label="Note under the button" {...styledProps(data, "note", onChange)} dir={dir} />
     </div>
   );
 }

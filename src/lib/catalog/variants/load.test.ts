@@ -2,13 +2,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildVariantsView, type VariantViewSource } from "./load";
 
-const option = { id: "po1", productId: "p1", optionTypeId: "t1", sortOrder: 0, optionType: { id: "t1", key: "size", labelAr: "المقاس", labelEn: "Size", display: "PILL" as const, sortOrder: 1, createdAt: new Date(), updatedAt: new Date() }, values: [
-  { id: "v7", productOptionId: "po1", key: "7mm", valueAr: "٧ مم", valueEn: "7 mm", swatchHex: null, imageUrl: null, sortOrder: 0 },
-  { id: "v10", productOptionId: "po1", key: "10mm", valueAr: "١٠ مم", valueEn: "10 mm", swatchHex: null, imageUrl: null, sortOrder: 1 },
+const option = { id: "po1", productId: "p1", optionTypeId: "t1", sortOrder: 0, optionType: { id: "t1", key: "size", labelAr: "المقاس", labelEn: "Size", display: "PILL" as const, sortOrder: 1, rich: null, createdAt: new Date(), updatedAt: new Date() }, values: [
+  { id: "v7", productOptionId: "po1", key: "7mm", valueAr: "٧ مم", valueEn: "7 mm", swatchHex: null, imageUrl: null, sortOrder: 0, rich: null },
+  { id: "v10", productOptionId: "po1", key: "10mm", valueAr: "١٠ مم", valueEn: "10 mm", swatchHex: null, imageUrl: null, sortOrder: 1, rich: null },
 ] };
 const variant = (id: string, valueId: string, extra: Record<string, unknown> = {}) => ({
   id, productId: "p1", sku: null, nameAr: null, nameEn: null, shortDescriptionAr: null, shortDescriptionEn: null, descriptionAr: null, descriptionEn: null,
-  weightAr: null, weightEn: null, packagingAr: null, packagingEn: null, storageAr: null, storageEn: null, available: true, sortOrder: 0,
+  weightAr: null, weightEn: null, packagingAr: null, packagingEn: null, storageAr: null, storageEn: null, available: true, sortOrder: 0, rich: null,
   createdAt: new Date(), updatedAt: new Date(),
   optionValues: [{ variantId: id, optionValueId: valueId, optionValue: { id: valueId, key: valueId === "v7" ? "7mm" : "10mm", productOptionId: "po1" } }],
   images: [], specs: [], ...extra,

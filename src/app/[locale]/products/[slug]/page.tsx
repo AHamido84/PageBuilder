@@ -12,10 +12,12 @@ import { InquiryForm } from "./inquiry-form";
 import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
 import { productSchema, productGroupSchema, breadcrumbSchema } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
-import { areVariantsEnabled, buildVariantsView, cardVariantFields, variantGraphInclude } from "@/lib/catalog/variants/load";
+import { areVariantsEnabled, buildVariantsView, cardTextFields, cardVariantFields, variantGraphInclude } from "@/lib/catalog/variants/load";
 import { resolveVariantFromParams, variantQuery } from "@/lib/catalog/variants/core";
 import { VariantDescription, VariantDetails, VariantGallery, VariantProvider, VariantQuoteLink, VariantSelectorIsland, VariantTitle, VariantsTable } from "./variant-islands";
 import { buttonClasses } from "@/components/ui/button";
+import { areTextStylesEnabled } from "@/lib/text-style/flag";
+import { richMapOf, type RichText } from "@/lib/text-style/rich-text";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +70,7 @@ async function redirectIfMoved(slug: string, locale: string) {
   redirect(to);
 }
 
-async function getProduct(slug: string, locale: string, variantsEnabled: boolean) {
+async function getProduct(slug: string, locale: string, variantsEnabled: boolean, textStyles: boolean) {
   const product = await prisma.product.findUnique({
     where: { slug },
     include: {
@@ -111,7 +113,11 @@ async function getProduct(slug: string, locale: string, variantsEnabled: boolean
     brandName: product.brand?.translations.find((t) => t.locale === upperLocale)?.name ?? product.brand?.slug ?? null,
     // One view for both product types: SIMPLE = the product's own fields (main image first, then
     // the gallery in upload order -- PHASE 7), VARIANT = per-variant data with product fallbacks.
-    variants: buildVariantsView(product, locale, variantsEnabled),
+    variants: buildVariantsView(product, locale, variantsEnabled, textStyles),
+    // Text styling of the variant-independent "additional info" texts (product translation).
+    infoRich: textStyles
+      ? { ingredients: richMapOf(translation?.rich, "ingredients"), nutritionInfo: richMapOf(translation?.rich, "nutritionInfo"), allergens: richMapOf(translation?.rich, "allergens") }
+      : {},
     mobileImageUrl: product.mobileImage?.url ?? null,
     videos: product.videos,
     documents: product.documents,
@@ -139,6 +145,7 @@ async function getRelated(categoryId: string, excludeId: string, locale: string,
     include: { translations: true, category: { include: { translations: true } }, ...productCardImageInclude, ...variantGraphInclude },
   });
 
+  const textStyles = await areTextStylesEnabled();
   return products.map((product) => ({
     id: product.id,
     slug: product.slug,
@@ -149,6 +156,7 @@ async function getRelated(categoryId: string, excludeId: string, locale: string,
     ...resolveProductCardImage(product),
     isFeatured: product.isFeatured,
     createdAt: product.createdAt,
+    ...cardTextFields(product, locale, textStyles),
     ...cardVariantFields(product, locale, variantsEnabled),
   }));
 }
@@ -165,8 +173,9 @@ export default async function ProductDetailPage({
   const t = await getTranslations("productDetail");
   const tCommon = await getTranslations("common");
   const variantsEnabled = await areVariantsEnabled();
+  const textStyles = await areTextStylesEnabled();
 
-  const product = await getProduct(slug, locale, variantsEnabled);
+  const product = await getProduct(slug, locale, variantsEnabled, textStyles);
   if (!product) {
     await redirectIfMoved(slug, locale);
     notFound();
@@ -182,6 +191,7 @@ export default async function ProductDetailPage({
     ...resolveProductCardImage(p),
     isFeatured: p.isFeatured,
     createdAt: p.createdAt,
+    ...cardTextFields(p, locale, textStyles),
     ...cardVariantFields(p, locale, variantsEnabled),
   }));
 
@@ -233,10 +243,10 @@ export default async function ProductDetailPage({
   // Variant-independent "additional info" rows (weight moved into VariantDetails).
   const additionalInfo = [
     { label: t("dimensions"), value: product.dimensions },
-    { label: t("ingredients"), value: product.ingredients },
-    { label: t("nutritionInfo"), value: product.nutritionInfo },
-    { label: t("allergens"), value: product.allergens },
-  ].filter((row): row is { label: string; value: string } => Boolean(row.value));
+    { label: t("ingredients"), value: product.ingredients, rich: product.infoRich.ingredients },
+    { label: t("nutritionInfo"), value: product.nutritionInfo, rich: product.infoRich.nutritionInfo },
+    { label: t("allergens"), value: product.allergens, rich: product.infoRich.allergens },
+  ].filter((row): row is { label: string; value: string; rich?: RichText } => Boolean(row.value));
 
   return (
     <div>

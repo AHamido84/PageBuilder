@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { slugifyKey, type OptionDisplay } from "@/lib/catalog/variants/core";
 import { saveOptionTypeAction } from "@/app/admin/(dashboard)/options/actions";
+import { StyledTextField } from "@/components/admin/text/styled-text-field";
+import { setRich, type RichMap } from "@/lib/text-style/rich-text";
 
 export const DISPLAY_LABELS: Record<OptionDisplay, string> = {
   PILL: "أزرار",
@@ -17,6 +19,8 @@ export interface OptionTypeRow {
   labelAr: string;
   labelEn: string;
   display: OptionDisplay;
+  /** Text styling of labelAr / labelEn. */
+  rich?: RichMap;
 }
 
 export const adminInput =
@@ -40,6 +44,7 @@ export function OptionTypeForm({
   submitLabel?: string;
 }) {
   const [labelAr, setLabelAr] = useState(initial?.labelAr ?? "");
+  const [rich, setRichMap] = useState<RichMap | undefined>(initial?.rich);
   const [labelEn, setLabelEn] = useState(initial?.labelEn ?? "");
   const [key, setKey] = useState(initial?.key ?? "");
   const [keyTouched, setKeyTouched] = useState(Boolean(initial));
@@ -51,7 +56,7 @@ export function OptionTypeForm({
   async function submit() {
     setPending(true);
     setError(null);
-    const result = await saveOptionTypeAction({ id: initial?.id ?? null, key, labelAr, labelEn, display });
+    const result = await saveOptionTypeAction({ id: initial?.id ?? null, key, labelAr, labelEn, display, rich: rich ?? null });
     setPending(false);
     if (!result.ok) {
       setErrors(result.fieldErrors ?? {});
@@ -59,28 +64,38 @@ export function OptionTypeForm({
       return;
     }
     setErrors({});
-    onSaved({ id: result.id!, key: result.key!, labelAr: labelAr.trim(), labelEn: labelEn.trim(), display });
+    onSaved({ id: result.id!, key: result.key!, labelAr: labelAr.trim(), labelEn: labelEn.trim(), display, rich });
   }
 
   return (
     // Not a <form>: it is also rendered inside the product editor, which is itself inside a page form tree.
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-4" onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), submit())}>
       <div>
-        <label className={adminLabel}>الاسم بالعربية</label>
-        <input value={labelAr} onChange={(e) => setLabelAr(e.target.value)} className={adminInput} placeholder="مثال: نوع التقطيع" />
+        <StyledTextField
+          label="الاسم بالعربية"
+          dir="rtl"
+          placeholder="مثال: نوع التقطيع"
+          value={labelAr}
+          rich={rich?.labelAr}
+          onChange={(value, r) => {
+            setLabelAr(value);
+            setRichMap((m) => setRich(m, "labelAr", r));
+          }}
+        />
         {errors.labelAr ? <p className={fieldError}>{errors.labelAr}</p> : null}
       </div>
       <div>
-        <label className={adminLabel}>Name (English)</label>
-        <input
+        <StyledTextField
+          label="Name (English)"
           dir="ltr"
-          value={labelEn}
-          onChange={(e) => {
-            setLabelEn(e.target.value);
-            if (!keyTouched) setKey(slugifyKey(e.target.value));
-          }}
-          className={adminInput}
           placeholder="e.g. Cut style"
+          value={labelEn}
+          rich={rich?.labelEn}
+          onChange={(value, r) => {
+            setLabelEn(value);
+            setRichMap((m) => setRich(m, "labelEn", r));
+            if (!keyTouched) setKey(slugifyKey(value));
+          }}
         />
         {errors.labelEn ? <p className={fieldError}>{errors.labelEn}</p> : null}
       </div>

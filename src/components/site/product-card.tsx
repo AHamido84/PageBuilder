@@ -6,6 +6,8 @@ import { ArrowUpRight } from "lucide-react";
 import { Badge, temperatureLabel } from "@/components/ui/badge";
 import { useTranslations } from "next-intl";
 import { IMAGE_ZOOM_CLASS, ScrollReveal } from "@/lib/motion/primitives";
+import { StyledText } from "@/components/text/styled-text";
+import type { RichText } from "@/lib/text-style/rich-text";
 
 export interface ProductCardData {
   id: string;
@@ -29,6 +31,9 @@ export interface ProductCardData {
   variantSummary?: string | null;
   /** Variant products: query that preselects the card's variant on the product page ("size=10mm"). */
   variantQuery?: string | null;
+  /** Text styling (admin), present only while text styles are enabled. */
+  nameRich?: RichText;
+  shortDescriptionRich?: RichText;
 }
 
 export type ProductCardImageFit = "cover" | "contain" | "natural";
@@ -139,13 +144,17 @@ export function ProductCard({
         <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
           <div className="flex-1">
           <p className="text-sm font-light text-[var(--g7-cream-50)]/75">{product.categoryName}</p>
-          <p className="t-product mt-1.5 font-medium transition-colors group-hover:text-[var(--g7-gold-500)]">{product.name}</p>
+          <p className="t-product mt-1.5 font-medium transition-colors group-hover:text-[var(--g7-gold-500)]">
+            <StyledText text={product.name} rich={product.nameRich} />
+          </p>
           {product.variantSummary ? (
             <p data-variant-summary className="mt-1 text-sm font-light text-[var(--g7-cream-50)]/80">
               {product.variantSummary}
             </p>
           ) : null}
-          {product.shortDescription ? <p className="mt-1.5 line-clamp-2 text-sm font-light text-[var(--g7-cream-50)]/70">{product.shortDescription}</p> : null}
+          {product.shortDescription ? <p className="mt-1.5 line-clamp-2 text-sm font-light text-[var(--g7-cream-50)]/70">
+              <StyledText text={product.shortDescription} rich={product.shortDescriptionRich} />
+            </p> : null}
           </div>
           <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--g7-cream-50)]/20 pt-3">
             <span className="text-base font-light">{showSpecs && spec ? spec : product.sku}</span>

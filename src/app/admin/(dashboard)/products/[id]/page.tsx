@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { variantGraphInclude } from "@/lib/catalog/variants/load";
+import { safeRichMap } from "@/lib/text-style/rich-text";
 import arMessages from "../../../../../../messages/ar.json";
 import { VariantsEditor } from "./variants/variants-editor";
 import type { EditorState, LegacyFields } from "./variants/editor-state";
@@ -42,7 +43,7 @@ function toEditorState(product: ProductWithGraph): EditorState {
       labelAr: o.optionType.labelAr,
       labelEn: o.optionType.labelEn,
       display: o.optionType.display,
-      values: o.values.map((v) => ({ uid: v.id, id: v.id, key: v.key, keyTouched: true, valueAr: v.valueAr, valueEn: v.valueEn, swatchHex: v.swatchHex ?? "", imageUrl: v.imageUrl ?? "" })),
+      values: o.values.map((v) => ({ uid: v.id, id: v.id, key: v.key, keyTouched: true, valueAr: v.valueAr, valueEn: v.valueEn, swatchHex: v.swatchHex ?? "", imageUrl: v.imageUrl ?? "", rich: safeRichMap(v.rich) })),
     })),
     variants: product.variants.map((v) => ({
       clientId: v.id,
@@ -68,7 +69,8 @@ function toEditorState(product: ProductWithGraph): EditorState {
       storageEn: v.storageEn ?? "",
       available: v.available,
       images: v.images.map((img) => ({ uid: img.id, url: img.url, mediaId: img.mediaId, altAr: img.altAr ?? "", altEn: img.altEn ?? "" })),
-      specs: v.specs.map((s) => ({ uid: s.id, labelAr: s.labelAr, labelEn: s.labelEn, valueAr: s.valueAr, valueEn: s.valueEn })),
+      specs: v.specs.map((s) => ({ uid: s.id, labelAr: s.labelAr, labelEn: s.labelEn, valueAr: s.valueAr, valueEn: s.valueEn, rich: safeRichMap(s.rich) })),
+      rich: safeRichMap(v.rich),
     })),
   };
 }
@@ -148,7 +150,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
                 }}
                 initial={variantState}
                 legacy={legacy}
-                library={optionTypes.map((t) => ({ id: t.id, key: t.key, labelAr: t.labelAr, labelEn: t.labelEn, display: t.display }))}
+                library={optionTypes.map((t) => ({ id: t.id, key: t.key, labelAr: t.labelAr, labelEn: t.labelEn, display: t.display, rich: safeRichMap(t.rich) }))}
                 canPublish={canPublish}
                 previewMessages={{ productCard: arMessages.productCard }}
               />

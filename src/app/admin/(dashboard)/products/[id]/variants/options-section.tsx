@@ -9,6 +9,8 @@ import { useConfirm } from "@/components/admin/ui/confirm-dialog";
 import { MediaLibraryModal } from "@/components/admin/ui/media-library-modal";
 import { DISPLAY_LABELS, OptionTypeForm, adminInput, adminLabel, fieldError, type OptionTypeRow } from "@/components/admin/variants/option-type-form";
 import { slugifyKey } from "@/lib/catalog/variants/core";
+import { StyledTextField } from "@/components/admin/text/styled-text-field";
+import { setRich } from "@/lib/text-style/rich-text";
 import { uid, type EditorOption, type EditorState, type EditorValue } from "./editor-state";
 
 const ARABIC = /[؀-ۿ]/;
@@ -288,13 +290,25 @@ function OptionCard({
       {editingValue ? (
         <div className="mt-3 grid grid-cols-1 gap-3 rounded-md bg-neutral-800/60 p-3 sm:grid-cols-4">
           <div>
-            <label className={adminLabel}>القيمة بالعربية</label>
-            <input value={editingValue.valueAr} onChange={(e) => editValue(editingValue.uid, { valueAr: e.target.value })} className={adminInput} />
+            <StyledTextField
+              key={`ar-${editingValue.uid}`}
+              label="القيمة بالعربية"
+              dir="rtl"
+              value={editingValue.valueAr}
+              rich={editingValue.rich?.valueAr}
+              onChange={(value, rich) => editValue(editingValue.uid, { valueAr: value, rich: setRich(editingValue.rich, "valueAr", rich) })}
+            />
             {errors[`options.${index}.values.${editingIndex}.valueAr`] ? <p className={fieldError}>{errors[`options.${index}.values.${editingIndex}.valueAr`]}</p> : null}
           </div>
-          <div>
-            <label className={adminLabel}>Value (English)</label>
-            <input dir="ltr" value={editingValue.valueEn} onChange={(e) => editValue(editingValue.uid, { valueEn: e.target.value })} className={adminInput} autoFocus={!editingValue.valueEn} />
+          <div data-value-en>
+            <StyledTextField
+              key={`en-${editingValue.uid}`}
+              label="Value (English)"
+              dir="ltr"
+              value={editingValue.valueEn}
+              rich={editingValue.rich?.valueEn}
+              onChange={(value, rich) => editValue(editingValue.uid, { valueEn: value, rich: setRich(editingValue.rich, "valueEn", rich) })}
+            />
             {!editingValue.valueEn ? <p className={fieldError}>القيمة بالإنجليزية مطلوبة</p> : null}
           </div>
           <div>

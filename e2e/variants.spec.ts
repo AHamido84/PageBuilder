@@ -178,7 +178,7 @@ test.describe("variant products -- admin", () => {
     for (const [ar, en] of [["ريب آي", "Ribeye"], ["ستيك", "Steak"], ["مكعبات", "Cubes"]]) {
       await cut.getByPlaceholder("اكتب قيمة واضغط Enter").fill(ar);
       await cut.getByPlaceholder("اكتب قيمة واضغط Enter").press("Enter");
-      await cut.locator('input[dir="ltr"]').first().fill(en);
+      await cut.locator("[data-value-en] [contenteditable]").fill(en);
     }
     await editor.getByTestId("add-option").selectOption({ label: "الوزن / Weight" });
     const weight = editor.locator('[data-option="weight"]');

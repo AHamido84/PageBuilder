@@ -3,6 +3,7 @@ import { getCurrentUser, assertCan } from "@/lib/rbac/current-user";
 import { Tabs } from "@/components/admin/ui/tabs";
 import { normalizeHeaderLogoSettings } from "@/lib/site-settings/header-logo";
 import Link from "next/link";
+import { TextStylesToggle } from "./text-styles-toggle";
 import { parseFooterSettings } from "@/lib/site-settings/footer";
 import { GeneralForm, ContactForm, SocialForm, HoursForm, SeoForm, FooterForm, type Settings } from "./settings-forms";
 
@@ -70,6 +71,11 @@ export default async function SettingsPage() {
           { key: "hours", label: "Business hours", content: <HoursForm settings={settings} /> },
           { key: "seo", label: "SEO defaults", content: <SeoForm settings={settings} /> },
           { key: "footer", label: "Footer", content: <FooterForm settings={settings} /> },
+          {
+            key: "text-styles",
+            label: "تنسيق النصوص",
+            content: <TextStylesToggle enabled={record.textStylesEnabled} envOverride={process.env.TEXT_STYLES_ENABLED?.trim().toLowerCase() || null} />,
+          },
           {
             key: "appearance",
             label: "Appearance",

@@ -8,8 +8,16 @@ import {
   variantSummaryLine,
   type OptionView,
   type ProductVariantsView,
+  type VariantRich,
   type VariantView,
 } from "./core";
+import { richMapOf } from "@/lib/text-style/rich-text";
+
+/** Drops undefined entries; undefined when nothing is left. */
+function compact<T extends object>(obj: T): T | undefined {
+  const out = Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
+  return Object.keys(out).length ? out : undefined;
+}
 
 /**
  * Server loader: turns a Product row (+ its variant graph) into a localized ProductVariantsView.
@@ -68,6 +76,8 @@ export interface VariantViewSource {
     description?: string | null;
     packagingInfo?: string | null;
     storageInfo?: string | null;
+    /** Text styling map (src/lib/text-style) -- read only when `styles` is on. */
+    rich?: unknown;
   }[];
   mainImage?: { url: string } | null;
   images: { url: string }[];
@@ -83,9 +93,14 @@ function legacyImages(source: VariantViewSource, alt: string) {
   return ordered.map((i) => ({ url: i.url, alt }));
 }
 
-export function buildVariantsView(source: VariantViewSource, locale: string, enabled: boolean): ProductVariantsView {
+/**
+ * `styles` (text styling enabled): every text comes with the RichText stored for the SAME language
+ * it was taken from (a variant field falls back to the product's, and so does its styling).
+ */
+export function buildVariantsView(source: VariantViewSource, locale: string, enabled: boolean, styles = false): ProductVariantsView {
   const upper = locale === "ar" ? "AR" : "EN";
   const tr = source.translations.find((t) => t.locale === upper) ?? source.translations[0];
+  const trRich = (field: string) => (styles ? richMapOf(tr?.rich, field) : undefined);
   const productName = tr?.name ?? source.sku;
   const fallback = {
     images: legacyImages(source, productName),
@@ -95,6 +110,13 @@ export function buildVariantsView(source: VariantViewSource, locale: string, ena
     packaging: tr?.packagingInfo ?? null,
     storage: tr?.storageInfo ?? null,
   };
+  const fallbackRich: VariantRich = {
+    shortDescription: trRich("shortDescription"),
+    description: trRich("description"),
+    packaging: trRich("packagingInfo"),
+    storage: trRich("storageInfo"),
+  };
+  const productNameRich = trRich("name");
 
   const variantRows = source.variants ?? [];
   if (!enabled || source.type !== "VARIANT" || variantRows.length === 0) {
@@ -107,16 +129,31 @@ export function buildVariantsView(source: VariantViewSource, locale: string, ena
       ...fallback,
       specs: [],
       available: true,
+      ...(styles ? { rich: compact({ ...fallbackRich, name: productNameRich }) } : {}),
     };
-    return { type: "SIMPLE", options: [], variants: [only], defaultVariantId: only.id };
+    return { type: "SIMPLE", options: [], variants: [only], defaultVariantId: only.id, ...(productNameRich ? { productNameRich } : {}) };
   }
 
-  const options: OptionView[] = (source.options ?? []).map((o) => ({
-    key: o.optionType.key,
-    label: pick(locale, o.optionType.labelAr, o.optionType.labelEn) ?? o.optionType.key,
-    display: o.optionType.display,
-    values: o.values.map((v) => ({ key: v.key, label: pick(locale, v.valueAr, v.valueEn) ?? v.key, swatchHex: v.swatchHex, imageUrl: v.imageUrl })),
-  }));
+  /** Text of a bilingual pair in the page language (falling back to the other), plus its styling. */
+  const pair = (rich: unknown, ar: string | null | undefined, en: string | null | undefined, arKey: string, enKey: string) => {
+    const useAr = locale === "ar" ? Boolean(ar) : !en && Boolean(ar);
+    const text = (useAr ? ar : en || ar) || null;
+    return { text, rich: styles && text ? richMapOf(rich, useAr ? arKey : enKey) : undefined };
+  };
+
+  const options: OptionView[] = (source.options ?? []).map((o) => {
+    const label = pair(o.optionType.rich, o.optionType.labelAr, o.optionType.labelEn, "labelAr", "labelEn");
+    return {
+      key: o.optionType.key,
+      label: label.text ?? o.optionType.key,
+      ...(label.rich ? { labelRich: label.rich } : {}),
+      display: o.optionType.display,
+      values: o.values.map((v) => {
+        const value = pair(v.rich, v.valueAr, v.valueEn, "valueAr", "valueEn");
+        return { key: v.key, label: value.text ?? v.key, ...(value.rich ? { labelRich: value.rich } : {}), swatchHex: v.swatchHex, imageUrl: v.imageUrl };
+      }),
+    };
+  });
   const optionKeyById = new Map((source.options ?? []).map((o) => [o.id, o.optionType.key]));
 
   const variants: VariantView[] = variantRows.map((v) => {
@@ -126,7 +163,14 @@ export function buildVariantsView(source: VariantViewSource, locale: string, ena
       if (optionKey) selection[optionKey] = ov.optionValue.key;
     }
     const label = combinationLabel(options, selection);
-    const override = pick(locale, v.nameAr, v.nameEn);
+    const field = (base: string, ar: string | null, en: string | null) => pair(v.rich, ar, en, `${base}Ar`, `${base}En`);
+    const name = field("name", v.nameAr, v.nameEn);
+    const shortDescription = field("shortDescription", v.shortDescriptionAr, v.shortDescriptionEn);
+    const description = field("description", v.descriptionAr, v.descriptionEn);
+    const weight = field("weight", v.weightAr, v.weightEn);
+    const packaging = field("packaging", v.packagingAr, v.packagingEn);
+    const storage = field("storage", v.storageAr, v.storageEn);
+    const override = name.text;
     const images = v.images.map((img) => ({ url: img.url, alt: pick(locale, img.altAr, img.altEn) ?? override ?? `${productName} — ${label}` }));
     return {
       id: v.id,
@@ -135,19 +179,44 @@ export function buildVariantsView(source: VariantViewSource, locale: string, ena
       label,
       options: selection,
       images: images.length ? images : fallback.images,
-      shortDescription: pick(locale, v.shortDescriptionAr, v.shortDescriptionEn) ?? fallback.shortDescription,
-      description: pick(locale, v.descriptionAr, v.descriptionEn) ?? fallback.description,
-      weight: pick(locale, v.weightAr, v.weightEn) ?? fallback.weight,
-      packaging: pick(locale, v.packagingAr, v.packagingEn) ?? fallback.packaging,
-      storage: pick(locale, v.storageAr, v.storageEn) ?? fallback.storage,
-      specs: v.specs.map((s) => ({ label: pick(locale, s.labelAr, s.labelEn) ?? "", value: pick(locale, s.valueAr, s.valueEn) ?? "" })),
+      shortDescription: shortDescription.text ?? fallback.shortDescription,
+      description: description.text ?? fallback.description,
+      weight: weight.text ?? fallback.weight,
+      packaging: packaging.text ?? fallback.packaging,
+      storage: storage.text ?? fallback.storage,
+      specs: v.specs.map((sp) => {
+        const l = pair(sp.rich, sp.labelAr, sp.labelEn, "labelAr", "labelEn");
+        const val = pair(sp.rich, sp.valueAr, sp.valueEn, "valueAr", "valueEn");
+        return { label: l.text ?? "", value: val.text ?? "", ...(l.rich ? { labelRich: l.rich } : {}), ...(val.rich ? { valueRich: val.rich } : {}) };
+      }),
       available: v.available,
+      ...(styles
+        ? {
+            rich: compact({
+              name: name.rich,
+              shortDescription: shortDescription.text ? shortDescription.rich : fallbackRich.shortDescription,
+              description: description.text ? description.rich : fallbackRich.description,
+              weight: weight.rich,
+              packaging: packaging.text ? packaging.rich : fallbackRich.packaging,
+              storage: storage.text ? storage.rich : fallbackRich.storage,
+            }),
+          }
+        : {}),
     };
   });
 
-  const view: ProductVariantsView = { type: "VARIANT", options, variants, defaultVariantId: source.defaultVariantId ?? variants[0].id };
+  const view: ProductVariantsView = { type: "VARIANT", options, variants, defaultVariantId: source.defaultVariantId ?? variants[0].id, ...(productNameRich ? { productNameRich } : {}) };
   view.defaultVariantId = defaultVariant(view).id;
   return view;
+}
+
+/** Card name/short-description styling from the product's translation (text styles enabled only). */
+export function cardTextFields(source: { translations: { locale: string; rich?: unknown }[] }, locale: string, styles: boolean) {
+  if (!styles) return {};
+  const tr = source.translations.find((t) => t.locale === (locale === "ar" ? "AR" : "EN"));
+  const nameRich = richMapOf(tr?.rich, "name");
+  const shortDescriptionRich = richMapOf(tr?.rich, "shortDescription");
+  return { ...(nameRich ? { nameRich } : {}), ...(shortDescriptionRich ? { shortDescriptionRich } : {}) };
 }
 
 /* ------------------------------------------------------------------------------------------------

@@ -153,6 +153,8 @@ model RolePermission {
 
 model Page {
   id          String     @id @default(cuid())
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   slug        String     @unique
   /** Redesign PHASE 8: human page title per locale (admin list, builder, metadata fallback). Null => derived from the slug. */
   titleEn     String?
@@ -232,6 +234,8 @@ model Solution {
 
 model SolutionTranslation {
   id               String  @id @default(cuid())
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   solutionId       String
   locale           Locale
   name             String
@@ -286,6 +290,8 @@ model Category {
 
 model CategoryTranslation {
   id          String  @id @default(cuid())
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   categoryId  String
   locale      Locale
   name        String
@@ -324,6 +330,8 @@ model Brand {
 
 model BrandTranslation {
   id          String  @id @default(cuid())
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   brandId     String
   locale      Locale
   name        String
@@ -393,6 +401,8 @@ model Product {
 /** Global, reusable option library (الوزن، المقاس، القطعية ...), managed at /admin/options. */
 model OptionType {
   id        String        @id @default(cuid())
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   key       String        @unique
   labelAr   String
   labelEn   String
@@ -422,6 +432,8 @@ model ProductOption {
 
 model ProductOptionValue {
   id              String  @id @default(cuid())
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   productOptionId String
   key             String
   valueAr         String
@@ -439,6 +451,8 @@ model ProductOptionValue {
 
 model ProductVariant {
   id          String   @id @default(cuid())
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   productId   String
   sku         String?  @unique
   nameAr      String?
@@ -499,6 +513,8 @@ model VariantImage {
 
 model VariantSpec {
   id        String @id @default(cuid())
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   variantId String
   labelAr   String
   labelEn   String
@@ -513,6 +529,8 @@ model VariantSpec {
 
 model ProductTranslation {
   id               String  @id @default(cuid())
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   productId        String
   locale           Locale
   name             String
@@ -607,6 +625,8 @@ model Menu {
 
 model MenuItem {
   id      String  @id @default(cuid())
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   menuId  String
   labelEn String
   labelAr String
@@ -787,6 +807,8 @@ model LeadNote {
 
 model Certification {
   id          String    @id @default(cuid())
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   slug        String    @unique
   nameEn      String
   nameAr      String
@@ -806,6 +828,8 @@ model Certification {
 
 model Faq {
   id          String   @id @default(cuid())
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   questionEn  String
   questionAr  String
   answerEn    String
@@ -822,6 +846,8 @@ model Faq {
 
 model SiteSetting {
   id                      String   @id @default("singleton")
+  /** Text styling (src/lib/text-style): { <field>: RichText } next to the plain columns. Null = plain. */
+  rich Json?
   siteNameEn              String
   siteNameAr              String
   contactEmail            String?
@@ -883,6 +909,9 @@ model SiteSetting {
   /** Variant products public-site switch (admin Settings). Off = the public site renders exactly
    * as before variants existed. The VARIANTS_ENABLED=off env var forces it off. */
   variantsEnabled Boolean @default(false)
+
+  /** Admin text styling public switch; TEXT_STYLES_ENABLED=off forces it off. Off = plain text everywhere. */
+  textStylesEnabled Boolean @default(false)
 }
 
 model SEO {

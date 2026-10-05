@@ -106,7 +106,7 @@ export async function saveProductVariantsAction(raw: unknown): Promise<VariantSa
           }
           const map = new Map<string, string>();
           for (const [j, v] of option.values.entries()) {
-            const fields = { key: v.key, valueAr: v.valueAr, valueEn: v.valueEn, swatchHex: v.swatchHex, imageUrl: v.imageUrl, sortOrder: j };
+            const fields = { key: v.key, valueAr: v.valueAr, valueEn: v.valueEn, swatchHex: v.swatchHex, imageUrl: v.imageUrl, sortOrder: j, rich: v.rich ?? Prisma.DbNull };
             const saved =
               v.id && existingValues.some((e) => e.id === v.id)
                 ? await tx.productOptionValue.update({ where: { id: v.id }, data: fields })
@@ -144,6 +144,7 @@ export async function saveProductVariantsAction(raw: unknown): Promise<VariantSa
             storageEn: v.storageEn,
             available: v.available,
             sortOrder: i,
+            rich: v.rich ?? Prisma.DbNull,
           };
           const row =
             v.id && sentVariantIds.has(v.id)
@@ -161,7 +162,7 @@ export async function saveProductVariantsAction(raw: unknown): Promise<VariantSa
             await tx.variantImage.createMany({ data: v.images.map((img, k) => ({ variantId: row.id, url: img.url, mediaId: img.mediaId, altAr: img.altAr, altEn: img.altEn, sortOrder: k })) });
           }
           if (v.specs.length) {
-            await tx.variantSpec.createMany({ data: v.specs.map((s, k) => ({ variantId: row.id, ...s, sortOrder: k })) });
+            await tx.variantSpec.createMany({ data: v.specs.map((s, k) => ({ variantId: row.id, ...s, rich: s.rich ?? Prisma.DbNull, sortOrder: k })) });
           }
         }
 

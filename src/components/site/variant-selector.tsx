@@ -2,6 +2,7 @@
 
 import { useId, useRef, type KeyboardEvent } from "react";
 import { cn } from "@/lib/cn";
+import { StyledText } from "@/components/text/styled-text";
 import { selectValue, valueStates, type OptionView, type ProductVariantsView, type VariantView } from "@/lib/catalog/variants/core";
 
 export interface VariantSelectorLabels {
@@ -92,7 +93,10 @@ function OptionGroup({
 
   const heading = (
     <p id={labelId} className="mb-2 text-sm">
-      <span className="font-medium">{option.label}:</span> <span className={tone === "dark" ? "text-neutral-300" : "text-ink/70"}>{selected?.label ?? "—"}</span>
+      <span className="font-medium">
+        <StyledText text={option.label} rich={option.labelRich} />:
+      </span>{" "}
+      <span className={tone === "dark" ? "text-neutral-300" : "text-ink/70"}>{selected ? <StyledText text={selected.label} rich={selected.labelRich} /> : "—"}</span>
       {!current.available ? (
         <span className="ms-2 rounded-[6px] bg-[var(--g7-gold-500)]/15 px-2 py-0.5 text-xs text-[var(--g7-gold-600)]">{labels.currentlyUnavailable}</span>
       ) : null}
@@ -180,7 +184,9 @@ function OptionGroup({
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- admin-uploaded value image, tiny tile */}
                 <img src={value.imageUrl} alt="" className="h-14 w-full rounded-[6px] object-cover" />
-                <span className={cn("line-clamp-1", disabled && "line-through")}>{value.label}</span>
+                <span className={cn("line-clamp-1", disabled && "line-through")}>
+                  <StyledText text={value.label} rich={value.labelRich} />
+                </span>
               </button>
             );
           }
@@ -200,7 +206,7 @@ function OptionGroup({
                 disabled ? "cursor-not-allowed border-dashed opacity-40 line-through hover:border-line" : "cursor-pointer"
               )}
             >
-              {value.label}
+              <StyledText text={value.label} rich={value.labelRich} />
             </button>
           );
         })}

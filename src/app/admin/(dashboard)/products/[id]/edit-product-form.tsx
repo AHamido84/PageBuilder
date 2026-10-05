@@ -2,6 +2,8 @@
 
 import { updateProductDetailsAction, updateProductSpecsAction, type FormActionState } from "../actions";
 import { useFormAction } from "@/lib/use-form-action";
+import { StyledFormField } from "@/components/admin/text/styled-text-field";
+import { richMapOf } from "@/lib/text-style/rich-text";
 
 const initialState: FormActionState = {};
 const inputClass = "w-full rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-sm";
@@ -22,6 +24,8 @@ interface ProductDetails {
     name: string;
     shortDescription: string | null;
     description: string | null;
+    /** Text styling map (src/lib/text-style). */
+    rich?: unknown;
   }[];
 }
 
@@ -86,27 +90,27 @@ export function EditProductForm({ product, categories, brands }: { product: Prod
       </div>
       <div>
         <label className={labelClass}>Name (English)</label>
-        <input name="nameEn" defaultValue={en?.name} required className={inputClass} />
+        <StyledFormField name="nameEn" defaultValue={en?.name} defaultRich={richMapOf(en?.rich, "name")} dir="ltr" />
       </div>
       <div dir="rtl">
         <label className={labelClass}>الاسم (عربي)</label>
-        <input name="nameAr" defaultValue={ar?.name} required className={inputClass} />
+        <StyledFormField name="nameAr" defaultValue={ar?.name} defaultRich={richMapOf(ar?.rich, "name")} dir="rtl" />
       </div>
       <div>
         <label className={labelClass}>Short description (English)</label>
-        <input name="shortDescriptionEn" defaultValue={en?.shortDescription ?? ""} placeholder="One line, shown on product cards" className={inputClass} />
+        <StyledFormField name="shortDescriptionEn" defaultValue={en?.shortDescription} defaultRich={richMapOf(en?.rich, "shortDescription")} dir="ltr" placeholder="One line, shown on product cards" />
       </div>
       <div dir="rtl">
         <label className={labelClass}>وصف قصير (عربي)</label>
-        <input name="shortDescriptionAr" defaultValue={ar?.shortDescription ?? ""} className={inputClass} />
+        <StyledFormField name="shortDescriptionAr" defaultValue={ar?.shortDescription} defaultRich={richMapOf(ar?.rich, "shortDescription")} dir="rtl" />
       </div>
       <div>
         <label className={labelClass}>Description (English)</label>
-        <textarea name="descriptionEn" defaultValue={en?.description ?? ""} rows={4} className={inputClass} />
+        <StyledFormField name="descriptionEn" defaultValue={en?.description} defaultRich={richMapOf(en?.rich, "description")} multiline dir="ltr" />
       </div>
       <div dir="rtl">
         <label className={labelClass}>الوصف (عربي)</label>
-        <textarea name="descriptionAr" defaultValue={ar?.description ?? ""} rows={4} className={inputClass} />
+        <StyledFormField name="descriptionAr" defaultValue={ar?.description} defaultRich={richMapOf(ar?.rich, "description")} multiline dir="rtl" />
       </div>
       {state.error ? <p className="col-span-full text-sm text-red-400">{state.error}</p> : null}
       {state.success ? <p className="col-span-full text-sm text-emerald-400">Saved.</p> : null}
@@ -130,6 +134,7 @@ interface ProductSpecs {
     ingredients: string | null;
     nutritionInfo: string | null;
     allergens: string | null;
+    rich?: unknown;
   }[];
 }
 
@@ -151,43 +156,43 @@ export function ProductSpecsForm({ product }: { product: ProductSpecs }) {
       </div>
       <div>
         <label className={labelClass}>Packaging (English)</label>
-        <textarea name="packagingEn" defaultValue={en?.packagingInfo ?? ""} rows={2} className={inputClass} />
+        <StyledFormField name="packagingEn" defaultValue={en?.packagingInfo} defaultRich={richMapOf(en?.rich, "packagingInfo")} multiline dir="ltr" />
       </div>
       <div dir="rtl">
         <label className={labelClass}>التعبئة (عربي)</label>
-        <textarea name="packagingAr" defaultValue={ar?.packagingInfo ?? ""} rows={2} className={inputClass} />
+        <StyledFormField name="packagingAr" defaultValue={ar?.packagingInfo} defaultRich={richMapOf(ar?.rich, "packagingInfo")} multiline dir="rtl" />
       </div>
       <div>
         <label className={labelClass}>Storage (English)</label>
-        <textarea name="storageEn" defaultValue={en?.storageInfo ?? ""} rows={2} className={inputClass} />
+        <StyledFormField name="storageEn" defaultValue={en?.storageInfo} defaultRich={richMapOf(en?.rich, "storageInfo")} multiline dir="ltr" />
       </div>
       <div dir="rtl">
         <label className={labelClass}>التخزين (عربي)</label>
-        <textarea name="storageAr" defaultValue={ar?.storageInfo ?? ""} rows={2} className={inputClass} />
+        <StyledFormField name="storageAr" defaultValue={ar?.storageInfo} defaultRich={richMapOf(ar?.rich, "storageInfo")} multiline dir="rtl" />
       </div>
       <div>
         <label className={labelClass}>Ingredients (English)</label>
-        <textarea name="ingredientsEn" defaultValue={en?.ingredients ?? ""} rows={2} className={inputClass} />
+        <StyledFormField name="ingredientsEn" defaultValue={en?.ingredients} defaultRich={richMapOf(en?.rich, "ingredients")} multiline dir="ltr" />
       </div>
       <div dir="rtl">
         <label className={labelClass}>المكونات (عربي)</label>
-        <textarea name="ingredientsAr" defaultValue={ar?.ingredients ?? ""} rows={2} className={inputClass} />
+        <StyledFormField name="ingredientsAr" defaultValue={ar?.ingredients} defaultRich={richMapOf(ar?.rich, "ingredients")} multiline dir="rtl" />
       </div>
       <div>
         <label className={labelClass}>Nutrition information (English)</label>
-        <textarea name="nutritionInfoEn" defaultValue={en?.nutritionInfo ?? ""} rows={2} className={inputClass} />
+        <StyledFormField name="nutritionInfoEn" defaultValue={en?.nutritionInfo} defaultRich={richMapOf(en?.rich, "nutritionInfo")} multiline dir="ltr" />
       </div>
       <div dir="rtl">
         <label className={labelClass}>المعلومات الغذائية (عربي)</label>
-        <textarea name="nutritionInfoAr" defaultValue={ar?.nutritionInfo ?? ""} rows={2} className={inputClass} />
+        <StyledFormField name="nutritionInfoAr" defaultValue={ar?.nutritionInfo} defaultRich={richMapOf(ar?.rich, "nutritionInfo")} multiline dir="rtl" />
       </div>
       <div>
         <label className={labelClass}>Allergens (English)</label>
-        <textarea name="allergensEn" defaultValue={en?.allergens ?? ""} rows={2} className={inputClass} />
+        <StyledFormField name="allergensEn" defaultValue={en?.allergens} defaultRich={richMapOf(en?.rich, "allergens")} multiline dir="ltr" />
       </div>
       <div dir="rtl">
         <label className={labelClass}>مسببات الحساسية (عربي)</label>
-        <textarea name="allergensAr" defaultValue={ar?.allergens ?? ""} rows={2} className={inputClass} />
+        <StyledFormField name="allergensAr" defaultValue={ar?.allergens} defaultRich={richMapOf(ar?.rich, "allergens")} multiline dir="rtl" />
       </div>
       {state.error ? <p className="col-span-full text-sm text-red-400">{state.error}</p> : null}
       {state.success ? <p className="col-span-full text-sm text-emerald-400">Saved.</p> : null}
