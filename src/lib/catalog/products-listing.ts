@@ -98,7 +98,7 @@ export async function getListingProducts(
     if (variants.length <= 1) return [card];
     return variants.map((variant) => ({
       ...card,
-      ...cardVariantFields(product, locale, true, () => variant),
+      ...cardVariantFields(product, locale, true, () => variant, true),
       id: `${product.id}:${variant.id}`,
       name: variant.name,
       nameRich: undefined,

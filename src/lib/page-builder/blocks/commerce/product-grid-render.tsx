@@ -63,7 +63,7 @@ async function loadCards(data: ProductGridData, locale: string): Promise<Product
     const view = buildVariantsView(product, locale, true);
     return view.variants.map((variant) => ({
       ...card,
-      ...cardVariantFields(product, locale, true, () => variant),
+      ...cardVariantFields(product, locale, true, () => variant, true),
       id: `${product.id}:${variant.id}`,
       name: variant.name,
       // The product name's styling doesn't describe a variant's own name.

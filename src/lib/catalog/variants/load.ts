@@ -288,16 +288,19 @@ export function cardVariantFields(
   source: VariantViewSource,
   locale: string,
   enabled: boolean,
-  pickVariant?: (view: ProductVariantsView) => VariantView | undefined
+  pickVariant?: (view: ProductVariantsView) => VariantView | undefined,
+  /** True only for a card that IS one variant (one-card-per-variant grids): it shows that variant's image. */
+  variantImage = false
 ) {
   if (!enabled || source.type !== "VARIANT" || !source.variants?.length) return {};
   const view = buildVariantsView(source, locale, true);
   const variant = pickVariant?.(view) ?? defaultVariant(view);
+  // A product card always shows the PRODUCT's own image (resolveProductCardImage); the variant's
+  // image is used only for a per-variant card, or when the product has no image of its own.
+  const parentHasImage = Boolean(source.mainImage?.url || source.images[0]?.url);
+  const image = variantImage || !parentHasImage ? { imageUrl: variant.images[0]?.url ?? null, imageWidth: null, imageHeight: null, mobileImageUrl: null } : {};
   return {
-    imageUrl: variant.images[0]?.url ?? null,
-    imageWidth: null,
-    imageHeight: null,
-    mobileImageUrl: null,
+    ...image,
     weight: variant.weight,
     variantSummary: variantSummaryLine(view, locale),
     variantQuery: variant.id === view.defaultVariantId ? null : variantQuery(view, variant),

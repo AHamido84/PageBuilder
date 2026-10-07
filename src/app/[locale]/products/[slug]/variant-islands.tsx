@@ -222,7 +222,16 @@ export function VariantsTable({
               const isCurrent = v.id === current.id;
               return (
                 <tr key={v.id} className={cn(isCurrent && "bg-[var(--g7-gold-500)]/10")}>
-                  <td className="px-4 py-3 font-medium">{v.label || v.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {/* Each variant with its own image (its first image; the product's when it has none). */}
+                    <span className="flex items-center gap-3">
+                      {v.images[0] ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- small thumbnail of a CMS image
+                        <img src={v.images[0].url} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-[6px] border border-line bg-frost object-cover" data-variant-thumb />
+                      ) : null}
+                      <span>{v.label || v.name}</span>
+                    </span>
+                  </td>
                   {showSku ? <td className="font-mono-data px-4 py-3">{v.sku ?? "—"}</td> : null}
                   {showWeight ? <td className="px-4 py-3">{v.weight ? <StyledText text={v.weight} rich={v.rich?.weight} /> : "—"}</td> : null}
                   {showPackaging ? <td className="px-4 py-3 text-ink/70">{v.packaging ? <StyledText text={v.packaging} rich={v.rich?.packaging} /> : "—"}</td> : null}
