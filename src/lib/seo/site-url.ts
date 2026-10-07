@@ -11,10 +11,14 @@ export const PRODUCTION_SITE_URL = "https://www.goldensevenfoods.com";
 
 const BOM_PATTERN = new RegExp("^" + String.fromCharCode(0xfeff));
 
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || PRODUCTION_SITE_URL)
-  .replace(BOM_PATTERN, "")
-  .trim()
-  .replace(/\/$/, "");
+/** Env value, cleaned -- but a *.vercel.app value is ignored (it once leaked into every canonical). */
+export function resolveSiteUrl(envValue: string | undefined): string {
+  const cleaned = (envValue ?? "").replace(BOM_PATTERN, "").trim().replace(/\/+$/, "");
+  if (!cleaned || /vercel\.app/i.test(cleaned)) return PRODUCTION_SITE_URL;
+  return cleaned;
+}
+
+export const SITE_URL = resolveSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
 
 /** The duplicate Vercel production alias that must 308 to PRODUCTION_SITE_URL (src/proxy.ts). */
 export const DUPLICATE_PRODUCTION_HOST = "goldensevenfoods.vercel.app";
