@@ -42,7 +42,7 @@ Values marked SECRET are not in this backup -- take them from your password mana
 `;
 
 function run(cmd: string, args: string[], opts: { env?: NodeJS.ProcessEnv; cwd?: string } = {}) {
-  return execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], env: opts.env ?? process.env, cwd: opts.cwd, shell: process.platform === "win32" && cmd === "npx" });
+  return execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], env: opts.env ?? process.env, cwd: opts.cwd });
 }
 
 const sha256 = (buf: Buffer) => createHash("sha256").update(buf).digest("hex");
@@ -66,7 +66,8 @@ async function main() {
 
   // 2. Database -- every table as JSON (same format scripts/restore-db-json.ts loads).
   const dbFile = path.join(out, "database/database.json");
-  run("npx", ["tsx", "scripts/backup-db-json.ts", dbFile]);
+  // tsx through this Node binary, no shell -- paths with spaces stay intact on Windows.
+  run(process.execPath, [path.resolve("node_modules/tsx/dist/cli.mjs"), "scripts/backup-db-json.ts", dbFile]);
   const dump = JSON.parse(readFileSync(dbFile, "utf8")) as { host: string; takenAt: string; tables: Record<string, unknown[]> };
   const rowCount = Object.values(dump.tables).reduce((sum, rows) => sum + rows.length, 0);
   console.log(`database: ${Object.keys(dump.tables).length} tables, ${rowCount} rows (${dump.host})`);
