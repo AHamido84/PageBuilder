@@ -58,7 +58,7 @@ export async function ProductMainSection({ product, initialVariantId, variantsEn
                     <div key={cert.id} className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-line px-3 py-2">
                       {cert.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={cert.imageUrl} alt="" className="h-8 w-8 object-contain" />
+                        <img src={cert.imageUrl} alt={cert.name} className="h-8 w-8 object-contain" />
                       ) : null}
                       <span className="text-xs font-medium">{cert.name}</span>
                     </div>

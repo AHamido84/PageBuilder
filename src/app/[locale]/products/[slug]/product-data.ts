@@ -76,6 +76,7 @@ export async function getProduct(slug: string, locale: string, variantsEnabled: 
     weight: product.weight,
     dimensions: product.dimensions,
     categoryId: product.categoryId,
+    categorySlug: product.category.slug,
     categoryName: product.category.translations.find((t) => t.locale === upperLocale)?.name ?? product.category.slug,
     brandName: product.brand?.translations.find((t) => t.locale === upperLocale)?.name ?? product.brand?.slug ?? null,
     // One view for both product types: SIMPLE = the product's own fields (main image first, then

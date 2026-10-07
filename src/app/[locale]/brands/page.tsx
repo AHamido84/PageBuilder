@@ -6,6 +6,7 @@ import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { pageCopy } from "@/lib/seo/page-copy";
 import { SectionRenderer } from "@/components/site/section-renderer";
 import { loadPageHeaderSections, loadPageHeaderMeta } from "@/lib/page-builder/page-headers";
 import { isDraftPreviewRequest } from "@/lib/page-builder/render-page";
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "brands" });
   const header = await loadPageHeaderMeta("brands");
-  return buildMetadata({ locale, path: "/brands", seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title") });
+  return buildMetadata({ locale, path: "/brands", copy: pageCopy("brands", locale), seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title") });
 }
 
 async function getBrands(locale: string) {
@@ -71,7 +72,7 @@ export default async function BrandsPage({ searchParams }: { searchParams: Promi
   const headerSections = await loadPageHeaderSections("brands", draftPreview);
   if (!headerSections) {
     return (
-      <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
+      <Section titleAs="h1" tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
         {results}
       </Section>
     );

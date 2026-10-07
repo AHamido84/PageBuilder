@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/admin/ui/pagination";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { pageCopy } from "@/lib/seo/page-copy";
 import { SectionRenderer } from "@/components/site/section-renderer";
 import { loadPageHeaderSections, loadPageHeaderMeta } from "@/lib/page-builder/page-headers";
 import { isDraftPreviewRequest } from "@/lib/page-builder/render-page";
@@ -20,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "blog" });
   const header = await loadPageHeaderMeta("blog");
-  return buildMetadata({ locale, path: "/blog", seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title") });
+  return buildMetadata({ locale, path: "/blog", copy: pageCopy("blog", locale), seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title") });
 }
 
 const PAGE_SIZE = 9;
@@ -120,7 +121,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   const headerSections = await loadPageHeaderSections("blog", draftPreview);
   if (!headerSections) {
     return (
-      <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
+      <Section titleAs="h1" tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
         {results}
       </Section>
     );

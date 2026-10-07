@@ -27,7 +27,7 @@ const COLS_DESKTOP: Record<number, string> = { 2: "lg:grid-cols-2", 3: "lg:grid-
  * (?q=&category=&brand=&temp=&sort=&page= + option filters, + &show= for «load more»).
  * Default settings render exactly the built-in page's markup.
  */
-export async function ProductsCatalogRender({ data, locale, context }: BlockRenderProps<ProductsCatalogData>) {
+export async function ProductsCatalogRender({ data, locale, context, pageHeading }: BlockRenderProps<ProductsCatalogData>) {
   const t = await getTranslations({ locale, namespace: "products" });
   const searchParams = context?.searchParams ?? {};
   const pageSize = data.pageSize ?? 12;
@@ -100,7 +100,7 @@ export async function ProductsCatalogRender({ data, locale, context }: BlockRend
       <>
         <div className="relative overflow-hidden bg-ink text-paper" data-category-banner>
           {/* eslint-disable-next-line @next/next/no-img-element -- admin-uploaded banner of unknown aspect ratio */}
-          <img src={activeCategory.bannerUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-45" />
+          <img src={activeCategory.bannerUrl} alt={activeCategory.name} className="absolute inset-0 h-full w-full object-cover opacity-45" />
           <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-ink/20" />
           <Container className="relative py-16 sm:py-24">
             <p className="manifest-strip mb-4 opacity-70">{t("filterCategory")}</p>
@@ -114,7 +114,7 @@ export async function ProductsCatalogRender({ data, locale, context }: BlockRend
   }
   if (activeCategory) {
     return (
-      <Section tone="paper" eyebrow={t("filterCategory")} title={activeCategory.name} description={activeCategory.description ?? undefined}>
+      <Section titleAs={pageHeading ?? "h1"} tone="paper" eyebrow={t("filterCategory")} title={activeCategory.name} description={activeCategory.description ?? undefined}>
         {results}
       </Section>
     );
@@ -122,6 +122,7 @@ export async function ProductsCatalogRender({ data, locale, context }: BlockRend
 
   return (
     <Section
+      titleAs={pageHeading ?? "h2"}
       tone="paper"
       eyebrow={data.eyebrow ? <StyledText text={data.eyebrow} rich={richOf(data, "eyebrow")} /> : undefined}
       title={data.title ? <StyledText text={data.title} rich={richOf(data, "title")} /> : undefined}

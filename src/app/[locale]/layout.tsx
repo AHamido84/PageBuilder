@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { SITE_URL } from "@/lib/seo/metadata";
+import { SITE_DEFAULT_COPY } from "@/lib/seo/page-copy";
 import { SiteHeader } from "@/components/site/header";
 import { SiteFooter } from "@/components/site/footer";
 import { ToastProvider } from "@/components/ui/toast";
@@ -22,7 +23,7 @@ import { PageTransition } from "@/components/site/page-transition";
 import { fontVariableClassNames } from "@/lib/fonts";
 import { ThemePreviewReceiver } from "@/components/site/theme-preview-receiver";
 import "../globals.css";
-import { getBrandIdentity } from "@/lib/brand";
+import { getBrandIdentity, GOLDEN_SEVEN } from "@/lib/brand";
 import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -35,9 +36,11 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   // falling back to it whenever no SiteSetting.favicon has been uploaded yet.
   const settings = await getSiteSettings();
   const identity = await getBrandIdentity(locale, settings ?? {});
+  const defaultCopy = identity.brand === "golden-seven" ? (locale === "ar" ? SITE_DEFAULT_COPY.ar : SITE_DEFAULT_COPY.en) : null;
   return {
-    title: { default: identity.companyName, template: `%s — ${identity.companyName}` },
-    description: "Wholesale food distribution — Jeddah, Saudi Arabia",
+    metadataBase: new URL(SITE_URL),
+    title: { default: defaultCopy?.title ?? identity.companyName, template: `%s — ${identity.companyName}` },
+    description: defaultCopy?.description ?? "Wholesale food distribution — Jeddah, Saudi Arabia",
     icons: { icon: settings?.favicon?.url ?? "/favicon.ico" },
   };
 }
@@ -117,11 +120,14 @@ export default async function LocaleLayout({
   ]);
 
   const identity = await getBrandIdentity(locale, settings ?? {});
+  const isGolden = identity.brand === "golden-seven";
   const orgSchema = organizationSchema({
     siteName: identity.companyName,
-    logoUrl: settings?.logo?.url ?? (identity.logo ? `${SITE_URL}${identity.logo.src2x}` : undefined),
-    contactEmail: settings?.contactEmail,
-    contactPhone: settings?.contactPhone,
+    alternateName: isGolden ? (locale === "ar" ? GOLDEN_SEVEN.companyName.en : GOLDEN_SEVEN.companyName.ar) : null,
+    // Golden Seven: always its own logo file (the shared SiteSetting logo may still be another brand's).
+    logoUrl: isGolden && identity.logo ? `${SITE_URL}${identity.logo.src2x}` : settings?.logo?.url,
+    contactEmail: isGolden ? GOLDEN_SEVEN.contact.email : settings?.contactEmail,
+    contactPhone: isGolden ? GOLDEN_SEVEN.contact.telephone : settings?.contactPhone,
     socialLinks: settings?.socialLinks as { facebook?: string; instagram?: string; linkedin?: string; twitter?: string } | null,
     address: settings?.address,
   });

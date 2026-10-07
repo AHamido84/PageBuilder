@@ -6,6 +6,7 @@ import { resolveSectionsToRender, isDraftPreviewRequest } from "@/lib/page-build
 import { DraftPreviewBanner } from "@/components/site/draft-preview-banner";
 import { SectionRenderer } from "@/components/site/section-renderer";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { pageCopy } from "@/lib/seo/page-copy";
 import { pageTitle } from "@/lib/page-builder/page-title";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   });
   if (!page || page.status !== "PUBLISHED") return {};
   const t = await getTranslations({ locale, namespace: "distribution" });
-  return buildMetadata({ locale, path: "/distribution-logistics", seo: page.seo, fallbackTitle: pageTitle(page, locale) ?? t("title"), fallbackDescription: t("intro") });
+  return buildMetadata({ locale, path: "/distribution-logistics", copy: pageCopy("distribution-logistics", locale), seo: page.seo, fallbackTitle: pageTitle(page, locale) ?? t("title"), fallbackDescription: t("intro") });
 }
 
 export default async function DistributionLogisticsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

@@ -9,6 +9,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ProductCard, type ProductCardData } from "@/components/site/product-card";
 import { ScrollReveal } from "@/lib/motion/primitives";
 import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
+import { brandCopy } from "@/lib/seo/page-copy";
+import { normalizeBrandSpelling } from "@/lib/brand";
 import { breadcrumbSchema } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
 import { productCardImageInclude, resolveProductCardImage } from "@/lib/catalog/product-image";
@@ -31,6 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     path: `/brands/${slug}`,
     seo: brand.seo,
     fallbackTitle: translation?.name ?? brand.slug,
+    copy: brandCopy(brand.slug, locale, translation?.name ?? brand.slug),
     fallbackDescription: translation?.description ?? null,
   });
 }
@@ -39,6 +42,7 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ sl
   const { slug } = await params;
   const locale = await getLocale();
   const t = await getTranslations("brands");
+  const tNav = await getTranslations("nav");
   const upperLocale = locale.toUpperCase();
 
   const brand = await prisma.brand.findUnique({
@@ -52,9 +56,9 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ sl
   const description = brand.translations.find((tr) => tr.locale === upperLocale)?.description ?? null;
 
   const breadcrumb = breadcrumbSchema([
-    { name: "Home", url: `${SITE_URL}/${locale}` },
-    { name: t("title"), url: `${SITE_URL}/${locale}/brands` },
-    { name, url: `${SITE_URL}/${locale}/brands/${slug}` },
+    { name: tNav("home"), url: `${SITE_URL}/${locale}` },
+    { name: tNav("brands"), url: `${SITE_URL}/${locale}/brands` },
+    { name: normalizeBrandSpelling(name), url: `${SITE_URL}/${locale}/brands/${slug}` },
   ]);
 
   const products = await prisma.product.findMany({
@@ -85,7 +89,7 @@ export default async function BrandDetailPage({ params }: { params: Promise<{ sl
         {brand.banner?.url ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={brand.banner.url} alt="" className="absolute inset-0 h-full w-full object-cover opacity-35" />
+            <img src={brand.banner.url} alt={name} className="absolute inset-0 h-full w-full object-cover opacity-35" />
             <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/70 to-ink/40" />
           </>
         ) : null}

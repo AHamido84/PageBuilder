@@ -24,6 +24,14 @@ export const GOLDEN_SEVEN = {
     width: 260,
     height: 150,
   },
+  /** Business facts for structured data (JSON-LD) only, as supplied by the owner (2026-10-07). */
+  contact: {
+    telephone: "+966565908777",
+    email: "info@goldensevenfoods.com",
+    addressLocality: { ar: "جدة", en: "Jeddah" },
+    addressCountry: "SA",
+    areaServed: { ar: "المملكة العربية السعودية", en: "Saudi Arabia" },
+  },
 } as const;
 
 export async function getSiteBrand(): Promise<SiteBrand> {

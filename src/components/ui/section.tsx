@@ -17,6 +17,8 @@ interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> 
   title?: React.ReactNode;
   description?: React.ReactNode;
   containerClassName?: string;
+  /** "h1" when this section's title is the page title (index pages); same styling either way. */
+  titleAs?: "h1" | "h2";
 }
 
 export function Section({
@@ -26,6 +28,7 @@ export function Section({
   description,
   className,
   containerClassName,
+  titleAs: TitleTag = "h2",
   children,
   ...props
 }: SectionProps) {
@@ -35,7 +38,7 @@ export function Section({
         {(eyebrow || title || description) && (
           <ScrollReveal variant="fade-up" className="mb-12 max-w-2xl sm:mb-16">
             {eyebrow ? <p className="manifest-strip mb-3 text-harbor">{eyebrow}</p> : null}
-            {title ? <h2 className="font-display text-h2">{title}</h2> : null}
+            {title ? <TitleTag className="font-display text-h2">{title}</TitleTag> : null}
             {description ? <p className="mt-4 text-base leading-relaxed text-ink/70 sm:text-lg">{description}</p> : null}
           </ScrollReveal>
         )}

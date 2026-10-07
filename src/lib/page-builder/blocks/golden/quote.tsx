@@ -211,7 +211,9 @@ function ProductsDropdown({ data, groups, locale, error, onPick }: { data: G7Quo
 }
 
 /* 09 -- Quote form + CTA image (split). Image is the inline-start ~60%, the form panel the rest. */
-export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7QuoteData>) {
+export function G7QuoteRender({ data, locale, interactive, pageHeading }: BlockRenderProps<G7QuoteData>) {
+  // The image-side heading is the page title only when this block opens the page (e.g. /contact).
+  const AsideHeadingTag = pageHeading ?? "h2";
   const t = locale === "ar" ? MESSAGES.ar : MESSAGES.en;
   // Catalog pills (resolveG7Quote, while variants are enabled); otherwise the typed `products` pills.
   const resolved = data as G7QuoteResolved;
@@ -272,7 +274,7 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
           <DiamondOrnament className="absolute start-[clamp(1.25rem,2.9vw,3.5rem)] top-[clamp(1.25rem,2.1vw,2.5rem)] h-[clamp(4rem,6.5vw,7.8rem)] w-[clamp(1.25rem,2vw,2.4rem)] text-[var(--g7-gold-500)]" />
           <div dir="ltr" className={cn("absolute inset-0 flex px-[clamp(1.5rem,4vw,5rem)] pb-[clamp(3rem,4.6vw,5.5rem)] pt-[clamp(2.5rem,9vw,9rem)] text-[var(--g7-cream-50)]", g7OverlayClasses(data.asideTextX, data.asideTextY, "base", locale))}>
             <div dir={locale === "ar" ? "rtl" : "ltr"} className="g7-nudge" style={g7OffsetStyle(data.asideOffsetX, data.asideOffsetY)}>
-            <h2 className="t-h2">
+            <AsideHeadingTag className="t-h2">
               <StyledText text={data.asideHeadingLine1} rich={richOf(data, "asideHeadingLine1")} />
               {data.asideHeadingLine2 ? (
                 <>
@@ -280,7 +282,7 @@ export function G7QuoteRender({ data, locale, interactive }: BlockRenderProps<G7
                   <StyledText text={data.asideHeadingLine2} rich={richOf(data, "asideHeadingLine2")} />
                 </>
               ) : null}
-            </h2>
+            </AsideHeadingTag>
             {data.asideSubtitle ? <p className="t-h3 mt-[clamp(0.75rem,1.4vw,1.6rem)] font-light"><StyledText text={data.asideSubtitle} rich={richOf(data, "asideSubtitle")} /></p> : null}
             </div>
           </div>

@@ -109,7 +109,7 @@ export function ProductCard({
             imageFit === "natural" && product.imageWidth && product.imageHeight ? (
               <Image
                 src={product.imageUrl}
-                alt=""
+                alt={product.name}
                 width={product.imageWidth}
                 height={product.imageHeight}
                 sizes="(min-width: 1024px) 23vw, (min-width: 640px) 33vw, 50vw"
@@ -119,7 +119,7 @@ export function ProductCard({
               <>
                 <Image
                   src={product.imageUrl}
-                  alt=""
+                  alt={product.name}
                   fill
                   sizes="(min-width: 1024px) 23vw, (min-width: 640px) 33vw, 50vw"
                   className={`transition-transform duration-500 ease-[var(--ease-premium)] ${imageFit === "contain" ? "object-contain" : "object-cover"} ${OBJECT_POSITION_CLASS[imagePosition]} ${hoverImageClass} ${product.mobileImageUrl ? "hidden sm:block" : ""}`}
@@ -127,7 +127,7 @@ export function ProductCard({
                 {product.mobileImageUrl ? (
                   <Image
                     src={product.mobileImageUrl}
-                    alt=""
+                    alt={product.name}
                     fill
                     sizes="50vw"
                     className={`transition-transform duration-500 ease-[var(--ease-premium)] sm:hidden ${imageFit === "contain" ? "object-contain" : "object-cover"} ${OBJECT_POSITION_CLASS[imagePosition]} ${hoverImageClass}`}

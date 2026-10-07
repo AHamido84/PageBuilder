@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getTranslations, getLocale } from "next-intl/server";
@@ -14,28 +15,51 @@ import { isDraftPreviewRequest } from "@/lib/page-builder/render-page";
 import { loadSystemPageSections } from "@/lib/page-builder/system-pages-server";
 import { PRODUCT_TEMPLATE_SLUG } from "@/lib/page-builder/system-pages";
 import { QuotePrefillProvider } from "@/lib/page-builder/blocks/golden/quote-prefill";
-import { getProduct, getRelatedCards, redirectIfMoved } from "./product-data";
+import { getProduct, getRelatedCards, redirectIfMoved, type ProductPageData } from "./product-data";
+import { productCopy } from "@/lib/seo/page-copy";
+import { normalizeBrandSpelling } from "@/lib/brand";
 import { ProductInquirySection, ProductMainSection, ProductRelatedSection, type ProductPageContext } from "./product-sections";
 
 export const dynamic = "force-dynamic";
 
+/** One product load per request, shared by generateMetadata and the page. */
+const loadProduct = cache(async (slug: string, locale: string) => {
+  const [variantsEnabled, textStyles] = await Promise.all([areVariantsEnabled(), areTextStylesEnabled()]);
+  return getProduct(slug, locale, variantsEnabled, textStyles);
+});
+
+/** The default variant (the one the page opens on): its weight/images speak for the product. */
+function defaultVariant(product: ProductPageData) {
+  const view = product.variants;
+  return view.variants.find((v) => v.id === view.defaultVariantId) ?? view.variants[0];
+}
+
+/** The product's pack weight: its own field, else the one weight all its variants share (null when mixed). */
+function sharedWeight(product: ProductPageData): string | null {
+  if (product.weight?.trim()) return product.weight.trim();
+  const weights = product.variants.variants.map((v) => v.weight?.trim()).filter((w): w is string => Boolean(w));
+  if (!weights.length || new Set(weights.map((w) => w.replace(/\s+/g, ""))).size !== 1) return null;
+  return weights[0];
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ locale: string; slug: string }> }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const product = await prisma.product.findUnique({
-    where: { slug },
-    include: { translations: true, seo: { include: { ogImage: { select: { url: true } } } } },
-  });
-  if (!product || !product.isPublished) return {};
-
-  const upperLocale = locale.toUpperCase();
-  const translation = product.translations.find((t) => t.locale === upperLocale) ?? product.translations[0];
+  const product = await loadProduct(slug, locale);
+  if (!product) return {};
+  const seo = await prisma.sEO.findUnique({ where: { productId: product.id }, include: { ogImage: { select: { url: true } } } });
 
   return buildMetadata({
     locale,
-    path: `/products/${slug}`,
-    seo: product.seo,
-    fallbackTitle: translation?.name ?? product.sku,
-    fallbackDescription: translation?.shortDescription ?? translation?.description ?? null,
+    // Always the canonical product path: ?size=7mm / ?variant=... never reach the canonical URL.
+    path: `/products/${product.slug}`,
+    seo,
+    fallbackTitle: product.name,
+    fallbackDescription: product.shortDescription ?? product.description ?? null,
+    copy: productCopy(
+      { name: product.name, weight: sharedWeight(product), categoryName: product.categoryName, brandName: product.brandName, temperatureClass: product.temperatureClass },
+      locale
+    ),
+    image: defaultVariant(product)?.images[0]?.url ?? null,
   });
 }
 
@@ -49,11 +73,11 @@ export default async function ProductDetailPage({
   const { slug } = await params;
   const query = await searchParams;
   const locale = await getLocale();
-  const tCommon = await getTranslations("common");
+  const tNav = await getTranslations("nav");
   const variantsEnabled = await areVariantsEnabled();
   const textStyles = await areTextStylesEnabled();
 
-  const product = await getProduct(slug, locale, variantsEnabled, textStyles);
+  const product = await loadProduct(slug, locale);
   if (!product) {
     await redirectIfMoved(slug, locale);
     notFound();
@@ -65,21 +89,30 @@ export default async function ProductDetailPage({
   // Invalid/unknown params fall back to the default variant (resolveVariantFromParams).
   const initialVariant = resolveVariantFromParams(view, query);
   const productUrl = `${SITE_URL}/${locale}/products/${product.slug}`;
+  const clean = (text: string) => normalizeBrandSpelling(text).replace(/\s+/g, " ").trim();
+  const schemaName = clean(product.name);
+  const schemaBrand = product.brandName ? clean(product.brandName) : null;
+  const schemaCategory = product.categoryName ? clean(product.categoryName) : null;
+  const schemaDescription = product.description ?? product.shortDescription ?? productCopy(
+    { name: product.name, weight: sharedWeight(product), categoryName: product.categoryName, brandName: product.brandName, temperatureClass: product.temperatureClass },
+    locale
+  ).description;
 
   const structuredData = [
     view.type === "VARIANT"
       ? productGroupSchema({
-          name: product.name,
-          description: product.shortDescription ?? product.description,
+          name: schemaName,
+          description: schemaDescription,
           productGroupId: product.sku,
-          brandName: product.brandName,
+          brandName: schemaBrand,
+          category: schemaCategory,
           // The canonical (query-less) URL identifies the group; each variant gets its own deep link.
           url: productUrl,
           variesBy: view.options.map((o) => o.key),
           variants: view.variants.map((v) => {
             const qs = variantQuery(view, v);
             return {
-              name: v.name,
+              name: clean(v.name),
               description: v.shortDescription ?? v.description,
               sku: v.sku,
               imageUrls: v.images.map((img) => img.url),
@@ -89,18 +122,20 @@ export default async function ProductDetailPage({
           }),
         })
       : productSchema({
-          name: product.name,
-          description: product.shortDescription ?? product.description,
+          name: schemaName,
+          description: schemaDescription,
           sku: product.sku,
           imageUrls: view.variants[0].images.map((img) => img.url),
-          brandName: product.brandName,
+          brandName: schemaBrand,
+          category: schemaCategory,
+          weight: sharedWeight(product),
           url: productUrl,
-          isAvailable: true,
         }),
     breadcrumbSchema([
-      { name: "Home", url: `${SITE_URL}/${locale}` },
-      { name: tCommon("backToProducts"), url: `${SITE_URL}/${locale}/products` },
-      { name: product.name, url: productUrl },
+      { name: tNav("home"), url: `${SITE_URL}/${locale}` },
+      { name: tNav("products"), url: `${SITE_URL}/${locale}/products` },
+      ...(schemaCategory ? [{ name: schemaCategory, url: `${SITE_URL}/${locale}/products?category=${encodeURIComponent(product.categorySlug)}` }] : []),
+      { name: schemaName, url: productUrl },
     ]),
   ];
 

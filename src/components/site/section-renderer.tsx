@@ -21,8 +21,22 @@ export interface SectionRow {
  * Media ids to real URLs) that needs a Prisma round-trip before its
  * otherwise-sync Render ever mounts.
  */
+/** Blocks whose title can be the page's H1 (hero types, the products catalog, and the quote block when it opens a page). */
+const TITLE_SECTION_TYPES = new Set(["HERO", "G7_HERO", "G7_QUOTE", "PRODUCTS_CATALOG"]);
+
+/** Blocks that always own the page's H1 themselves -- when present, no title section is promoted. */
+function ownsPageH1(section: SectionRow, locale: string): boolean {
+  if (section.type === "PRODUCT_DETAILS") return true;
+  if (section.type !== "PAGE_INTRO" && section.type !== "HEADING") return false;
+  const data = (locale === "ar" ? section.dataAr : section.dataEn) as { headingLevel?: string; level?: string } | null;
+  const level = data?.headingLevel ?? data?.level ?? (section.type === "PAGE_INTRO" ? "h1" : undefined);
+  return level === "h1";
+}
+
 export async function SectionRenderer({ sections, locale, context }: { sections: SectionRow[]; locale: string; context?: PageRenderContext }) {
   const visible = sections.filter((s) => s.isVisible);
+  // Exactly one H1 per page: the first title section gets it, later hero/quote sections render H2.
+  const titleSectionId = visible.some((s) => ownsPageH1(s, locale)) ? null : visible.find((s) => TITLE_SECTION_TYPES.has(s.type))?.id ?? null;
   // Text styling off -> every `__rich` map is dropped, so blocks render their plain strings exactly as before.
   const textStyles = await areTextStylesEnabled();
 
@@ -52,7 +66,14 @@ export async function SectionRenderer({ sections, locale, context }: { sections:
       const Render = block.Render;
       return (
         <SectionShell key={section.id} settings={settings} bleed={block.bleedsWhen?.(data) ?? false}>
-          <Render data={data} locale={locale} interactive settings={settings} {...(block.usesContext ? { context: context ?? {} } : {})} />
+          <Render
+            data={data}
+            locale={locale}
+            interactive
+            settings={settings}
+            {...(TITLE_SECTION_TYPES.has(section.type) ? { pageHeading: section.id === titleSectionId ? ("h1" as const) : ("h2" as const) } : {})}
+            {...(block.usesContext ? { context: context ?? {} } : {})}
+          />
         </SectionShell>
       );
     })

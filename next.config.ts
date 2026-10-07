@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { LEGACY_PRODUCT_SLUGS } from "./src/lib/seo/legacy-slugs";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
@@ -44,6 +45,12 @@ const nextConfig: NextConfig = {
   // this code rolled back.
   async redirects() {
     return [
+      // Typo'd product slugs (src/lib/seo/legacy-slugs.ts) -> the corrected ones, both locales.
+      ...Object.entries(LEGACY_PRODUCT_SLUGS).map(([from, to]) => ({
+        source: `/:locale(ar|en)/products/${from}`,
+        destination: `/:locale/products/${to}`,
+        statusCode: 301 as const,
+      })),
       { source: "/:locale(ar|en)/products/absher-frensh-fries-7mm", destination: "/:locale/products/absher-french-fries?size=7mm", statusCode: 301 },
       { source: "/:locale(ar|en)/products/absher-frensh-fries-10mm", destination: "/:locale/products/absher-french-fries?size=10mm", statusCode: 301 },
     ];

@@ -946,6 +946,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
   // Physical X is independent per locale already (dataEn/dataAr are separate objects) -- mirroring
   // only happens when an admin deliberately opts in via ctaMirrorForRtl (brief §13). Applied per
   // breakpoint tier (Phase 4) -- each tier's own X value gets mirrored independently.
+  const HeadlineTag = props.pageHeading ?? "h1";
   const mirrorX = (x: number) => (locale === "ar" && data.ctaMirrorForRtl ? 100 - x : x);
   const ctaXTier = resolveTier(data.ctaX, data.ctaXTablet, data.ctaXMobile);
   const ctaYTier = resolveTier(data.ctaY, data.ctaYTablet, data.ctaYMobile);
@@ -978,7 +979,7 @@ export function HeroRender(props: BlockRenderProps<HeroRenderData>) {
         </StaggerItem>
       ) : null}
       <StaggerItem>
-        {richOf(data, "headline") ? <h1 className="font-display text-hero measure-ar"><StyledText text={data.headline} rich={richOf(data, "headline")} /></h1> : <KineticText as="h1" text={data.headline} className="font-display text-hero measure-ar" />}
+        {richOf(data, "headline") ? <HeadlineTag className="font-display text-hero measure-ar"><StyledText text={data.headline} rich={richOf(data, "headline")} /></HeadlineTag> : <KineticText as={HeadlineTag} text={data.headline} className="font-display text-hero measure-ar" />}
       </StaggerItem>
       {data.subheading ? (
         <StaggerItem>

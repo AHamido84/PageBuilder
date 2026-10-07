@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { LegalPage } from "@/components/site/legal-page";
 import { TERMS_CONTENT } from "@/lib/legal-content";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { pageCopy } from "@/lib/seo/page-copy";
 import { pageTitle } from "@/lib/page-builder/page-title";
 import { renderCmsRoutePage, loadPublishedPageMeta } from "@/components/site/cms-route-page";
 
@@ -13,7 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const t = await getTranslations({ locale, namespace: "legal" });
   // PHASE 8: a published Page Builder page with this slug supplies the title/SEO (and content, below).
   const cms = await loadPublishedPageMeta("terms");
-  return buildMetadata({ locale, path: "/terms", seo: cms?.seo, fallbackTitle: pageTitle(cms, locale) ?? t("termsTitle") });
+  return buildMetadata({ locale, path: "/terms", copy: pageCopy("terms", locale), seo: cms?.seo, fallbackTitle: pageTitle(cms, locale) ?? t("termsTitle") });
 }
 
 export default async function TermsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

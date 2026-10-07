@@ -344,6 +344,10 @@ export interface BlockRenderProps<TData> {
   interactive: boolean;
   /** The section's resolved responsive settings — used by blocks whose own markup needs a token (e.g. Heading's font-size, a grid block's column count). Most blocks ignore this; SectionShell already applies padding/margin/background/animation around Render's output. */
   settings: SectionSettings;
+  /** Public pages only (SectionRenderer): which heading level this section's title uses, so a page has
+   *  exactly one H1 -- "h1" for the page's first title section, "h2" for any later hero/quote. Unset
+   *  (admin canvas, direct use) = the block's own default. Only the tag changes, never the styling. */
+  pageHeading?: "h1" | "h2";
 }
 
 export interface BlockDefinition<TData = unknown> {

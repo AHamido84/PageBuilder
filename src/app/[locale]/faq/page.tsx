@@ -5,6 +5,7 @@ import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FaqAccordion } from "./faq-accordion";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { pageCopy } from "@/lib/seo/page-copy";
 import { faqSchema } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/components/site/json-ld";
 import { pageTitle } from "@/lib/page-builder/page-title";
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "faq" });
   const header = await loadPageHeaderMeta("faq");
-  return buildMetadata({ locale, path: "/faq", seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title") });
+  return buildMetadata({ locale, path: "/faq", copy: pageCopy("faq", locale), seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title") });
 }
 
 export default async function FaqPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -66,7 +67,7 @@ export default async function FaqPage({ searchParams }: { searchParams: Promise<
   const headerSections = await loadPageHeaderSections("faq", draftPreview);
   if (!headerSections) {
     return (
-      <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
+      <Section titleAs="h1" tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
         {body}
       </Section>
     );

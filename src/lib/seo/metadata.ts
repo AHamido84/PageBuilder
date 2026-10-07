@@ -2,19 +2,14 @@ import type { Metadata } from "next";
 import { getBrandIdentity, normalizeBrandSpelling } from "@/lib/brand";
 import { prisma } from "@/lib/prisma";
 
-// Strips a leading BOM/zero-width character and trims whitespace before the trailing-slash
-// cleanup -- found NEXT_PUBLIC_SITE_URL carrying a leading U+FEFF in the Vercel production
-// env (likely set at some point via a BOM-prefixed file, same class of issue as the
-// PowerShell Out-File gotcha documented in HANDOFF.md), which silently broke every absolute
-// URL built from this constant: canonical, hreflang alternates, OG/Twitter urls, sitemap
-// entries, JSON-LD urls. Defensive here so it's correct regardless of env var hygiene.
-const BOM_PATTERN = new RegExp("^" + String.fromCharCode(0xfeff));
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000")
-  .replace(BOM_PATTERN, "")
-  .trim()
-  .replace(/\/$/, "");
+import { SITE_URL, absoluteUrl } from "./site-url";
+import { SITE_DEFAULT_COPY, type SeoCopy } from "./page-copy";
 
+// The one site origin (src/lib/seo/site-url.ts), re-exported for existing importers.
 export { SITE_URL };
+
+/** Default 1200x630 share image (public/og) used when neither the page nor Admin -> Settings sets one. */
+export const DEFAULT_OG_IMAGE = { url: "/og/golden-seven-foods.jpg", width: 1200, height: 630 };
 
 export interface SeoRecord {
   titleEn: string | null;
@@ -47,6 +42,11 @@ interface BuildMetadataInput {
   ogType?: "website" | "article";
   /** Pass in an already-fetched SiteSetting to avoid a redundant query when the caller needs it anyway. */
   settings?: SiteSettingsForSeo;
+  /** Golden Seven search copy (src/lib/seo/page-copy.ts): an absolute title + description used when
+   *  the CMS SEO record leaves them empty. Ignored on the Seven Eleven domain. */
+  copy?: SeoCopy | null;
+  /** Page-specific share image (e.g. the product photo), below the CMS SEO record's own. */
+  image?: string | null;
 }
 
 /**
@@ -62,6 +62,8 @@ export async function buildMetadata({
   fallbackDescription,
   ogType = "website",
   settings: settingsInput,
+  copy,
+  image,
 }: BuildMetadataInput): Promise<Metadata> {
   const settings = settingsInput ?? (await getSeoSiteSettings());
   const isAr = locale === "ar";
@@ -72,16 +74,24 @@ export async function buildMetadata({
   const siteName = identity.companyName;
   const rawCustomTitle = (isAr ? seo?.titleAr : seo?.titleEn) || null;
   const customTitle = rawCustomTitle && identity.brand === "golden-seven" ? normalizeBrandSpelling(rawCustomTitle) : rawCustomTitle;
-  const title = customTitle || `${fallbackTitle} — ${siteName}`;
+  const isGolden = identity.brand === "golden-seven";
+  const pageCopy = isGolden ? copy : null;
+  const title = customTitle || pageCopy?.title || `${fallbackTitle} — ${siteName}`;
 
   const description =
     (isAr ? seo?.descriptionAr : seo?.descriptionEn) ||
+    pageCopy?.description ||
     fallbackDescription ||
     (isAr ? settings?.seoDefaultDescriptionAr : settings?.seoDefaultDescriptionEn) ||
-    undefined;
+    (isGolden ? (isAr ? SITE_DEFAULT_COPY.ar : SITE_DEFAULT_COPY.en).description : undefined);
 
+  // Self-referencing and query-free (?size=7mm etc. never reach `path`); a category listing keeps
+  // its own ?category= because that parameter is what makes it a distinct page.
   const canonical = seo?.canonicalUrl || `${SITE_URL}/${locale}${cleanPath}`;
-  const ogImageUrl = seo?.ogImage?.url || settings?.defaultOgImage?.url || undefined;
+  const pageImageUrl = seo?.ogImage?.url || image || settings?.defaultOgImage?.url || null;
+  const ogImage = pageImageUrl
+    ? { url: absoluteUrl(pageImageUrl), alt: title }
+    : { ...DEFAULT_OG_IMAGE, url: absoluteUrl(DEFAULT_OG_IMAGE.url), alt: title };
   const noIndex = seo?.noIndex ?? false;
 
   return {
@@ -101,14 +111,15 @@ export async function buildMetadata({
       url: canonical,
       siteName,
       locale: isAr ? "ar_SA" : "en_US",
+      alternateLocale: isAr ? ["en_US"] : ["ar_SA"],
       type: ogType,
-      images: ogImageUrl ? [{ url: ogImageUrl }] : undefined,
+      images: [ogImage],
     },
     twitter: {
-      card: ogImageUrl ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      images: ogImageUrl ? [ogImageUrl] : undefined,
+      images: [ogImage.url],
     },
     robots: noIndex
       ? { index: false, follow: false }

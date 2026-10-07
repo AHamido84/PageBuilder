@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { resolveSectionsToRender, isDraftPreviewRequest } from "@/lib/page-builder/render-page";
 import { DraftPreviewBanner } from "@/components/site/draft-preview-banner";
 import { SectionRenderer } from "@/components/site/section-renderer";
-import { buildMetadata } from "@/lib/seo/metadata";
+import { buildMetadata, SITE_URL } from "@/lib/seo/metadata";
+import { breadcrumbSchema } from "@/lib/seo/structured-data";
+import { JsonLd } from "@/components/site/json-ld";
+import { solutionCopy } from "@/lib/seo/page-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +48,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     path: `/solutions/${slug}`,
     seo: solution.page.seo,
     fallbackTitle: translation?.name ?? solution.slug,
+    copy: solutionCopy(solution.slug, locale, translation?.name ?? solution.slug),
     fallbackDescription: translation?.shortDescription,
   });
 }
@@ -60,8 +64,16 @@ export default async function SolutionDetailPage({ params, searchParams }: { par
   const pageForRender = solution.isPublished ? solution.page : { ...solution.page, status: "DRAFT" };
   const resolved = await resolveSectionsToRender(pageForRender, await isDraftPreviewRequest(await searchParams));
   if (!resolved) notFound();
+  const tNav = await getTranslations("nav");
+  const name = solution.translations.find((t) => t.locale === locale.toUpperCase())?.name ?? solution.slug;
+  const breadcrumb = breadcrumbSchema([
+    { name: tNav("home"), url: `${SITE_URL}/${locale}` },
+    { name: tNav("solutions"), url: `${SITE_URL}/${locale}/solutions` },
+    { name, url: `${SITE_URL}/${locale}/solutions/${solution.slug}` },
+  ]);
   return (
     <>
+      <JsonLd data={breadcrumb} />
       <SectionRenderer sections={resolved.sections} locale={locale} />
       {resolved.draft ? <DraftPreviewBanner /> : null}
     </>

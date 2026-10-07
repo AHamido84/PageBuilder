@@ -8,6 +8,7 @@ export function jsonLdScript(data: unknown): string {
 
 interface OrgSchemaInput {
   siteName: string;
+  alternateName?: string | null;
   logoUrl?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
@@ -20,7 +21,9 @@ export function organizationSchema(input: OrgSchemaInput) {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": `${SITE_URL}/#organization`,
     name: input.siteName,
+    ...(input.alternateName ? { alternateName: input.alternateName } : {}),
     url: SITE_URL,
     ...(input.logoUrl ? { logo: input.logoUrl } : {}),
     ...(sameAs.length ? { sameAs } : {}),
@@ -45,9 +48,24 @@ interface ProductSchemaInput {
   imageUrls: string[];
   brandName?: string | null;
   url: string;
-  isAvailable: boolean;
+  category?: string | null;
+  /** Pack weight as entered in the catalog, e.g. "18 كجم" / "2.5 kg". */
+  weight?: string | null;
 }
 
+const WEIGHT_UNITS: Record<string, string> = { "كجم": "KGM", "كغ": "KGM", kg: "KGM", "جم": "GRM", "غ": "GRM", g: "GRM", "جرام": "GRM" };
+
+/** "18 كجم" -> QuantitativeValue (KGM); anything unparseable stays a plain additionalProperty. */
+function weightProperties(weight: string | null | undefined) {
+  if (!weight) return {};
+  const ascii = weight.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace("٫", ".");
+  const match = ascii.match(/^\s*(\d+(?:[.,]\d+)?)\s*([^\s\d]+)\s*$/);
+  const unitCode = match ? WEIGHT_UNITS[match[2].toLowerCase()] : undefined;
+  if (match && unitCode) return { weight: { "@type": "QuantitativeValue", value: Number(match[1].replace(",", ".")), unitCode } };
+  return { additionalProperty: [{ "@type": "PropertyValue", name: "weight", value: weight }] };
+}
+
+/** Quote-based wholesale catalog: no offers, price, availability or reviews -- none of it is published data. */
 export function productSchema(input: ProductSchemaInput) {
   return {
     "@context": "https://schema.org",
@@ -57,13 +75,9 @@ export function productSchema(input: ProductSchemaInput) {
     ...(input.description ? { description: input.description } : {}),
     ...(input.imageUrls.length ? { image: input.imageUrls } : {}),
     ...(input.brandName ? { brand: { "@type": "Brand", name: input.brandName } } : {}),
+    ...(input.category ? { category: input.category } : {}),
+    ...weightProperties(input.weight),
     url: input.url,
-    offers: {
-      "@type": "Offer",
-      url: input.url,
-      availability: input.isAvailable ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-      // No public list price on this wholesale B2B catalog -- omit `price` rather than invent one.
-    },
   };
 }
 
@@ -83,6 +97,7 @@ interface ProductGroupSchemaInput {
   productGroupId: string;
   brandName?: string | null;
   url: string;
+  category?: string | null;
   /** Option keys, e.g. ["cut", "weight"]. */
   variesBy: string[];
   variants: {
@@ -106,6 +121,7 @@ export function productGroupSchema(input: ProductGroupSchemaInput) {
     productGroupID: input.productGroupId,
     url: input.url,
     ...brand,
+    ...(input.category ? { category: input.category } : {}),
     variesBy: [...new Set(input.variesBy.map((key) => VARIES_BY[key] ?? key))],
     hasVariant: input.variants.map((v) => ({
       "@type": "Product",
@@ -141,6 +157,53 @@ export function articleSchema(input: ArticleSchemaInput) {
     dateModified: input.updatedAt || input.publishedAt,
     ...(input.authorName ? { author: { "@type": "Person", name: input.authorName } } : {}),
     mainEntityOfPage: { "@type": "WebPage", "@id": input.url },
+  };
+}
+
+interface LocalBusinessInput {
+  name: string;
+  alternateName?: string | null;
+  url: string;
+  logoUrl?: string | null;
+  imageUrl?: string | null;
+  telephone?: string | null;
+  email?: string | null;
+  addressLocality: string;
+  addressCountry: string;
+  areaServed: string;
+  description?: string | null;
+}
+
+/** Homepage LocalBusiness, tied to the site-wide Organization node by @id. */
+export function localBusinessSchema(input: LocalBusinessInput) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "@id": `${SITE_URL}/#localbusiness`,
+    name: input.name,
+    ...(input.alternateName ? { alternateName: input.alternateName } : {}),
+    url: input.url,
+    ...(input.description ? { description: input.description } : {}),
+    ...(input.logoUrl ? { logo: input.logoUrl } : {}),
+    ...(input.imageUrl ? { image: input.imageUrl } : {}),
+    ...(input.telephone ? { telephone: input.telephone } : {}),
+    ...(input.email ? { email: input.email } : {}),
+    address: { "@type": "PostalAddress", addressLocality: input.addressLocality, addressCountry: input.addressCountry },
+    areaServed: { "@type": "Country", name: input.areaServed },
+    parentOrganization: { "@id": `${SITE_URL}/#organization` },
+  };
+}
+
+export function websiteSchema(input: { name: string; alternateName?: string | null; url: string; inLanguage: string[] }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": `${SITE_URL}/#website`,
+    name: input.name,
+    ...(input.alternateName ? { alternateName: input.alternateName } : {}),
+    url: input.url,
+    inLanguage: input.inLanguage,
+    publisher: { "@id": `${SITE_URL}/#organization` },
   };
 }
 

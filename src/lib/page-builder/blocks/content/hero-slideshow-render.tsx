@@ -27,7 +27,8 @@ const SWIPE_THRESHOLD = 40;
  * entrance animation is what reduced-motion suppresses, via the same HeroMediaMotion/Stagger
  * primitives image/video mode already uses, which no-op on their own.
  */
-export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>) {
+export function HeroSlideshow({ data, locale, pageHeading }: BlockRenderProps<HeroRenderData>) {
+  const HeadlineTag = pageHeading ?? "h1";
   const slides = data.slides.filter((s) => s.enabled);
   // Redesign PHASE 5 -- "carousel" shares this component and the same slides array; it only changes
   // the transition (a physical slide along a track), arrow visibility, autoplay and a slide counter.
@@ -181,7 +182,7 @@ export function HeroSlideshow({ data, locale }: BlockRenderProps<HeroRenderData>
       ) : null}
       {slide.headline ? (
         <StaggerItem>
-          {richOf(slide, "headline") ? <h1 className="font-display text-hero measure-ar"><StyledText text={slide.headline} rich={richOf(slide, "headline")} /></h1> : <KineticText as="h1" text={slide.headline} className="font-display text-hero measure-ar" />}
+          {richOf(slide, "headline") ? <HeadlineTag className="font-display text-hero measure-ar"><StyledText text={slide.headline} rich={richOf(slide, "headline")} /></HeadlineTag> : <KineticText as={HeadlineTag} text={slide.headline} className="font-display text-hero measure-ar" />}
         </StaggerItem>
       ) : null}
       {slide.description ? (

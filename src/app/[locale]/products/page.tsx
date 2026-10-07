@@ -10,6 +10,7 @@ import { Pagination } from "@/components/admin/ui/pagination";
 import { ProductCard } from "@/components/site/product-card";
 import { FilterBar } from "./filter-bar";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { categoryCopy, pageCopy } from "@/lib/seo/page-copy";
 import { SectionRenderer } from "@/components/site/section-renderer";
 import { loadPageHeaderSections, loadPageHeaderMeta } from "@/lib/page-builder/page-headers";
 import { isDraftPreviewRequest } from "@/lib/page-builder/render-page";
@@ -48,15 +49,16 @@ export async function generateMetadata({
         path: `/products?category=${encodeURIComponent(category.slug)}`,
         seo: category.seo,
         fallbackTitle: translation?.name ?? category.slug,
+        copy: categoryCopy(category.slug, locale, translation?.name ?? category.slug),
         fallbackDescription: translation?.description ?? null,
       });
     }
   }
   // The Page Builder products page (when switched on and published) has its own title/SEO.
   const system = await loadSystemPageMeta(PRODUCTS_PAGE_SLUG);
-  if (system) return buildMetadata({ locale, path: "/products", seo: system.seo, fallbackTitle: pageTitle(system, locale) ?? t("title"), fallbackDescription: tHome("heroSubtitle") });
+  if (system) return buildMetadata({ locale, path: "/products", copy: pageCopy("products", locale), seo: system.seo, fallbackTitle: pageTitle(system, locale) ?? t("title"), fallbackDescription: tHome("heroSubtitle") });
   const header = await loadPageHeaderMeta("products");
-  return buildMetadata({ locale, path: "/products", seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title"), fallbackDescription: tHome("heroSubtitle") });
+  return buildMetadata({ locale, path: "/products", copy: pageCopy("products", locale), seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title"), fallbackDescription: tHome("heroSubtitle") });
 }
 
 const PAGE_SIZE = 12;
@@ -140,7 +142,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       <>
         <div className="relative overflow-hidden bg-ink text-paper" data-category-banner>
           {/* eslint-disable-next-line @next/next/no-img-element -- admin-uploaded banner of unknown aspect ratio */}
-          <img src={activeCategory.bannerUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-45" />
+          <img src={activeCategory.bannerUrl} alt={activeCategory.name} className="absolute inset-0 h-full w-full object-cover opacity-45" />
           <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-ink/20" />
           <Container className="relative py-16 sm:py-24">
             <p className="manifest-strip mb-4 opacity-70">{t("filterCategory")}</p>
@@ -155,7 +157,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
   if (activeCategory) {
     return (
-      <Section tone="paper" eyebrow={t("filterCategory")} title={activeCategory.name} description={activeCategory.description ?? undefined}>
+      <Section titleAs="h1" tone="paper" eyebrow={t("filterCategory")} title={activeCategory.name} description={activeCategory.description ?? undefined}>
         {results}
       </Section>
     );
@@ -168,7 +170,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const headerSections = await loadPageHeaderSections("products", draftPreview);
   if (!headerSections) {
     return (
-      <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
+      <Section titleAs="h1" tone="paper" eyebrow={t("eyebrow")} title={t("title")}>
         {results}
       </Section>
     );

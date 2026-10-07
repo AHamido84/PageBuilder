@@ -18,14 +18,15 @@ const heroButtonWidth = "min-w-[clamp(11rem,12.9vw,15.5rem)] xl:min-w-0 xl:gap-[
  * use a plain cover crop and phones stack the photo over a teal text panel. The photo is not
  * mirrored for English (product packs would read backwards), so the text column stays on the
  * physical right in both languages and only its alignment follows dir. */
-export function G7HeroRender({ data, locale }: BlockRenderProps<G7HeroData>) {
+export function G7HeroRender({ data, locale, pageHeading }: BlockRenderProps<G7HeroData>) {
+  const HeadingTag = pageHeading ?? "h1";
   const image = data.image?.url;
   const mobileImage = data.mobileImage?.url || image;
   const text = (
     <div className="text-[var(--g7-cream-50)]">
       {data.eyebrow ? <p className="t-h3 font-light text-[var(--g7-gold-500)]"><StyledText text={data.eyebrow} rich={richOf(data, "eyebrow")} /></p> : null}
       {/* Largest text on the page (finding 02). Arabic keeps its intentional 2-line break unwrapped. */}
-      <h1 className="t-hero mt-[clamp(0.75rem,1.6vw,2rem)] xl:rtl:whitespace-nowrap">
+      <HeadingTag className="t-hero mt-[clamp(0.75rem,1.6vw,2rem)] xl:rtl:whitespace-nowrap">
         <StyledText text={data.headingLine1} rich={richOf(data, "headingLine1")} />
         {data.headingLine2 ? (
           <>
@@ -33,7 +34,7 @@ export function G7HeroRender({ data, locale }: BlockRenderProps<G7HeroData>) {
             <StyledText text={data.headingLine2} rich={richOf(data, "headingLine2")} />
           </>
         ) : null}
-      </h1>
+      </HeadingTag>
       <div className={cn("mt-[clamp(1.75rem,2.6vw,3.6rem)] flex flex-wrap gap-[clamp(0.75rem,1.2vw,1.5rem)]", data.textX === "center" && "xl:justify-center")}>
         {data.primaryLabel ? (
           <Link href={g7Href(data.primaryUrl ?? "", locale)} className={cn(g7GoldButton, heroButtonWidth)}>

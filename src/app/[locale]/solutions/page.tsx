@@ -7,6 +7,7 @@ import { Section } from "@/components/ui/section";
 import { Card } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { pageCopy } from "@/lib/seo/page-copy";
 import { SectionRenderer } from "@/components/site/section-renderer";
 import { loadPageHeaderSections, loadPageHeaderMeta } from "@/lib/page-builder/page-headers";
 import { isDraftPreviewRequest } from "@/lib/page-builder/render-page";
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "solutionsIndex" });
   const header = await loadPageHeaderMeta("solutionsIndex");
-  return buildMetadata({ locale, path: "/solutions", seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title"), fallbackDescription: t("body") });
+  return buildMetadata({ locale, path: "/solutions", copy: pageCopy("solutions", locale), seo: header?.seo, fallbackTitle: pageTitle(header, locale) ?? t("title"), fallbackDescription: t("body") });
 }
 
 /** `Solution.icon` stores a lucide-react component name (e.g. "BedDouble"), same convention
@@ -67,7 +68,7 @@ export default async function SolutionsIndexPage({ searchParams }: { searchParam
   const headerSections = await loadPageHeaderSections("solutionsIndex", draftPreview);
   if (!headerSections) {
     return (
-      <Section tone="paper" eyebrow={t("eyebrow")} title={t("title")} description={t("body")}>
+      <Section titleAs="h1" tone="paper" eyebrow={t("eyebrow")} title={t("title")} description={t("body")}>
         {results}
       </Section>
     );

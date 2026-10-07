@@ -6,6 +6,7 @@ import { resolveSectionsToRender, isDraftPreviewRequest } from "@/lib/page-build
 import { DraftPreviewBanner } from "@/components/site/draft-preview-banner";
 import { SectionRenderer } from "@/components/site/section-renderer";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { pageCopy } from "@/lib/seo/page-copy";
 import { pageTitle } from "@/lib/page-builder/page-title";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   });
   if (!page || page.status !== "PUBLISHED") return {};
   const t = await getTranslations({ locale, namespace: "contactPage" });
-  return buildMetadata({ locale, path: "/contact", seo: page.seo, fallbackTitle: pageTitle(page, locale) ?? t("title"), fallbackDescription: t("subtitle") });
+  return buildMetadata({ locale, path: "/contact", copy: pageCopy("contact", locale), seo: page.seo, fallbackTitle: pageTitle(page, locale) ?? t("title"), fallbackDescription: t("subtitle") });
 }
 
 export default async function ContactPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

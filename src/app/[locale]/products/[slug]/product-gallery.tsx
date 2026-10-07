@@ -103,7 +103,7 @@ export function ProductGallery({ images, mobileMainUrl, videos, productName }: {
               aria-current={index === activeIndex}
             >
               {item.type === "image" ? (
-                <Image src={item.url} alt="" fill sizes="120px" className="object-cover" />
+                <Image src={item.url} alt={`${productName} ${index + 1}`} fill sizes="120px" className="object-cover" />
               ) : (
                 <span className="flex h-full w-full items-center justify-center bg-ink text-paper">
                   <Play size={16} aria-hidden="true" />

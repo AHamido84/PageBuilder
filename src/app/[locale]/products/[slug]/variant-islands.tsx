@@ -227,7 +227,7 @@ export function VariantsTable({
                     <span className="flex items-center gap-3">
                       {v.images[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element -- small thumbnail of a CMS image
-                        <img src={v.images[0].url} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-[6px] border border-line bg-frost object-cover" data-variant-thumb />
+                        <img src={v.images[0].url} alt={v.name} loading="lazy" className="h-12 w-12 shrink-0 rounded-[6px] border border-line bg-frost object-cover" data-variant-thumb />
                       ) : null}
                       <span>{v.label || v.name}</span>
                     </span>
