@@ -61,7 +61,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             alternateName: isAr ? GOLDEN_SEVEN.companyName.en : GOLDEN_SEVEN.companyName.ar,
             url: `${SITE_URL}/${locale}`,
             description: (isAr ? SITE_DEFAULT_COPY.ar : SITE_DEFAULT_COPY.en).description,
-            logoUrl: `${SITE_URL}${GOLDEN_SEVEN.logo.src2x}`,
+            logoUrl: `${SITE_URL}${GOLDEN_SEVEN.squareLogo.src}`,
             imageUrl: `${SITE_URL}/og/golden-seven-foods.jpg`,
             telephone: GOLDEN_SEVEN.contact.telephone,
             email: GOLDEN_SEVEN.contact.email,

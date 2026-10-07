@@ -32,6 +32,17 @@ export const GOLDEN_SEVEN = {
     addressCountry: "SA",
     areaServed: { ar: "المملكة العربية السعودية", en: "Saudi Arabia" },
   },
+  /** Square brand icon (public/icon.png, 512x512) -- the Organization logo for search engines. */
+  squareLogo: { src: "/icon.png", size: 512 },
+  /**
+   * Official social profiles for Organization.sameAs. TODO(owner): add the full profile URLs, e.g.
+   *   "https://www.instagram.com/<handle>", "https://x.com/<handle>",
+   *   "https://www.linkedin.com/company/<slug>", "https://www.facebook.com/<page>",
+   *   "https://www.tiktok.com/@<handle>", "https://www.snapchat.com/add/<handle>"
+   */
+  sameAs: [] as readonly string[],
+  /** Registered legal name (Organization.legalName). TODO(owner): confirm -- left unset until then. */
+  legalName: null as string | null,
 } as const;
 
 export async function getSiteBrand(): Promise<SiteBrand> {

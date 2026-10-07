@@ -14,18 +14,37 @@ interface OrgSchemaInput {
   contactPhone?: string | null;
   socialLinks?: { facebook?: string; instagram?: string; linkedin?: string; twitter?: string } | null;
   address?: string | null;
+  /** Square logo (Google wants >= 112x112); emitted as an ImageObject with its size. */
+  logoSize?: number | null;
+  legalName?: string | null;
+  /** Locality-level address (city + ISO country) when there is no street address. */
+  addressLocality?: string | null;
+  addressCountry?: string | null;
+  /** Official profiles; takes precedence over socialLinks when non-empty. */
+  sameAs?: readonly string[] | null;
 }
 
 export function organizationSchema(input: OrgSchemaInput) {
-  const sameAs = Object.values(input.socialLinks ?? {}).filter((v): v is string => Boolean(v));
+  const sameAs = input.sameAs?.length ? [...input.sameAs] : Object.values(input.socialLinks ?? {}).filter((v): v is string => Boolean(v));
+  const logo = input.logoUrl
+    ? input.logoSize
+      ? { "@type": "ImageObject", url: input.logoUrl, width: input.logoSize, height: input.logoSize }
+      : input.logoUrl
+    : null;
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
     "@id": `${SITE_URL}/#organization`,
     name: input.siteName,
     ...(input.alternateName ? { alternateName: input.alternateName } : {}),
+    ...(input.legalName ? { legalName: input.legalName } : {}),
     url: SITE_URL,
-    ...(input.logoUrl ? { logo: input.logoUrl } : {}),
+    ...(logo ? { logo } : {}),
+    ...(input.contactPhone ? { telephone: input.contactPhone } : {}),
+    ...(input.contactEmail ? { email: input.contactEmail } : {}),
+    ...(input.addressLocality
+      ? { address: { "@type": "PostalAddress", addressLocality: input.addressLocality, ...(input.addressCountry ? { addressCountry: input.addressCountry } : {}) } }
+      : {}),
     ...(sameAs.length ? { sameAs } : {}),
     ...(input.contactEmail || input.contactPhone
       ? {
@@ -37,7 +56,7 @@ export function organizationSchema(input: OrgSchemaInput) {
           },
         }
       : {}),
-    ...(input.address ? { address: { "@type": "PostalAddress", streetAddress: input.address } } : {}),
+    ...(input.address && !input.addressLocality ? { address: { "@type": "PostalAddress", streetAddress: input.address } } : {}),
   };
 }
 

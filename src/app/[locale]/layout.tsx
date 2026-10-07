@@ -41,7 +41,20 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     metadataBase: new URL(SITE_URL),
     title: { default: defaultCopy?.title ?? identity.companyName, template: `%s — ${identity.companyName}` },
     description: defaultCopy?.description ?? "Wholesale food distribution — Jeddah, Saudi Arabia",
-    icons: { icon: settings?.favicon?.url ?? "/favicon.ico" },
+    // Golden Seven: its own static brand icons (public/, scripts/generate-brand-icons.ts) -- the shared
+    // SiteSetting favicon may hold the other brand's image. Elsewhere: the uploaded favicon as before.
+    icons:
+      identity.brand === "golden-seven"
+        ? {
+            icon: [
+              { url: "/favicon.ico", sizes: "48x48" },
+              { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+              { url: "/icon.png", type: "image/png", sizes: "512x512" },
+            ],
+            apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+          }
+        : { icon: settings?.favicon?.url ?? "/favicon.ico" },
+    ...(identity.brand === "golden-seven" ? { manifest: "/manifest.webmanifest" } : {}),
   };
 }
 
@@ -124,12 +137,18 @@ export default async function LocaleLayout({
   const orgSchema = organizationSchema({
     siteName: identity.companyName,
     alternateName: isGolden ? (locale === "ar" ? GOLDEN_SEVEN.companyName.en : GOLDEN_SEVEN.companyName.ar) : null,
-    // Golden Seven: always its own logo file (the shared SiteSetting logo may still be another brand's).
-    logoUrl: isGolden && identity.logo ? `${SITE_URL}${identity.logo.src2x}` : settings?.logo?.url,
+    // Golden Seven: its own square icon as the logo, its own contact facts and profiles (the shared
+    // SiteSetting logo/socials may still be another brand's). Elsewhere: SiteSetting as before.
+    logoUrl: isGolden ? `${SITE_URL}${GOLDEN_SEVEN.squareLogo.src}` : settings?.logo?.url,
+    logoSize: isGolden ? GOLDEN_SEVEN.squareLogo.size : null,
+    legalName: isGolden ? GOLDEN_SEVEN.legalName : null,
     contactEmail: isGolden ? GOLDEN_SEVEN.contact.email : settings?.contactEmail,
     contactPhone: isGolden ? GOLDEN_SEVEN.contact.telephone : settings?.contactPhone,
-    socialLinks: settings?.socialLinks as { facebook?: string; instagram?: string; linkedin?: string; twitter?: string } | null,
-    address: settings?.address,
+    socialLinks: isGolden ? null : (settings?.socialLinks as { facebook?: string; instagram?: string; linkedin?: string; twitter?: string } | null),
+    sameAs: isGolden ? GOLDEN_SEVEN.sameAs : null,
+    addressLocality: isGolden ? GOLDEN_SEVEN.contact.addressLocality[locale === "ar" ? "ar" : "en"] : null,
+    addressCountry: isGolden ? GOLDEN_SEVEN.contact.addressCountry : null,
+    address: isGolden ? null : settings?.address,
   });
 
   // Phase 8 "Global Visual Control Center" -- see src/lib/design-tokens/. `designTokens` is empty

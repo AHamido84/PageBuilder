@@ -88,7 +88,8 @@ export async function buildMetadata({
   // Self-referencing and query-free (?size=7mm etc. never reach `path`); a category listing keeps
   // its own ?category= because that parameter is what makes it a distinct page.
   const canonical = seo?.canonicalUrl || `${SITE_URL}/${locale}${cleanPath}`;
-  const pageImageUrl = seo?.ogImage?.url || image || settings?.defaultOgImage?.url || null;
+  // Golden Seven never falls back to the shared SiteSetting share image (it may be the other brand's).
+  const pageImageUrl = seo?.ogImage?.url || image || (isGolden ? null : settings?.defaultOgImage?.url) || null;
   const ogImage = pageImageUrl
     ? { url: absoluteUrl(pageImageUrl), alt: title }
     : { ...DEFAULT_OG_IMAGE, url: absoluteUrl(DEFAULT_OG_IMAGE.url), alt: title };
