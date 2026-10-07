@@ -5,7 +5,9 @@
  *   npx tsx scripts/restore-db-json.ts <backup.json>            # dry run: shows what would load
  *   npx tsx scripts/restore-db-json.ts <backup.json> --apply    # empties those tables, then loads
  *
- * - Refuses the production host (ep-quiet-band) -- it is only for rebuilding dev / preview.
+ * - Refuses the production host (ep-quiet-band) unless --allow-production is passed: that is only
+ *   for disaster recovery (docs/DISASTER-RECOVERY.md), when the live data itself must be replaced.
+ *   A brand-new database (any host) needs no flag.
  * - `_prisma_migrations` is never restored (the target keeps its own migration history).
  * - Columns the backup doesn't have (added by later migrations) keep their defaults; backup
  *   columns the target doesn't have are reported and skipped.
@@ -25,7 +27,9 @@ async function main() {
   const apply = process.argv.includes("--apply");
   if (!file) throw new Error("usage: restore-db-json.ts <backup.json> [--apply]");
   const url = process.env.DATABASE_URL ?? "";
-  if (url.includes(PROD_HOST)) throw new Error("Refusing to run: DATABASE_URL points at the production database.");
+  if (url.includes(PROD_HOST) && !process.argv.includes("--allow-production")) {
+    throw new Error("Refusing to run: DATABASE_URL points at the production database (pass --allow-production for disaster recovery).");
+  }
   const host = new URL(url).hostname.split(".")[0];
 
   const backup = JSON.parse(readFileSync(file, "utf8")) as { host: string; takenAt: string; tables: Record<string, Row[]> };
